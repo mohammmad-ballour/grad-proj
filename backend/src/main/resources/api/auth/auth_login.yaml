@@ -1,0 +1,20 @@
+post:
+  summary: log-in user
+  tags:
+    - Auth API
+  operationId: login
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../auth/auth__schemas.yaml#/components/schemas/SignInRequest'
+  responses:
+    '200':
+      description: User logged in successfully
+      content:
+        application/json:
+          schema:
+            $ref: '../auth/auth__schemas.yaml#/components/schemas/LoginResponse'
+    default:
+      $ref: '../../api/api__schemas.yaml#/components/responses/AppException'

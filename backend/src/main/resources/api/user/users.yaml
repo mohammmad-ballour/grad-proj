@@ -1,0 +1,27 @@
+post:
+  summary: Create a new user account
+  operationId: signupUser
+  tags:
+    - Users API
+  requestBody:
+    description: User sign-up details
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: './user__schemas.yaml#/components/schemas/CreateUser'
+  responses:
+    '201':
+      description: User created successfully
+    '400':
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '../../api/api__schemas.yaml#/components/responses/AppException'
+    '409':
+      description: Email already in use
+      content:
+        application/json:
+          schema:
+            $ref: '../../api/api__schemas.yaml#/components/responses/AppException'

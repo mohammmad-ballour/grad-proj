@@ -1,0 +1,20 @@
+get:
+  summary: fetch user account by username/displayName
+  operationId: fetchUserAccountByName
+  tags:
+    - Users API
+  parameters:
+    - name: nameToSearch
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    '200':
+      description: User account successfully retrieved
+      content:
+        application/json:
+          schema:
+            $ref: './user__schemas.yaml#/components/schemas/ProfileResponse'
+    default:
+      $ref: '../../api/api__schemas.yaml#/components/responses/AppException'

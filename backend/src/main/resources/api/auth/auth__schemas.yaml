@@ -1,0 +1,41 @@
+components:
+  schemas:
+    AuthErrorCode:
+      type: string
+      enum:
+        - LOGIN_CREDENTIALS_INVALID
+
+    AuthErrorReasonCode:
+      type: string
+      enum:
+        - AUTHENTICATION_FAILED
+
+    AuthErrorDetail:
+      type: object
+      required:
+        - code
+        - reason
+      properties:
+        code:
+          $ref: '#/components/schemas/AuthErrorCode'
+        reason:
+          $ref: '#/components/schemas/AuthErrorReasonCode'
+
+    SignInRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required:
+        - idToken
+      properties:
+        idToken:
+          type: string

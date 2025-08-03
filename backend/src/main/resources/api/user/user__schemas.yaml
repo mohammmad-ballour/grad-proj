@@ -1,0 +1,100 @@
+components:
+  schemas:
+    CreateUser:
+      type: object
+      required:
+        - email
+        - username
+        - password
+        - dob
+        - gender
+        - residence
+        - timezoneId
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        dob:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [ MALE, FEMALE, PREFER_NOT_TO_SAY ]
+        residence:
+          type: string
+        timezoneId:
+          type: string
+
+    ProfileResponse:
+      type: object
+      required:
+        - userId
+        - username
+        - userAvatar
+        - profileCoverPhoto
+        - profileBio
+        - joinedAt
+        - aboutUser
+      properties:
+        userId:
+          type: integer
+          format: int64
+        username:
+          type: string
+        userAvatar:
+          $ref: '#/components/schemas/UserAvatar'
+        profileCoverPhoto:
+          type: string
+          format: byte
+        profileBio:
+          type: string
+        joinedAt:
+          type: string
+          format: date
+        aboutUser:
+          $ref: '#/components/schemas/UserAbout'
+        followingNo:
+          type: integer
+          format: int32
+        followerNo:
+          type: integer
+          format: int32
+        posts:
+          type: array
+          items:
+            $ref: '../post/post__schemas.yaml#/components/schemas/PostCard'
+
+    UserAbout:
+      type: object
+      required:
+        - gender
+        - dob
+        - residence
+        - timezoneId
+      properties:
+        gender:
+          type: string
+        dob:
+          type: string
+          format: date
+        residence:
+          type: string
+        timezoneId:
+          type: string
+
+    UserAvatar:
+      type: object
+      required:
+        - profilePicture
+        - displayName
+      properties:
+        profilePicture:
+          type: string
+          format: byte
+        displayName:
+          type: string

@@ -1,0 +1,23 @@
+openapi: 3.0.1
+info:
+  title: Kafel
+  version: '0.0.1'
+servers:
+  - url: http://localhost:8080
+
+paths:
+  # Auth
+  ##########################################
+  ##########################################
+  /auth/login:
+    $ref: './auth/auth_login.yaml'
+
+  # Users
+  ##########################################
+  ##########################################
+  /users:
+    $ref: "./user/users.yaml"
+  /users/{userId}:
+    $ref: "./user/users_id.yaml"
+  /users/public/{nameToSearch}:
+    $ref: "./user/users_name.yaml"

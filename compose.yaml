@@ -1,0 +1,19 @@
+services:
+  pgvector:
+    image: 'pgvector/pgvector:pg17'
+    container_name: 'social-container'
+    environment:
+      - 'POSTGRES_DB=mydatabase'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=mohbalor'
+      - PGTZ=UTC
+    labels:
+      - "org.springframework.boot.service-connection=postgres"
+    ports:
+      - '25432:5432'
+    volumes:
+      - social_data:/var/lib/postgresql/data  # Volume to persist data
+
+volumes:
+  social_data: # Define the volume
+    driver: local
