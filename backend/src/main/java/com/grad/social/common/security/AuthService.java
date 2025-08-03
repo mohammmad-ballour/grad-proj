@@ -1,7 +1,6 @@
 package com.grad.social.common.security;
 
 import com.grad.grad_proj.generated.api.model.SignInRequestDto;
-import com.grad.grad_proj.generated.api.model.LoginResponseDto;
 import org.springframework.security.authentication.BadCredentialsException;
 
 public interface AuthService {
@@ -16,5 +15,5 @@ public interface AuthService {
      * @return an ID token (JWT) as a {@link String}
      * @throws BadCredentialsException if the credentials are invalid
      */
-    LoginResponseDto loginWithPassword(SignInRequestDto request) throws BadCredentialsException;
+    String loginWithPassword(SignInRequestDto request) throws BadCredentialsException;
 }

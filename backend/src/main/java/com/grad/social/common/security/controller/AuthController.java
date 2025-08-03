@@ -18,7 +18,7 @@ public class AuthController implements AuthApi {
 
     @Override
     @PreAuthorize("permitAll()")
-    public ResponseEntity<LoginResponseDto> login(SignInRequestDto signInRequestDto) {
+    public ResponseEntity<String> login(SignInRequestDto signInRequestDto) {
         return ResponseEntity.ok(this.authService.loginWithPassword(signInRequestDto));
     }
 

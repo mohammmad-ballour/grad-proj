@@ -18,14 +18,16 @@ export class LoginService extends BaseService {
   }
 
   login(logInRequestDto: LogInRequestDto, routerLink: AppRoutes): Observable<string | null> {
-    return this.httpClient.post<string>(`${this.baseUrl}${this.API_ENDPOINTS_LOGIN}`, logInRequestDto).pipe(
-      tap(idToken => {
-        //  Handle token storage only on successful response
-        this.authService.TokenKey = idToken;
+    return this.httpClient.post(`${this.baseUrl}${this.API_ENDPOINTS_LOGIN}`, logInRequestDto, {
+      responseType: 'text'  // <-- expects plain text response (i.e. the id token)
+    }).pipe(
+      tap((token: string) => {
+        console.log('Login successful', token);
+        this.authService.TokenKey = token;
         this.router.navigate([routerLink]);
       }),
-      catchError((loginError) => {
-        console.log(loginError);
+      catchError((error) => {
+        console.error('Login failed:', error);
         return of(null);
       })
     );

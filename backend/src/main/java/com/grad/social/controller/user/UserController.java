@@ -26,7 +26,6 @@ public class UserController implements UsersApi {
     private final UserService userService;
 
     @Override
-    @PreAuthorize("isAnonymous()")
     public ResponseEntity<Void> signupUser(CreateUserDto createUserDto) {
         this.userService.createUser(createUserDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();

@@ -48,6 +48,7 @@ public class UserService {
             Long userId = this.userRepository.save(user);
             if (userId != null) {
                 // save user's security-related info in the identity provider
+                System.out.println("user id = " + userId);
                 this.authService.createUserAccount(userId.toString(), user.getEmail(), user.getPassword());
             }
         } catch (DuplicateKeyException ex) {

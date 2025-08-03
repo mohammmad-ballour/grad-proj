@@ -1,3 +1,21 @@
+### Create a user
+POST http://localhost:8080/api/users
+Content-Type: application/json
+{
+  "email": "mar1990k@example.org",
+  "username": "itismark",
+  "displayName": "itismark",
+  "password": "secret12_12",
+  "dob": "1990-01-01",
+  "gender": "MALE",
+  "residence": "Albany, New York",
+  "timezoneId": "Africa/Cairo",
+  "profilePicture": null,
+  "profileCoverPhoto": null,
+  "profileBio": "hello, world!"
+}
+
+
 ### login
 POST http://localhost:8080/api/auth/login
 Content-Type: application/json
@@ -6,5 +24,3 @@ Content-Type: application/json
   "email": "test@gmail.com",
   "password": "secret12_12"
 }
-
-###

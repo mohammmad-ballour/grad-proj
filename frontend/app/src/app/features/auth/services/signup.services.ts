@@ -23,7 +23,6 @@ export class SignupService extends BaseService {
                 this.loginServices.login(
                     { email: signupRequest.email, password: signupRequest.password },
                     AppRoutes.FEED
-
                 ).pipe(
                     catchError(() => {
                         return of(null); // continue with null so caller can handle failure

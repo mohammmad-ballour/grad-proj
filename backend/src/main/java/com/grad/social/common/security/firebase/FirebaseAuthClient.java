@@ -4,7 +4,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.grad.grad_proj.generated.api.model.SignInRequestDto;
-import com.grad.grad_proj.generated.api.model.LoginResponseDto;
 import com.grad.social.common.AppConstants;
 import com.grad.social.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,7 @@ public class FirebaseAuthClient {
     private final UserRepository userRepository;
     private final FirebaseAuth firebaseAuth;
 
-    public LoginResponseDto login(SignInRequestDto signInRequestDto) {
+    public String login(SignInRequestDto signInRequestDto) {
         // Step 1: Authenticate via Firebase Identity REST API
         FirebaseSignInRequest requestBody = new FirebaseSignInRequest(signInRequestDto.getEmail(), signInRequestDto.getPassword(), true);
         var signInResponse = sendSignInRequest(requestBody);
@@ -59,7 +58,7 @@ public class FirebaseAuthClient {
             throw new IllegalStateException("Failed to create custom token", e);
         }
 
-        return new LoginResponseDto(customToken);
+        return customToken;
     }
 
     private FirebaseSignInResponse sendSignInRequest(FirebaseSignInRequest firebaseSignInRequest) {

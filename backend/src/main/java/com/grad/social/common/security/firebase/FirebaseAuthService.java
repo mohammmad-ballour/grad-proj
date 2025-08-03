@@ -3,7 +3,6 @@ package com.grad.social.common.security.firebase;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.UserRecord;
-import com.grad.grad_proj.generated.api.model.LoginResponseDto;
 import com.grad.grad_proj.generated.api.model.SignInRequestDto;
 import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
 import com.grad.social.common.security.AuthService;
@@ -28,6 +27,7 @@ public class FirebaseAuthService implements AuthService {
                 .setDisabled(false);
         try {
             UserRecord userRecord = this.firebaseAuth.createUser(request);
+            System.out.println("account created");
             return userRecord.getUid();
         } catch (FirebaseAuthException e) {
             throw new ActionNotAllowedException(UserErrorCode.CANNOT_CREATE_ACCOUNT);
@@ -35,7 +35,7 @@ public class FirebaseAuthService implements AuthService {
     }
 
     @Override
-    public LoginResponseDto loginWithPassword(SignInRequestDto signInRequestDto) throws BadCredentialsException {
+    public String loginWithPassword(SignInRequestDto signInRequestDto) throws BadCredentialsException {
         return this.firebaseAuthClient.login(signInRequestDto);
     }
 }
