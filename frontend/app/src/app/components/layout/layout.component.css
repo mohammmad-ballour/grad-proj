@@ -1,0 +1,21 @@
+.sidenav-container {
+    height: 100vh;
+    background-color: black;
+}
+
+.sidenav {
+    width: 200px;
+    background-color: rgb(6, 6, 7);
+}
+
+.content {
+    box-sizing: border-box;
+    padding: 20px;
+    height: calc(100vh);
+    overflow: auto;
+}
+
+app-header {
+    position: stiky;
+    height: 64px;
+}

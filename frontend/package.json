@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@angular/router": "^19.2.11"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14"
+  }
+}

@@ -1,0 +1,133 @@
+<div class="signup-wrapper">
+  <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" class="signup-card">
+    <h2 class="login-title">Sign Up</h2>
+
+    <div class="fields">
+
+      <!-- Email -->
+      <mat-form-field appearance="fill" class="signup-field">
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" type="email" autocomplete="off" />
+        @if (email.invalid && email.touched) {
+        <mat-error>Valid email is required</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Username -->
+      <mat-form-field appearance="fill" class="signup-field">
+        <mat-label>Username</mat-label>
+        <input matInput formControlName="username" autocomplete="off" />
+        @if (username.invalid && username.touched) {
+        <mat-error>Unicode-safe username required</mat-error>
+        }
+      </mat-form-field>
+
+
+      <!-- Password -->
+      <mat-form-field appearance="fill" class="signup-field">
+        <mat-label>Password</mat-label>
+        <input autocomplete="new-password" matInput [type]="showPassword() ? 'text' : 'password'"
+          formControlName="password" autocomplete="off" />
+        <button mat-icon-button matSuffix type="button" (click)="togglePasswordVisibility()"
+          aria-label="Toggle password visibility">
+          <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+
+        @if (password.touched && password.errors) {
+        <mat-error>
+          {{
+          password.errors['required'] ? 'Password must be 8–32 chars, letters & numbers':
+          password.errors['whitespace'] ? 'Password cannot contain spaces'
+          : password.errors['letterMissing'] ? 'Password must include a letter'
+          : password.errors['numberMissing'] ? 'Password must include a number'
+          : password.errors['minLength'] ? 'Password must be at least 8 characters'
+          : password.errors['maxLength'] ? 'Password must be no more than 32 characters'
+          : ''
+          }}
+        </mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Confirm Password -->
+      <mat-form-field appearance="fill" class="signup-field">
+        <mat-label>Confirm Password</mat-label>
+        <input matInput type="password" autocomplete="new-password" formControlName="confirmPassword" required />
+        @if(confirmPassword.touched){
+        <mat-error>
+          {{
+          confirmPassword.errors?.['required']
+          ? 'Confirm Password is required'
+          : signupForm.errors?.['passwordMismatch']
+          ? 'Passwords must match'
+          : ''
+          }}
+        </mat-error>
+        }
+
+      </mat-form-field>
+
+
+      <!-- Date of Birth -->
+      <mat-form-field appearance="fill" class="signup-field">
+        <mat-label>Date of Birth</mat-label>
+        <input matInput type="date" formControlName="dob" />
+        @if (dateOfBirth.touched && dateOfBirth.errors) {
+        <mat-error>
+          {{
+          dateOfBirth.errors['required'] ? 'full Date of Birth is required':
+          dateOfBirth.invalid ? 'Date of birth must be between 10 and 100 years ago'
+          : ''
+          }}
+        </mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Gender -->
+      <mat-form-field appearance="fill" class="signup-field">
+        <mat-label>Gender</mat-label>
+        <mat-select formControlName="gender" required>
+          <mat-option value="MALE">Male</mat-option>
+          <mat-option value="FEMALE">Female</mat-option>
+        </mat-select>
+
+        @if (gender.touched && gender.errors?.['required']) {
+        <mat-error>Gender is required</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Country -->
+
+      <app-country-selector [control]="residence"></app-country-selector>
+
+
+      <app-timezone-selector [control]="timezoneControl"></app-timezone-selector>
+
+
+      <!-- Timezone -->
+
+
+
+
+    </div>
+
+    <!-- Submit Button -->
+    <button mat-raised-button color="primary" type="submit" class="signup-btn"
+      [disabled]="signupForm.invalid || loading()">
+      @if (loading()) {
+      <mat-progress-spinner mode="indeterminate" diameter="20" strokeWidth="4" color="accent"></mat-progress-spinner>
+      } @else {
+      <span>Create Account</span>
+      }
+    </button>
+
+    <!-- Submission Error -->
+    @if (sigupFailed()) {
+    <div class="signup-error">signup failed</div>
+    }
+
+    <!-- Redirect to Login -->
+    <button mat-button color="accent" type="button" class="signup-redirect-btn" (click)="GoToLogIn()">
+      Already have an account?
+    </button>
+  </form>
+</div>

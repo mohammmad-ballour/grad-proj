@@ -1,0 +1,52 @@
+<div class="login-wrapper">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-card mat-elevation-z8">
+    <h2 class="login-title">Welcome Back</h2>
+
+    <!-- Email -->
+    <mat-form-field appearance="fill" class="login-field">
+      <mat-label>Email</mat-label>
+      <input matInput formControlName="email" autocomplete="email" class="email" />
+      <mat-icon matSuffix>email</mat-icon>
+      @if (form.get('email')?.hasError('required')) {
+        <mat-error>Email is required</mat-error>
+      }
+      @if (form.get('email')?.hasError('pattern')) {
+        <mat-error>Invalid email</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- Password -->
+    <mat-form-field appearance="fill" class="login-field">
+      <mat-label>Password</mat-label>
+      <input matInput [type]="hidePassword() ? 'password' : 'text'" formControlName="password"
+        autocomplete="current-password" />
+      <button mat-icon-button matSuffix type="button" (click)="hidePassword.set(!hidePassword())">
+        <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+      @if (form.get('password')?.hasError('required')) {
+        <mat-error>Password is required</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- Submit -->
+    <button mat-raised-button color="primary" type="submit" class="login-btn" [disabled]="form.invalid || loading()">
+      @if (loading()) {
+        <mat-progress-spinner mode="indeterminate" [style.animationDelay]="'1500ms'" diameter="20"
+          strokeWidth="4" color="accent"></mat-progress-spinner>
+      } @else {
+        <span>Log In</span>
+      }
+    </button>
+
+    <!-- Login Failed -->
+    @if (loginFailed()) {
+      <div class="login-error">
+        Incorrect email or password
+      </div>
+    }
+
+    <button mat-stroked-button color="accent" type="button" class="signup-btn" (click)="GoToSignUp()">
+      Create New Account
+    </button>
+  </form>
+</div>

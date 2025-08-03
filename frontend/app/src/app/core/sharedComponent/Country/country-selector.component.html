@@ -1,0 +1,24 @@
+<mat-form-field style="width: 100%;">
+  <mat-label>Country</mat-label>
+  <input matInput  (input)="onCountryInput($event)"
+         [formControl]="control"
+         [matAutocomplete]="autoCountry"
+         required />
+
+  <mat-autocomplete #autoCountry="matAutocomplete">
+  @for (country of filteredCountries; track country) {
+    <mat-option [value]="country">
+      {{ country }}
+    </mat-option>
+  }
+</mat-autocomplete>
+
+
+  <mat-error>
+    {{
+      control.touched && control.hasError('required') ? 'Country is required'
+      : control.touched && control.hasError('invalidCountry') ? 'Invalid country selected'
+      : ''
+    }}
+  </mat-error>
+</mat-form-field>

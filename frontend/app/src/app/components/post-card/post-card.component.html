@@ -1,0 +1,18 @@
+<div class="post-card">
+  <div class="post-header">
+    <mat-icon>account_circle</mat-icon>
+    <span>User {{ post?.userId }}</span>
+    <span class="timestamp">{{ post?.createdAt }}</span>
+  </div>
+  <div class="post-content">
+    <p>{{ post?.content }}</p>
+  </div>
+  <div class="post-actions">
+    <button mat-icon-button>
+      <mat-icon>favorite_border</mat-icon>
+    </button>
+    <button mat-icon-button>
+      <mat-icon>comment</mat-icon>
+    </button>
+  </div>
+</div>

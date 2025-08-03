@@ -1,0 +1,18 @@
+.message-card {
+    margin-bottom: 16px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    /* Changed to 10px */
+    color: var(--mdc-theme-on-surface, white);
+}
+
+@media (max-width: 600px) {
+    .messages-container {
+        padding: 8px;
+    }
+
+    .message-card {
+        border-radius: 8px;
+        /* Slightly smaller for mobile */
+    }
+}

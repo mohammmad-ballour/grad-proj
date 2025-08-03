@@ -1,0 +1,57 @@
+<div class="profile-container">
+  <!-- PROFILE CONTENT -->
+  <div class="profile-header" [class.blurred]="!isLoading">
+    <img
+      [src]="profile.profileCoverPhoto || 'https://via.placeholder.com/1200x400?text=Default+Cover+Image'"
+      (error)="onCoverError($event)"
+      class="cover-img"
+    />
+
+    <div class="avatar-section">
+      <img
+        [src]="profile.userAvatar.profilePicture"
+        (error)="onAvatarError($event)"
+        class="avatar-img"
+      />
+    </div>
+
+    <div class="user-info">
+      <div class="profile-actions">
+        <button     (click)="openEditProfile()">Edit Profile</button>
+      </div>
+
+      <h1 class="username">{{ profile.userAvatar.displayName }}</h1>
+      <span class="handle">{{ '@' + profile.username }}</span>
+      <p class="bio">{{ profile.profileBio }}</p>
+
+      <div class="field-joined">
+        <mat-icon>calendar_today</mat-icon>
+        <span>Joined {{ profile.joinedAt | date: 'MMMM yyyy' }}</span>
+      </div>
+      <div class="stats">
+        <span><b>{{ profile.followingNo ?? 0 }}</b> Following</span>
+        <span><b>{{ profile.followerNo ?? 0 }}</b> Followers</span>
+      </div>
+    </div>
+  </div>
+
+  <mat-tab-group class="tabs" mat-align-tabs="start" [class.blurred]="!isLoading">
+    <mat-tab label="Posts">
+      <div class="tab-content">Post content goes here</div>
+    </mat-tab>
+    <mat-tab label="Replies">
+      <div class="tab-content">Reply content goes here</div>
+    </mat-tab>
+    <mat-tab label="Media">
+      <div class="tab-content">Media content goes here</div>
+    </mat-tab>
+  </mat-tab-group>
+
+  <!-- LOADING OVERLAY -->
+  @if (!isLoading) {
+    <div class="loading-state-overlay">
+      <mat-spinner></mat-spinner>
+      <p>Loading profile...</p>
+    </div>
+  }
+</div>

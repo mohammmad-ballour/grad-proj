@@ -1,0 +1,79 @@
+<div class="dialog-header">
+  <button mat-icon-button class="close-btn" (click)="closeDialog(false)" aria-label="Close dialog">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <h2>Edit profile</h2>
+
+  <button mat-flat-button color="primary" class="save-btn" (click)="save()" [disabled]="!profileForm.valid">
+    Save
+  </button>
+</div>
+
+<div class="cover-photo">
+  <img [src]="coverPhotoUrl || 'assets/default-cover.jpg'" alt="Cover Photo" (error)="onCoverError($event)" />
+  <label class="upload-cover">
+    <mat-icon>photo_camera</mat-icon>
+    <input type="file" accept="image/*" (change)="onCoverPhotoSelected($event)" hidden />
+  </label>
+</div>
+
+<div class="profile-photo">
+  <img [src]="profilePhotoUrl || 'assets/default-profile.jpg'" alt="Profile Photo" (error)="onAvatarError($event)" />
+  <label class="upload-profile">
+    <mat-icon>photo_camera</mat-icon>
+    <input type="file" accept="image/*" (change)="onProfilePhotoSelected($event)" hidden />
+  </label>
+</div>
+
+<div class="form-section">
+  <form [formGroup]="profileForm">
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Name</mat-label>
+      <input matInput placeholder="Name" formControlName="displayName" maxlength="50" />
+      <mat-hint>{{ (profileForm.get('displayName')?.value?.length ?? 0) }}/50</mat-hint>
+      @if (profileForm.get('displayName')?.hasError('required')) {
+        <mat-error>Name is required</mat-error>
+      }
+      @if (profileForm.get('displayName')?.hasError('maxlength')) {
+        <mat-error>Name cannot exceed 50 characters</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Bio</mat-label>
+      <textarea matInput placeholder="Bio" formControlName="bio" maxlength="160" rows="3"></textarea>
+      <mat-hint>{{ (profileForm.get('bio')?.value?.length ?? 0) }}/160</mat-hint>
+      @if (profileForm.get('bio')?.hasError('maxlength')) {
+        <mat-error>Bio cannot exceed 160 characters</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Date of Birth</mat-label>
+      <input matInput type="date" formControlName="dob" />
+      @if (profileForm.get('dob')?.touched && profileForm.get('dob')?.errors) {
+        @if (profileForm.get('dob')?.errors?.['required']) {
+          <mat-error>Full Date of Birth is required</mat-error>
+        }
+        @if (profileForm.get('dob')?.errors?.['invalidAge']) {
+          <mat-error>Date of birth must be between 10 and 100 years ago</mat-error>
+        }
+      }
+    </mat-form-field>
+  <mat-form-field appearance="fill" class="full-width">
+        <mat-label>Gender</mat-label>
+        <mat-select formControlName="gender" required>
+          <mat-option value="MALE">Male</mat-option>
+          <mat-option value="FEMALE">Female</mat-option>
+        </mat-select>
+
+        @if (gender.touched && gender.errors?.['required']) {
+        <mat-error>Gender is required</mat-error>
+        }
+      </mat-form-field>
+
+    <app-country-selector [control]="residence"></app-country-selector>
+    <app-timezone-selector [control]="timezoneControl"></app-timezone-selector>
+  </form>
+</div>

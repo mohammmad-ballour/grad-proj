@@ -1,0 +1,150 @@
+:host {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 0;
+  margin: 0;
+  background: linear-gradient(135deg, #0d1117, #ffffff, #6f42c1);
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+
+
+.signup-wrapper {
+  width: 100%;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(135deg, #0d1117, #ffffff, #6f42c1);
+
+}
+
+.signup-card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 720px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.signup-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #e0d4f7;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  margin-bottom: 1rem;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+.signup-field,
+.signup-field-password-Group {
+  width: 100%;
+}
+
+.mat-form-field-appearance-fill .mat-form-field-flex {
+  background-color: #f5f9ff;
+}
+
+.mat-form-field-infix {
+  color: #1a1a1a;
+}
+
+.mat-icon {
+  color: #6f42c1;
+}
+
+::ng-deep input[formControlName] {
+  background-color: transparent !important;
+  color: #2a2a2a !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding-left: 10px;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.signup-btn, .signup-redirect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 3rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(90deg, #ad97c4, #7f9ac9);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.4s ease-in-out;
+  border: none;
+}
+
+.signup-btn:hover, .signup-redirect-btn:hover {
+  background: linear-gradient(270deg, #ad97c4, #7f9ac9);
+
+}
+
+.signup-error {
+  color: red;
+  font-weight: 500;
+  text-align: center;
+  margin-top: -1rem;
+  font-size: 1.2rem;
+}
+
+.mat-progress-spinner {
+  margin-left: 12px;
+}
+
+
+
+.mat-option {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+
+
+/* Add subtle elevation effect on input focus */
+::ng-deep .mat-form-field-appearance-fill .mat-form-field-flex.mat-focused {
+  box-shadow: 0 0 0 2px rgba(111, 66, 193, 0.2);
+  transition: box-shadow 0.3s ease;
+}
+
+.confirm-password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.match-error {
+  position: absolute;
+  bottom: -1.5rem;
+  left: 0;
+  color: #f44336;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 2;
+  padding-left: 12px;
+}

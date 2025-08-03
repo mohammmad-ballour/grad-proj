@@ -1,0 +1,15 @@
+<div class="notifications-container">
+  <h2>Notifications</h2>
+  <mat-list>
+    <mat-list-item *ngFor="let notification of notifications" class="notification-item">
+      <mat-icon matListIcon>{{ getIcon(notification.type) }}</mat-icon>
+      <div class="notification-content">
+        <span class="message">{{ notification.message }}</span>
+        <span class="timestamp">{{ notification.createdAt }}</span>
+      </div>
+    </mat-list-item>
+  </mat-list>
+  <div matRipple matRippleColor="red" >
+  <ng-content>ffffffffff</ng-content>
+</div>
+</div>

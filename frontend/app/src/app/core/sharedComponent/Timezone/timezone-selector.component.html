@@ -1,0 +1,26 @@
+<mat-form-field style="width: 100%;">
+  <mat-label>Timezone</mat-label>
+  <input matInput [formControl]="control"
+         [matAutocomplete]="autoTimezone"
+         (input)="onTimezoneInput($event)"
+         required />
+
+  <mat-autocomplete #autoTimezone="matAutocomplete">
+    @for (group of filteredTimezones; track group.group) {
+      <mat-optgroup [label]="group.group">
+        @for (zone of group.zones; track zone) {
+          <mat-option [value]="zone">{{ zone }}</mat-option>
+        }
+      </mat-optgroup>
+    }
+  </mat-autocomplete>
+
+  @if (hasRequiredError) {
+    <mat-error>Timezone is required</mat-error>
+  }
+
+  @if (hasInvalidTimezoneError) {
+    <mat-error>Selected timezone is invalid</mat-error>
+  }
+
+</mat-form-field>

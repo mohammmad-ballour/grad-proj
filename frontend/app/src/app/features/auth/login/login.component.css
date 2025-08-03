@@ -1,0 +1,110 @@
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: linear-gradient(135deg, #0d1117, #ffffff, #6f42c1);
+}
+
+
+
+.login-card {
+    background: rgba(255, 255, 255, 0.05);
+    /* semi-transparent white */
+    backdrop-filter: blur(10px);
+    /* blur effect */
+    -webkit-backdrop-filter: blur(10px);
+    /* Safari support */
+    border-radius: 12px;
+    padding: 2.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    /* soft shadow */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* subtle border */
+    max-width: 400px;
+    width: 100%;
+    color: #e6edf3;
+    /* light text for dark bg */
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-sizing: border-box;
+}
+
+::ng-deep input[formControlName="email"] {
+    background-color: transparent !important;
+    color: rgb(40, 37, 37) !important;
+    border-style: hidden !important;
+    padding-left: 10px;
+    box-shadow: none !important;
+    transition: none !important;
+}
+
+.login-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    text-align: center;
+    /* Darker text for contrast */
+    color: #1a1a1a;
+}
+
+.login-field {
+    width: 100%;
+}
+
+.mat-form-field-appearance-fill .mat-form-field-flex {
+    /* Light background with soft shadow */
+    background-color: #f0f4ff;
+}
+
+.mat-form-field-infix {
+    /* Dark text */
+    color: #1a1a1a;
+}
+
+.mat-icon {
+    /* Medium blue tone */
+    color: #2575fc;
+}
+
+.login-btn, .signup-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    height: 3rem;
+    /*Gradientbuttonbackground*/
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: linear-gradient(90deg, #ad97c4, #7f9ac9);
+
+}
+
+
+
+
+
+.login-btn:hover, .signup-btn:hover {
+    background: linear-gradient(270deg, #ad97c4, #7f9ac9);
+    transition: background 5s ease-in-out;
+    -webkit-transition: background 5s ease-in-out;
+    -moz-transition: background 5s ease-in-out;
+    -ms-transition: background 5s ease-in-out;
+    -o-transition: background 5s ease-in-out;
+}
+
+
+
+.login-error {
+    color: #f44336;
+    /* slightly softer red */
+    font-weight: 500;
+    text-align: center;
+    margin-top: -1rem;
+}

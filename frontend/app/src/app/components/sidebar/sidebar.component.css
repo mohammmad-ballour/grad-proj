@@ -1,0 +1,26 @@
+mat-nav-list {
+    margin-top: 40px;
+    display: grid;
+    row-gap: 70px;
+    padding: 5px;
+}
+
+.nav-label, mat-icon {
+    color: white !important;
+    font-weight: 1000;
+    font-size: 20px;
+}
+
+.nav-item {
+    color: #333;
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-radius: 0px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.nav-item.active, .nav-item:hover {
+    background-color: rgb(60 63 68 / 68%);
+    font-weight: 500;
+}
