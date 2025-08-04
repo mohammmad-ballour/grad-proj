@@ -1,57 +1,67 @@
-<div class="profile-container">
-  <!-- PROFILE CONTENT -->
-  <div class="profile-header" [class.blurred]="!isLoading">
-    <img
-      [src]="profile.profileCoverPhoto || 'https://via.placeholder.com/1200x400?text=Default+Cover+Image'"
-      (error)="onCoverError($event)"
-      class="cover-img"
-    />
-
-    <div class="avatar-section">
-      <img
-        [src]="profile.userAvatar.profilePicture"
-        (error)="onAvatarError($event)"
-        class="avatar-img"
-      />
-    </div>
-
-    <div class="user-info">
-      <div class="profile-actions">
-        <button     (click)="openEditProfile()">Edit Profile</button>
-      </div>
-
-      <h1 class="username">{{ profile.userAvatar.displayName }}</h1>
-      <span class="handle">{{ '@' + profile.username }}</span>
-      <p class="bio">{{ profile.profileBio }}</p>
-
-      <div class="field-joined">
-        <mat-icon>calendar_today</mat-icon>
-        <span>Joined {{ profile.joinedAt | date: 'MMMM yyyy' }}</span>
-      </div>
-      <div class="stats">
-        <span><b>{{ profile.followingNo ?? 0 }}</b> Following</span>
-        <span><b>{{ profile.followerNo ?? 0 }}</b> Followers</span>
-      </div>
-    </div>
+@if (!isLoading) {
+  <div class="loading-state-overlay">
+    <mat-spinner></mat-spinner>
+    <p style="color: white;">Loading profile...</p>
   </div>
+}
 
-  <mat-tab-group class="tabs" mat-align-tabs="start" [class.blurred]="!isLoading">
-    <mat-tab label="Posts">
-      <div class="tab-content">Post content goes here</div>
-    </mat-tab>
-    <mat-tab label="Replies">
-      <div class="tab-content">Reply content goes here</div>
-    </mat-tab>
-    <mat-tab label="Media">
-      <div class="tab-content">Media content goes here</div>
-    </mat-tab>
-  </mat-tab-group>
+@else  {
+  <div class="profile-container">
+    <div class="profile-header">
+      <img [src]="profile.profileCoverPhoto || 'https://placehold.co/1200x300/cccccc/cccccc?text='"
+        (error)="onCoverError($event)" class="cover-img" />
 
-  <!-- LOADING OVERLAY -->
-  @if (!isLoading) {
-    <div class="loading-state-overlay">
-      <mat-spinner></mat-spinner>
-      <p>Loading profile...</p>
+      <div class="avatar-section">
+        <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
+      </div>
+
+      <div class="user-info">
+        <div class="profile-actions">
+          @if (isPersonalProfile) {
+            <button (click)="openEditProfile()">Edit Profile</button>
+          } @else {
+            <button>Follow</button>
+          }
+        </div>
+
+        <h1 class="username">
+          {{ profile.userAvatar.displayName }}
+          @if (profile.aboutUser.gender === 'MALE') {
+            <mat-icon>male</mat-icon>
+          }
+          @if (profile.aboutUser.gender === 'FEMALE') {
+            <mat-icon>female</mat-icon>
+          }
+        </h1>
+
+        <span class="handle">{{ '@' + profile.username }}</span>
+        <p class="bio">{{ profile.profileBio }}</p>
+
+        <div class="field-joined">
+          <mat-icon>calendar_today</mat-icon>
+          <span>Joined {{ profile.joinedAt | date: 'MMMM yyyy' }}</span>
+          @if (profile.aboutUser.residence) {
+            <span> · <mat-icon inline>location_on</mat-icon> {{ profile.aboutUser.residence }}</span>
+          }
+        </div>
+
+        <div class="stats">
+          <span><b>{{ profile.followingNo ?? 0 }}</b> Following</span>
+          <span><b>{{ profile.followerNo ?? 0 }}</b> Followers</span>
+        </div>
+      </div>
     </div>
-  }
-</div>
+
+    <mat-tab-group class="tabs" mat-align-tabs="start">
+      <mat-tab label="Posts">
+        <div class="tab-content">Post content goes here</div>
+      </mat-tab>
+      <mat-tab label="Replies">
+        <div class="tab-content">Reply content goes here</div>
+      </mat-tab>
+      <mat-tab label="Media">
+        <div class="tab-content">Media content goes here</div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+}

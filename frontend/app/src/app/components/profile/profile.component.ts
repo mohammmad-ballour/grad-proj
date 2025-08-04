@@ -7,6 +7,7 @@ import { ProfileServices } from '../services/profile.services';
 import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-profile',
@@ -19,17 +20,21 @@ export class ProfileComponent implements OnInit {
   profile!: ProfileResponseDto;
   isLoading = false;
   errorMessage = '';
+  CurrentUserName!: string;
+  isPersonalProfile!: boolean;
+
   constructor(
     private dialog: MatDialog,
-    private profileServices: ProfileServices
-  ) {
-
-  }
-
-
+    private profileServices: ProfileServices,
+    private route: ActivatedRoute
+  ) { }
 
   ngOnInit(): void {
-    this.fetchProfileData();
+    this.route.paramMap.subscribe(params => {
+      this.CurrentUserName = params.get('username') || '';
+      this.isPersonalProfile = (this.CurrentUserName == this.profileServices.userName)
+      this.fetchProfileData();
+    });
   }
 
   onAvatarError(event: Event) {
@@ -43,14 +48,16 @@ export class ProfileComponent implements OnInit {
   }
 
   fetchProfileData(): void {
-    this.profileServices.GetDataOfProfile().subscribe({
+
+
+    this.profileServices.GetDataOfProfile(this.CurrentUserName).subscribe({
       next: (result) => {
         if (result) {
 
           this.profile = result;
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
-          this.isLoading = true;
+          this.isLoading = true
         } else {
           this.errorMessage = 'No profile data received';
         }
@@ -61,6 +68,7 @@ export class ProfileComponent implements OnInit {
       }
     });
   }
+
   openEditProfile(): void {
     const dialogRef = this.dialog.open(EditProfileDialogComponent, {
       width: '600px',
@@ -77,13 +85,11 @@ export class ProfileComponent implements OnInit {
         timezoneId: this.profile.aboutUser?.timezoneId ?? ''
       }
     });
+
     dialogRef.afterClosed().subscribe((changed) => {
-      if (changed)
+      if (changed) {
         this.fetchProfileData();
+      }
     });
   }
-
-
-
-
 }

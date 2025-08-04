@@ -18,11 +18,11 @@ export class ProfileServices extends BaseService {
     }
 
 
-    GetDataOfProfile(): Observable<ProfileResponseDto | null> {
+    GetDataOfProfile(username: string): Observable<ProfileResponseDto | null> {
         console.log(this.authService.UserId)
 
         return this.httpClient
-            .get<ProfileResponseDto>(`${this.baseUrl}${this.API_ENDPOINTS_Profile_GET}${this.authService.UserName}`);
+            .get<ProfileResponseDto>(`${this.baseUrl}${this.API_ENDPOINTS_Profile_GET}${username}`);
     }
 
     UpdateDataOfProfile(ProfileRequestDto: ProfileRequestDto): Observable<void> {
@@ -65,7 +65,9 @@ export class ProfileServices extends BaseService {
     }
 
 
-
+    get userName() {
+        return this.authService.UserName;
+    }
 
 
 
