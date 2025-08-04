@@ -9,10 +9,12 @@ import { LayoutComponent } from './components/layout/layout.component';
 import { SignupComponent } from './features/auth/signup/signup.component';
 import { AppRoutes } from './config/app-routes.enum';
 import { AuthGuard } from './core/guards/auth.guard';
+import {LogoutComponent} from './features/auth/logout/logout.component';
 
 export const routes: Routes = [
-    { path: 'login', component: LoginComponent },
-    { path: 'signup', component: SignupComponent },
+    { path: AppRoutes.LOGIN, component: LoginComponent },
+    { path: AppRoutes.LOGOUT, component: LogoutComponent },
+    { path: AppRoutes.SIGNUP, component: SignupComponent },
     { path: '', redirectTo: AppRoutes.LOGIN, pathMatch: 'full' },
     {
         path: '',

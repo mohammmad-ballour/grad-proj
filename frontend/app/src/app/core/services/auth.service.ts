@@ -59,6 +59,7 @@ export class AuthService {
     // Remove token & redirect to login
     logout(): void {
         this.TokenKey = null;
+        localStorage.removeItem(this.TOKEN_KEY);
         this.router.navigate([AppRoutes.LOGIN]);
     }
 
