@@ -20,18 +20,4 @@ import { COUNTRIES } from '../../constants/countries.constant';
 })
 export class CountrySelectorComponent {
   @Input() control!: FormControl;
-  filteredCountries: string[] = COUNTRIES;
-
-  filterCountries(searchText: string): void {
-    const query = searchText.toLowerCase().trim();
-    this.filteredCountries = COUNTRIES.filter(c =>
-      c.toLowerCase().includes(query)
-    );
-  }
-
-  onCountryInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.filterCountries(input.value);
-  }
-
 }

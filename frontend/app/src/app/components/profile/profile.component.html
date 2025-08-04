@@ -1,67 +1,79 @@
-@if (!isLoading) {
+@if (spinner) {
   <div class="loading-state-overlay">
     <mat-spinner></mat-spinner>
     <p style="color: white;">Loading profile...</p>
   </div>
 }
 
-@else  {
-  <div class="profile-container">
-    <div class="profile-header">
-      <img [src]="profile.profileCoverPhoto || 'https://placehold.co/1200x300/cccccc/cccccc?text='"
-        (error)="onCoverError($event)" class="cover-img" />
-
-      <div class="avatar-section">
-        <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
-      </div>
-
-      <div class="user-info">
-        <div class="profile-actions">
-          @if (isPersonalProfile) {
-            <button (click)="openEditProfile()">Edit Profile</button>
-          } @else {
-            <button>Follow</button>
-          }
-        </div>
-
-        <h1 class="username">
-          {{ profile.userAvatar.displayName }}
-          @if (profile.aboutUser.gender === 'MALE') {
-            <mat-icon>male</mat-icon>
-          }
-          @if (profile.aboutUser.gender === 'FEMALE') {
-            <mat-icon>female</mat-icon>
-          }
-        </h1>
-
-        <span class="handle">{{ '@' + profile.username }}</span>
-        <p class="bio">{{ profile.profileBio }}</p>
-
-        <div class="field-joined">
-          <mat-icon>calendar_today</mat-icon>
-          <span>Joined {{ profile.joinedAt | date: 'MMMM yyyy' }}</span>
-          @if (profile.aboutUser.residence) {
-            <span> · <mat-icon inline>location_on</mat-icon> {{ profile.aboutUser.residence }}</span>
-          }
-        </div>
-
-        <div class="stats">
-          <span><b>{{ profile.followingNo ?? 0 }}</b> Following</span>
-          <span><b>{{ profile.followerNo ?? 0 }}</b> Followers</span>
-        </div>
-      </div>
+@else   {
+  
+    @if(isNotFound){
+  <div class="not-found-container">
+      <h2>User Not Found</h2>
+      <p>The profile you are looking for does not exist or has been removed.</p>
+      <mat-icon>person_off</mat-icon>
     </div>
+    }
+    @else {
+  <div class="profile-container">
+        <div class="profile-header">
+          <img [src]="profile.profileCoverPhoto "
+            (error)="onCoverError($event)" class="cover-img" />
 
-    <mat-tab-group class="tabs" mat-align-tabs="start">
-      <mat-tab label="Posts">
-        <div class="tab-content">Post content goes here</div>
-      </mat-tab>
-      <mat-tab label="Replies">
-        <div class="tab-content">Reply content goes here</div>
-      </mat-tab>
-      <mat-tab label="Media">
-        <div class="tab-content">Media content goes here</div>
-      </mat-tab>
-    </mat-tab-group>
-  </div>
+          <div class="avatar-section">
+            <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
+          </div>
+
+          <div class="user-info">
+            <div class="profile-actions">
+              @if (isPersonalProfile) {
+                <button (click)="openEditProfile()">Edit Profile</button>
+              } @else {
+                <button>Follow</button>
+              }
+            </div>
+
+            <h1 class="username">
+              {{ profile.userAvatar.displayName }}
+              @if (profile.aboutUser.gender === 'MALE') {
+                <mat-icon>male</mat-icon>
+              }
+              @if (profile.aboutUser.gender === 'FEMALE') {
+                <mat-icon>female</mat-icon>
+              }
+            </h1>
+
+            <span class="handle">{{ '@' + profile.username }}</span>
+            <p class="bio">{{ profile.profileBio }}</p>
+
+            <div class="field-joined">
+              <mat-icon>calendar_today</mat-icon>
+              <span>Joined {{ profile.joinedAt | date: 'MMMM yyyy' }}</span>
+              @if (profile.aboutUser.residence) {
+                <span> · <mat-icon inline>location_on</mat-icon> {{ profile.aboutUser.residence }}</span>
+              }
+            </div>
+
+            <div class="stats">
+              <span><b>{{ profile.followingNo ?? 0 }}</b> Following</span>
+              <span><b>{{ profile.followerNo ?? 0 }}</b> Followers</span>
+            </div>
+          </div>
+        </div>
+
+        <mat-tab-group class="tabs" mat-align-tabs="start">
+          <mat-tab label="Posts">
+            <div class="tab-content">Post content goes here</div>
+          </mat-tab>
+          <mat-tab label="Replies">
+            <div class="tab-content">Reply content goes here</div>
+          </mat-tab>
+          <mat-tab label="Media">
+            <div class="tab-content">Media content goes here</div>
+          </mat-tab>
+        </mat-tab-group>
+      </div>
+     
+    }
+ 
 }

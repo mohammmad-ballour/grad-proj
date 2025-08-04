@@ -22,12 +22,11 @@ export class LoginService extends BaseService {
       responseType: 'text'  // <-- expects plain text response (i.e. the id token)
     }).pipe(
       tap((token: string) => {
-        console.log('Login successful', token);
+        this.authService.TokenKey = null;
         this.authService.TokenKey = token;
-        this.router.navigate([routerLink]);
+        this.router.navigate([routerLink == AppRoutes.PROFILE ? this.authService.UserName : routerLink]);
       }),
       catchError((error) => {
-        console.error('Login failed:', error);
         return of(null);
       })
     );

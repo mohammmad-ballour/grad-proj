@@ -18,6 +18,18 @@
     position: relative;
 }
 
+.not-found-container {
+    text-align: center;
+    padding: 50px;
+    color: #ca2424;
+}
+
+.not-found-container mat-icon {
+    font-size: 48px;
+    color: #ca2424;
+
+}
+
 .profile-header {
     position: relative;
 }

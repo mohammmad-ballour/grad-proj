@@ -18,8 +18,8 @@ import { ActivatedRoute } from '@angular/router';
 })
 export class ProfileComponent implements OnInit {
   profile!: ProfileResponseDto;
-  isLoading = false;
-  errorMessage = '';
+  spinner = true;
+  isNotFound = true;
   CurrentUserName!: string;
   isPersonalProfile!: boolean;
 
@@ -39,35 +39,31 @@ export class ProfileComponent implements OnInit {
 
   onAvatarError(event: Event) {
     (event.target as HTMLImageElement).src =
-      'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png';
+      'assets/ProfileAvatar.png';
   }
 
   onCoverError(event: Event) {
     (event.target as HTMLImageElement).src =
-      'https://placehold.co/1200x300/cccccc/cccccc?text=';
+      'assets/coverPhoto.png';
   }
 
   fetchProfileData(): void {
-
-
     this.profileServices.GetDataOfProfile(this.CurrentUserName).subscribe({
       next: (result) => {
         if (result) {
-
           this.profile = result;
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
-          this.isLoading = true
+          this.spinner = false;
+          this.isNotFound = false;
         } else {
-          this.errorMessage = 'No profile data received';
+          this.spinner = false
         }
-      },
-      error: (error) => {
-        this.errorMessage = 'Failed to load profile data';
-        console.error(error);
       }
     });
   }
+
+
 
   openEditProfile(): void {
     const dialogRef = this.dialog.open(EditProfileDialogComponent, {

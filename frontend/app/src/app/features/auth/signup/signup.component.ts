@@ -64,9 +64,7 @@ export class SignupComponent {
     }, { validators: this.passwordMatchValidator });
 
 
-    this.signupForm.get('residence')?.addValidators(
-      CustomValidators.validCountryValidator()
-    );
+
   }
 
   get password() { return this.signupForm.get('password')!; }

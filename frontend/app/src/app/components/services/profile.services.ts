@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BaseService } from '../../core/services/base.service';
-import { Observable, tap } from 'rxjs';
+import { catchError, Observable, of, tap } from 'rxjs';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
 import { ProfileRequestDto } from '../models/ProfileRequestDto';
 import { AuthService } from '../../core/services/auth.service';
@@ -19,14 +19,21 @@ export class ProfileServices extends BaseService {
 
 
     GetDataOfProfile(username: string): Observable<ProfileResponseDto | null> {
-        console.log(this.authService.UserId)
-
         return this.httpClient
-            .get<ProfileResponseDto>(`${this.baseUrl}${this.API_ENDPOINTS_Profile_GET}${username}`);
+            .get<ProfileResponseDto>(`${this.baseUrl}${this.API_ENDPOINTS_Profile_GET}${username}`)
+            .pipe(
+                catchError((error) => {
+                    if (error.status === 404) {
+                        // Return null when 404
+                        return of(null);
+                    }
+                    // Re-throw other errors
+                    throw error;
+                })
+            );
     }
-
     UpdateDataOfProfile(ProfileRequestDto: ProfileRequestDto): Observable<void> {
-        console.log(this.authService.UserId)
+
         return this.httpClient.put<void>(
             `${this.baseUrl}${this.API_ENDPOINTS_Profile_UPDATE}${this.authService.UserId}`,
             this.CreateFormData(ProfileRequestDto)

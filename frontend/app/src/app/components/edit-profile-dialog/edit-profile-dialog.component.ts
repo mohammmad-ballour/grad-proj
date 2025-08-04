@@ -55,9 +55,7 @@ export class EditProfileDialogComponent {
       gender: [profileData.gender.toUpperCase() || '', Validators.required],
       timezoneId: [profileData.timezoneId || '', [Validators.required, CustomValidators.validTimezoneValidator(this.allTimezonesFlat)]]
     });
-    this.profileForm.get('residence')?.addValidators(
-      CustomValidators.validCountryValidator()
-    );
+
   }
   get gender() { return this.profileForm.get('gender')!; }
   get dateOfBirth() { return this.profileForm.get('dob')!; }
@@ -85,12 +83,12 @@ export class EditProfileDialogComponent {
   }
   onAvatarError(event: Event) {
     (event.target as HTMLImageElement).src =
-      'https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png';
+      'assets/ProfileAvatar.png';
   }
 
   onCoverError(event: Event) {
     (event.target as HTMLImageElement).src =
-      'https://placehold.co/1200x300/cccccc/cccccc?text=';
+      'assets/coverPhoto.png';
   }
 
   onProfilePhotoSelected(event: Event) {
@@ -114,7 +112,7 @@ export class EditProfileDialogComponent {
   save() {
     if (this.isFormValid()) {
       if (!this.hasChangedFields()) {
-        this.closeDialog(false)
+        this.closeDialog(false);
         return;
       }
       const ProfileFields = this.getChangedProfileFields();
@@ -123,7 +121,7 @@ export class EditProfileDialogComponent {
       this.profileServices.UpdateDataOfProfile(ProfileFields)
         .subscribe({
           next: () => this.closeDialog(true),
-          error: () => {
+          error: (e) => {
             confirm('Update failed');
             this.closeDialog(true);
           }
@@ -141,7 +139,7 @@ export class EditProfileDialogComponent {
 
     changes.residence = this.profileForm.get('residence')?.value.trim().substring(0, 30);
 
-    changes.dob = this.profileForm.get('dob')?.value;
+    changes.dob = this.profileForm.get('dob')?.value || "empty";
 
     changes.gender = this.profileForm.get('gender')?.value;
 

@@ -2,7 +2,7 @@ export enum AppRoutes {
     LOGIN = 'login',
     LOGOUT = 'logout',
     SIGNUP = 'signup',
-    PROFILE = 'userName', // Changed from USER_NAME to align with dynamic route 'profile/:username'
+    PROFILE = 'profile', // Changed from USER_NAME to align with dynamic route 'profile/:username'
     POST = 'post',
     FEED = 'feed',
     HOME = 'home',

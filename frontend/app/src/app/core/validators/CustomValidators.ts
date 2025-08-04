@@ -71,11 +71,5 @@ export class CustomValidators {
         };
     }
 
-    static validCountryValidator(): ValidatorFn {
-        return (control: AbstractControl): ValidationErrors | null => {
-            const country = control.value;
-            return COUNTRIES.includes(country) ? null : { invalidCountry: true };
-        };
-    }
 
 }

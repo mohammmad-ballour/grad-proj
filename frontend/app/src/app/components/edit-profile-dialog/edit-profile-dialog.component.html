@@ -11,7 +11,7 @@
 </div>
 
 <div class="cover-photo">
-  <img [src]="coverPhotoUrl || 'assets/default-cover.jpg'" alt="Cover Photo" (error)="onCoverError($event)" />
+  <img [src]="coverPhotoUrl" alt="Cover Photo" (error)="onCoverError($event)" />
   <label class="upload-cover">
     <mat-icon>photo_camera</mat-icon>
     <input type="file" accept="image/*" (change)="onCoverPhotoSelected($event)" hidden />
@@ -19,7 +19,7 @@
 </div>
 
 <div class="profile-photo">
-  <img [src]="profilePhotoUrl || 'assets/default-profile.jpg'" alt="Profile Photo" (error)="onAvatarError($event)" />
+  <img [src]="profilePhotoUrl" alt="Profile Photo" (error)="onAvatarError($event)" />
   <label class="upload-profile">
     <mat-icon>photo_camera</mat-icon>
     <input type="file" accept="image/*" (change)="onProfilePhotoSelected($event)" hidden />
