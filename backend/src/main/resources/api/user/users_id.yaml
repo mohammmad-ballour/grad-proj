@@ -24,6 +24,8 @@ put:
             - residence
             - timezoneId
             - profileBio
+            - profilePicture
+            - profileCoverPhoto
           properties:
             displayName:
               type: string

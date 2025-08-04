@@ -1,8 +1,8 @@
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
 DELETE FROM users;
 
-INSERT INTO users (email, username, display_name, dob, gender, residence, timezone_id, profile_bio, profile_picture,
-                   profile_cover_photo)
+
+INSERT INTO users (email, username, display_name, dob, gender, residence, timezone_id, profile_bio)
 VALUES ('test@gmail.com',
         'testusername',
         'DISPLAY NAME DEMO',
@@ -10,8 +10,6 @@ VALUES ('test@gmail.com',
         'MALE',
         'Köln',
         'Europe/Berlin',
-        'System admin',
-        E'\\x', -- empty bytea
-        E'\\x' -- empty bytea
+        'System admin'
        )
 ON CONFLICT (email) DO NOTHING;;
