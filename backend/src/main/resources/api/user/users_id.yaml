@@ -39,6 +39,8 @@ put:
               type: string
             profileBio:
               type: string
+              minLength: 0
+              maxLength: 100
             profilePicture:
               type: string
               format: binary

@@ -1,19 +1,18 @@
-import { Component, Inject } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { CommonModule } from '@angular/common'; // Added import
-import { EditProfileDialogData } from '../models/EditProfileDialogData';
-import { TimezoneSelectorComponent } from '../../core/sharedComponent/Timezone/timezone-selector.component';
-import { TIMEZONES } from '../../core/constants/timezones.constant';
-import { CustomValidators } from '../../core/validators/CustomValidators';
-import { MatSelectModule } from '@angular/material/select';
-import { CountrySelectorComponent } from "../../core/sharedComponent/Country/country-selector.component";
-import { ProfileServices } from '../services/profile.services';
-import { ProfileRequestDto } from '../models/ProfileRequestDto';
+import {Component, Inject} from '@angular/core';
+import {FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
+import {MatInputModule} from '@angular/material/input';
+import {MatIconModule} from '@angular/material/icon';
+import {MatButtonModule} from '@angular/material/button';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {EditProfileDialogData} from '../models/EditProfileDialogData';
+import {TimezoneSelectorComponent} from '../../core/sharedComponent/Timezone/timezone-selector.component';
+import {TIMEZONES} from '../../core/constants/timezones.constant';
+import {CustomValidators} from '../../core/validators/CustomValidators';
+import {MatSelectModule} from '@angular/material/select';
+import {CountrySelectorComponent} from "../../core/sharedComponent/Country/country-selector.component";
+import {ProfileServices} from '../services/profile.services';
+import {ProfileRequestDto} from '../models/ProfileRequestDto';
 
 @Component({
   selector: 'app-edit-profile-dialog',
@@ -109,6 +108,7 @@ export class EditProfileDialogComponent {
   isFormValid(): boolean {
     return this.profileForm.valid;
   }
+
   save() {
     if (this.isFormValid()) {
       if (!this.hasChangedFields()) {
@@ -116,8 +116,6 @@ export class EditProfileDialogComponent {
         return;
       }
       const ProfileFields = this.getChangedProfileFields();
-
-
       this.profileServices.UpdateDataOfProfile(ProfileFields)
         .subscribe({
           next: () => this.closeDialog(true),
