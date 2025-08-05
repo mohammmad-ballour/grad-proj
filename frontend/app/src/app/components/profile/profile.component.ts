@@ -24,7 +24,7 @@ export class ProfileComponent implements OnInit {
   CurrentUserName!: string;
   isPersonalProfile!: boolean;
   isBeingFollowed!: boolean;
-
+  followSpinner = false;
   constructor(
     private dialog: MatDialog,
     private profileServices: ProfileServices,
@@ -93,19 +93,23 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  toggleFollow() {
-    const prpfileOwnerId = this.profile.userAvatar.userId;
-    if (this.isBeingFollowed) {
-      this.userService.unfollow(prpfileOwnerId).subscribe(() => {
-        this.isBeingFollowed = false;
-        this.profile.followerNo!--;
-      });
-    } else {
-      this.userService.follow(prpfileOwnerId).subscribe(() => {
-        this.isBeingFollowed = true;
-        this.profile.followerNo!++;
-      });
-    }
+  toggleFollow(): void {
+    const profileOwnerId = this.profile.userAvatar.userId;
+    this.followSpinner = true;
+
+    const request$ = this.isBeingFollowed
+      ? this.userService.unfollow(profileOwnerId)
+      : this.userService.follow(profileOwnerId);
+
+    request$.subscribe({
+      next: () => {
+        this.isBeingFollowed = !this.isBeingFollowed;
+        this.profile.followerNo! += this.isBeingFollowed ? 1 : -1;
+      },
+      complete: () => {
+        this.followSpinner = false;
+      }
+    });
   }
 
 
