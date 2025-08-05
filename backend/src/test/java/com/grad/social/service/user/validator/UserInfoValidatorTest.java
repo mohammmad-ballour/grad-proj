@@ -1,6 +1,6 @@
 package com.grad.social.service.user.validator;
 
-import com.grad.graduation_project.generated.api.model.CreateUserDto;
+import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.base.BaseTest;
 import com.grad.social.common.validation.ValidationException;
 import com.grad.social.testdata.user.UserTestDate;

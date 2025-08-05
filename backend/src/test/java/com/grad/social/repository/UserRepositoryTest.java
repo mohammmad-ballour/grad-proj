@@ -1,6 +1,6 @@
 package com.grad.social.repository;
 
-import com.grad.graduation_project.generated.api.model.CreateUserDto;
+import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.base.BaseRepositoryTest;
 import com.grad.social.model.tables.records.UsersRecord;
 import com.grad.social.repository.user.UserRepository;

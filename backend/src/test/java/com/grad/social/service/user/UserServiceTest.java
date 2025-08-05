@@ -1,6 +1,6 @@
 package com.grad.social.service.user;
 
-import com.grad.graduation_project.generated.api.model.CreateUserDto;
+import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.base.BaseMockedUnitTest;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.security.AuthService;

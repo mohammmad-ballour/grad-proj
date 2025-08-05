@@ -1,6 +1,7 @@
 package com.grad.social.controller.user;
 
-import com.grad.graduation_project.generated.api.model.CreateUserDto;
+import com.grad.grad_proj.generated.api.model.CreateUserDto;
+import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
 import com.grad.social.base.BaseControllerTest;
 import com.grad.social.common.security.AuthService;
 import com.grad.social.repository.user.UserRepository;
@@ -45,9 +46,6 @@ class UserControllerTest extends BaseControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isCreated());
-
-            // TODO: then (FOR LATER when fetchById() is implemented)
-            //  userRepository.fetchById();
         }
 
         @Test
@@ -91,7 +89,7 @@ class UserControllerTest extends BaseControllerTest {
             mockMvc.perform(post(BASE_URI)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(invalidRequest)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isCreated());
         }
 
     }

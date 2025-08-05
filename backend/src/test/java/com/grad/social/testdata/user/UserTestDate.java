@@ -1,6 +1,6 @@
 package com.grad.social.testdata.user;
 
-import com.grad.graduation_project.generated.api.model.CreateUserDto;
+import com.grad.grad_proj.generated.api.model.CreateUserDto;
 
 import java.time.LocalDate;
 
