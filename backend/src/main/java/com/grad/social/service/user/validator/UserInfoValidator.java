@@ -4,7 +4,7 @@ import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.validation.ValidationErrorCollector;
 import com.grad.social.exception.user.UserErrorCode;
-import com.grad.social.model.UserBasicData;
+import com.grad.social.model.user.UserBasicData;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;

@@ -41,9 +41,6 @@ components:
         - joinedAt
         - aboutUser
       properties:
-        userId:
-          type: integer
-          format: int64
         username:
           type: string
         userAvatar:
@@ -64,6 +61,8 @@ components:
         followerNo:
           type: integer
           format: int32
+        isBeingFollowed:
+          type: boolean
         posts:
           type: array
           items:
@@ -90,11 +89,15 @@ components:
     UserAvatar:
       type: object
       required:
-        - profilePicture
-        - displayName
+      - userId
+      - displayName
+      - profilePicture
       properties:
+        userId:
+          type: integer
+          format: int64
+        displayName:
+          type: string
         profilePicture:
           type: string
           format: byte
-        displayName:
-          type: string

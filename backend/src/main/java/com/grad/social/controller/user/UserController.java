@@ -3,7 +3,7 @@ package com.grad.social.controller.user;
 import com.grad.grad_proj.generated.api.UsersApi;
 import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
-import com.grad.social.model.UserBasicData;
+import com.grad.social.model.user.UserBasicData;
 import com.grad.social.model.enums.Gender;
 import com.grad.social.service.user.UserService;
 import lombok.RequiredArgsConstructor;

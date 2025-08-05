@@ -1,0 +1,53 @@
+package com.grad.social.service.user;
+
+import com.grad.grad_proj.generated.api.model.UserAvatarDto;
+import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
+import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
+import com.grad.social.common.exceptionhandling.AssociationNotFoundException;
+import com.grad.social.model.SeekRequest;
+import com.grad.social.model.enums.FollowingPriority;
+import com.grad.social.repository.user.UserUserInteractionRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Objects;
+
+import static com.grad.social.exception.user.UserErrorCode.*;
+
+@Service
+@RequiredArgsConstructor
+public class UserUserInteractionService {
+    private final UserUserInteractionRepository userRepository;
+
+    public List<UserAvatarDto> retrieveFollowerList(Long userId, SeekRequest seekRequest) {
+        return this.userRepository.findFollowersWithPagination(userId,
+                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastUserId());
+    }
+
+    public void followUser(Long userId, Long toFollow) {
+        if (Objects.equals(userId, toFollow))
+            throw new ActionNotAllowedException(CANNOT_FOLLOW_SELF);
+        try {
+            this.userRepository.followUser(userId, toFollow);
+        } catch (DuplicateKeyException ex) {
+            throw new AlreadyRegisteredException(TARGET_ALREADY_FOLLOWED);
+        }
+    }
+
+    public void unfollowUser(Long userId, Long toUnfollow) {
+        if (Objects.equals(userId, toUnfollow))
+            throw new ActionNotAllowedException(CANNOT_UNFOLLOW_SELF);
+        int recordsDeleted = this.userRepository.unfollowUser(userId, toUnfollow);
+        if (recordsDeleted == 0)
+            throw new AssociationNotFoundException(TARGET_NOT_FOLLOWED);
+    }
+
+    public void updateFollowingPriority(Long userId, long followedUserId, FollowingPriority newPriority) {
+        int recordsUpdated = this.userRepository.updateFollowingPriority(userId, followedUserId, newPriority);
+        if (recordsUpdated == 0)
+            throw new AssociationNotFoundException(TARGET_NOT_FOLLOWED);
+    }
+
+}

@@ -8,7 +8,7 @@ import com.grad.social.common.exceptionhandling.ModelNotFoundException;
 import com.grad.social.common.security.AuthService;
 import com.grad.social.common.validation.ErrorCode;
 import com.grad.social.exception.user.UserErrorCode;
-import com.grad.social.model.UserBasicData;
+import com.grad.social.model.user.UserBasicData;
 import com.grad.social.model.tables.records.UsersRecord;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.service.user.validator.UserInfoValidator;
@@ -39,7 +39,7 @@ public class UserService {
 //        boolean isAccountProtected = this.userRepository.isAccountProtected(nameToSearch);
 //        boolean currentUserAccount = this.userRepository.isAccountOwner(currentUserId, nameToSearch);
 //        if (isAccountProtected && !currentUserAccount)
-        return this.userRepository.fetchUserAccountByName(nameToSearch);
+        return this.userRepository.fetchUserAccountByName(currentUserId, nameToSearch);
     }
 
     public void createUser(CreateUserDto user) {

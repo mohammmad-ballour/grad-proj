@@ -5,12 +5,13 @@ import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
 import com.grad.grad_proj.generated.api.model.UserAboutDto;
 import com.grad.grad_proj.generated.api.model.UserAvatarDto;
 import com.grad.social.common.database.utils.JooqUtils;
-import com.grad.social.model.UserBasicData;
+import com.grad.social.model.user.UserBasicData;
 import com.grad.social.model.enums.Gender;
 import com.grad.social.model.tables.records.UsersRecord;
 import com.grad.social.model.user.UsernameTimezoneId;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.grad.social.model.tables.Users.USERS;
+import static com.grad.social.model.tables.UserFollowers.USER_FOLLOWERS;
 import static org.jooq.Records.mapping;
 
 @Repository
@@ -27,12 +29,47 @@ public class UserRepository {
 
     private final DSLContext dsl;
 
-    public ProfileResponseDto fetchUserAccountByName(String nameToSearch) {
-        return dsl.select(USERS.ID, USERS.DISPLAY_NAME, USERS.USERNAME, USERS.JOINED_AT, USERS.PROFILE_PICTURE, USERS.PROFILE_COVER_PHOTO, USERS.PROFILE_BIO, USERS.DOB, USERS.RESIDENCE, USERS.GENDER, USERS.TIMEZONE_ID)
+    public ProfileResponseDto fetchUserAccountByName(Long currentUserId, String nameToSearch) {
+        Long profileOwnerId = dsl.select(USERS.ID)
                 .from(USERS)
                 .where(USERS.USERNAME.eq(nameToSearch).or(USERS.DISPLAY_NAME.eq(nameToSearch)))
-                .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender, timezoneId) ->
-                        new ProfileResponseDto(userId, username, new UserAvatarDto(profilePicture, displayName), profileCover, bio, joinedAt, new UserAboutDto(gender.name(), dob, residence, timezoneId))));
+                .fetchOneInto(Long.class);
+        if (profileOwnerId == null) {
+            return null;
+        }
+
+        // number of followers of the profile owner
+        Field<Integer> followerNumberField = DSL.selectCount()
+                .from(USER_FOLLOWERS)
+                .where(USER_FOLLOWERS.FOLLOWED_USER_ID.eq(profileOwnerId))
+                .asField("followerNo");
+
+        // number of followings of the profile owner
+        Field<Integer> followingNumberField = DSL.selectCount()
+                .from(USER_FOLLOWERS)
+                .where(USER_FOLLOWERS.FOLLOWER_ID.eq(profileOwnerId))
+                .asField("followingNo");
+
+        // used for toggling follow button
+        Field<Boolean> isBeingFollowedField = DSL.selectOne()
+                .from(USER_FOLLOWERS)
+                .where(USER_FOLLOWERS.FOLLOWER_ID.eq(currentUserId).and(USER_FOLLOWERS.FOLLOWED_USER_ID.eq(profileOwnerId)))
+                .asField("isBeingFollowed")
+                .isNotNull(); // will return TRUE if exists, FALSE otherwise
+
+        return dsl.select(USERS.ID, USERS.DISPLAY_NAME, USERS.USERNAME, USERS.JOINED_AT, USERS.PROFILE_PICTURE, USERS.PROFILE_COVER_PHOTO, USERS.PROFILE_BIO, USERS.DOB, USERS.RESIDENCE, USERS.GENDER,
+                        USERS.TIMEZONE_ID, followingNumberField, followerNumberField, isBeingFollowedField)
+                .from(USERS)
+                .where(USERS.ID.eq(profileOwnerId))
+                .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender,
+                                   timezoneId, followingNumber, followerNumber, isBeingFollowed) -> {
+                    var profile = new ProfileResponseDto(username, new UserAvatarDto(userId, displayName, profilePicture), profileCover, bio, joinedAt,
+                            new UserAboutDto(gender.name(), dob, residence, timezoneId));
+                    profile.setFollowerNo(followerNumber);
+                    profile.setFollowingNo(followingNumber);
+                    profile.isBeingFollowed(isBeingFollowed);
+                    return profile;
+                }));
     }
 
     public Long save(CreateUserDto user) {
