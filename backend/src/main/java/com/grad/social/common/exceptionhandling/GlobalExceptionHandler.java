@@ -2,6 +2,7 @@ package com.grad.social.common.exceptionhandling;
 
 import com.grad.social.common.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -46,13 +47,15 @@ class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
+    @SneakyThrows
     public ResponseEntity<?> fallbackHandleException(Exception ex) {
         logUnhandledException(ex);
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    private void logUnhandledException(Exception ex) {
+    private void logUnhandledException(Exception ex) throws Exception {
         log.error("Unhandled exception [{}] and Message [{}]", ex, ex.getMessage());
+        throw ex;
     }
 
 

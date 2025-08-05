@@ -6,7 +6,7 @@
 }
 
 @else   {
-  
+
     @if(isNotFound){
   <div class="not-found-container">
       <h2>User Not Found</h2>
@@ -29,7 +29,9 @@
               @if (isPersonalProfile) {
                 <button (click)="openEditProfile()">Edit Profile</button>
               } @else {
-                <button>Follow</button>
+                <button (click)="toggleFollow()">
+                  {{ isBeingFollowed ? 'Unfollow' : 'Follow' }}
+                </button>
               }
             </div>
 
@@ -73,7 +75,7 @@
           </mat-tab>
         </mat-tab-group>
       </div>
-     
+
     }
- 
+
 }

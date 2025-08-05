@@ -4,6 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
 import { EditProfileDialogComponent } from '../edit-profile-dialog/edit-profile-dialog.component';
 import { ProfileServices } from '../services/profile.services';
+import { UserService } from '../services/user.service';
 import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
@@ -22,10 +23,12 @@ export class ProfileComponent implements OnInit {
   isNotFound = true;
   CurrentUserName!: string;
   isPersonalProfile!: boolean;
+  isBeingFollowed!: boolean;
 
   constructor(
     private dialog: MatDialog,
     private profileServices: ProfileServices,
+    private userService: UserService,
     private route: ActivatedRoute
   ) { }
 
@@ -56,6 +59,7 @@ export class ProfileComponent implements OnInit {
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
           this.spinner = false;
           this.isNotFound = false;
+          this.isBeingFollowed = result.isBeingFollowed;
         } else {
           this.spinner = false
         }
@@ -88,4 +92,21 @@ export class ProfileComponent implements OnInit {
       }
     });
   }
+
+  toggleFollow() {
+    const prpfileOwnerId = this.profile.userAvatar.userId;
+    if (this.isBeingFollowed) {
+      this.userService.unfollow(prpfileOwnerId).subscribe(() => {
+        this.isBeingFollowed = false;
+        this.profile.followerNo!--;
+      });
+    } else {
+      this.userService.follow(prpfileOwnerId).subscribe(() => {
+        this.isBeingFollowed = true;
+        this.profile.followerNo!++;
+      });
+    }
+  }
+
+
 }

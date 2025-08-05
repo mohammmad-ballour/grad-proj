@@ -1,8 +1,7 @@
 export interface ProfileResponseDto {
-
-    userId: number;
     username: string;
     userAvatar: {
+        userId: number;
         displayName: string;
         profilePicture: string; // (byte) → base64 or URL on backend
     };
@@ -17,6 +16,7 @@ export interface ProfileResponseDto {
     };
     followingNo?: number;
     followerNo?: number;
+    isBeingFollowed: boolean;   // false if it is user's own profile'
     posts: PostCard[];
 
 }

@@ -17,6 +17,7 @@ import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.grad.social.model.tables.Users.USERS;
@@ -51,11 +52,13 @@ public class UserRepository {
                 .asField("followingNo");
 
         // used for toggling follow button
-        Field<Boolean> isBeingFollowedField = DSL.selectOne()
-                .from(USER_FOLLOWERS)
-                .where(USER_FOLLOWERS.FOLLOWER_ID.eq(currentUserId).and(USER_FOLLOWERS.FOLLOWED_USER_ID.eq(profileOwnerId)))
-                .asField("isBeingFollowed")
-                .isNotNull(); // will return TRUE if exists, FALSE otherwise
+        Field<Boolean> isBeingFollowedField = Objects.equals(currentUserId, profileOwnerId) ? DSL.val(false).as("isBeingFollowed") : DSL.exists(
+                DSL.selectOne()
+                        .from(USER_FOLLOWERS)
+                        .where(USER_FOLLOWERS.FOLLOWER_ID.eq(currentUserId).and(USER_FOLLOWERS.FOLLOWED_USER_ID.eq(profileOwnerId)))
+        ).as("isBeingFollowed");
+
+        System.out.println("*****************************************************");
 
         return dsl.select(USERS.ID, USERS.DISPLAY_NAME, USERS.USERNAME, USERS.JOINED_AT, USERS.PROFILE_PICTURE, USERS.PROFILE_COVER_PHOTO, USERS.PROFILE_BIO, USERS.DOB, USERS.RESIDENCE, USERS.GENDER,
                         USERS.TIMEZONE_ID, followingNumberField, followerNumberField, isBeingFollowedField)

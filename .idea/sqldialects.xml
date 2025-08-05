@@ -2,6 +2,7 @@
 <project version="4">
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/backend/sql/init.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/backend/sql/users.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/backend/src/main/resources/data.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/backend/src/main/resources/db/migration/V1__create_users_table.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/backend/src/main/resources/db/migration/V2__create_user_followers_table.sql" dialect="PostgreSQL" />
