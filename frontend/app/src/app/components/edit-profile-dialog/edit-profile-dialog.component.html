@@ -48,25 +48,25 @@
     <!-- Display Name -->
     <mat-form-field appearance="fill" class="full-width">
       <mat-label>Name</mat-label>
-      <input matInput placeholder="Name" formControlName="displayName" maxlength="50" />
-      <mat-hint>{{ (profileForm.get('displayName')?.value?.length ?? 0) }}/50</mat-hint>
+      <input matInput placeholder="Name" formControlName="displayName" maxlength="30" />
+      <mat-hint>{{ (profileForm.get('displayName')?.value?.length ?? 0) }}/30</mat-hint>
 
       @if (profileForm.get('displayName')?.hasError('required')) {
         <mat-error>Name is required</mat-error>
       }
       @if (profileForm.get('displayName')?.hasError('maxlength')) {
-        <mat-error>Name cannot exceed 50 characters</mat-error>
+        <mat-error>Name cannot exceed 30 characters</mat-error>
       }
     </mat-form-field>
 
     <!-- Bio -->
     <mat-form-field appearance="fill" class="full-width">
       <mat-label>Bio</mat-label>
-      <textarea matInput placeholder="Bio" formControlName="bio" maxlength="160" rows="3"></textarea>
-      <mat-hint>{{ (profileForm.get('bio')?.value?.length ?? 0) }}/160</mat-hint>
+      <textarea matInput placeholder="Bio" formControlName="bio" maxlength="100" rows="3"  style="resize: none; height: 75px;"></textarea>
+      <mat-hint>{{ (profileForm.get('bio')?.value?.length ?? 0) }}/100</mat-hint>
 
       @if (profileForm.get('bio')?.hasError('maxlength')) {
-        <mat-error>Bio cannot exceed 160 characters</mat-error>
+        <mat-error>Bio cannot exceed 100 characters</mat-error>
       }
     </mat-form-field>
 

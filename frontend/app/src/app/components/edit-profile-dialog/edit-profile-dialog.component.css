@@ -36,18 +36,34 @@
     object-fit: cover;
 }
 
-.cover-photo .upload-cover,
-.profile-photo .upload-profile,
+.cover-photo .upload-cover {
+    position: absolute;
+
+    color: white;
+    padding: 6px;
+    bottom: -11px;
+    right: 65px;
+    cursor: pointer;
+
+}
+
+.profile-photo .upload-profile {
+    position: absolute;
+    color: white;
+    padding: 6px;
+    bottom: 23px;
+    right: 30px;
+    cursor: pointer;
+}
+
 .cover-photo .remove-btn,
 .profile-photo .remove-btn {
     position: absolute;
-    background-color: white;
-    border-radius: 50%;
+    color: red;
     padding: 6px;
-    bottom: 8px;
-    right: 8px;
+    bottom: -12px;
+    right: 28px;
     cursor: pointer;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
 }
 
 /* Profile Photo */
@@ -68,10 +84,7 @@
     object-fit: cover;
 }
 
-.profile-photo .upload-profile {
-    bottom: 0;
-    right: 0;
-}
+
 
 .form-section {
     padding: 16px 24px;

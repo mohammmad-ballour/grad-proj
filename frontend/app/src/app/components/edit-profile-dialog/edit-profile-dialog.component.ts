@@ -55,8 +55,8 @@ export class EditProfileDialogComponent {
     this.profilePhotoUrl = profileData.profilePicture;
 
     this.profileForm = this.fb.group({
-      displayName: [profileData.displayName || '', [Validators.required, Validators.maxLength(50)]],
-      bio: [profileData.profileBio || '', Validators.maxLength(30)],
+      displayName: [profileData.displayName || '', [Validators.required, Validators.maxLength(30)]],
+      bio: [profileData.profileBio || '', Validators.maxLength(100)],
       residence: [profileData.residence || '', Validators.required],
       dob: [profileData.dob || '', CustomValidators.ageValidator(10, 100)],
       gender: [profileData.gender?.toUpperCase() || '', Validators.required],
@@ -211,7 +211,12 @@ export class EditProfileDialogComponent {
     // Append profile picture, including old value if unchanged, skip if removed
     if (this.profilePhotoFile) {
       formData.append('profilePicture', this.profilePhotoFile);
-    } else if (this.profilePhotoUrl !== this.defaultProfilePhoto || this.profilePhotoUrl === this.profileData.profilePicture) {
+    } else if (this.profilePhotoUrl === this.defaultProfilePhoto && this.profilePhotoUrl !== this.profileData.profilePicture) {
+      // If the profile photo was removed, send a default value
+
+      formData.append('profilePicture', new File([], ""));
+
+    } else {
       // Append existing profile picture if unchanged
       const existingProfileFile = this.base64ToFile(this.profileData.profilePicture, 'profile-picture.png', 'image/png');
       if (existingProfileFile) {
@@ -224,13 +229,17 @@ export class EditProfileDialogComponent {
     // Append cover photo, including old value if unchanged, skip if removed
     if (this.coverPhotoFile) {
       formData.append('profileCoverPhoto', this.coverPhotoFile);
-    } else if (this.coverPhotoUrl !== this.defaultCoverPhoto || this.coverPhotoUrl === this.profileData.profileCoverPhoto) {
+    } else if (this.coverPhotoUrl === this.defaultCoverPhoto && this.coverPhotoUrl !== this.profileData.profileCoverPhoto) {
+      // If the cover photo was removed, send null
+      formData.append('profileCoverPhoto', new File([], "",));
+    } else {
       // Append existing cover photo if unchanged
       const existingCoverFile = this.base64ToFile(this.profileData.profileCoverPhoto, 'cover-photo.png', 'image/png');
       if (existingCoverFile) {
         formData.append('profileCoverPhoto', existingCoverFile);
       }
     }
+
     // If cover photo was removed (coverPhotoUrl === defaultCoverPhoto and differs from profileData.profileCoverPhoto), 
     // do not append to indicate removal
 
