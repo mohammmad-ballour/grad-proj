@@ -16,7 +16,7 @@ import { CustomValidators } from '../../../core/validators/CustomValidators';
 import { TimezoneSelectorComponent } from "../../../core/sharedComponent/Timezone/timezone-selector.component";
 import { TIMEZONES } from '../../../core/constants/timezones.constant';
 import { COUNTRIES } from '../../../core/constants/countries.constant';
-import { CountrySelectorComponent } from "../../../core/sharedComponent/Country/country-selector.component";
+import { ResidenceSelectorComponent } from "../../../core/sharedComponent/Country/country-selector.component";
 
 @Component({
   selector: 'app-signup',
@@ -33,7 +33,7 @@ import { CountrySelectorComponent } from "../../../core/sharedComponent/Country/
     MatIconModule,
     MatButtonModule,
     TimezoneSelectorComponent,
-    CountrySelectorComponent
+    ResidenceSelectorComponent
   ],
   templateUrl: './signup.component.html',
   styleUrls: ['./signup.component.css']

@@ -5,15 +5,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { CommonModule } from '@angular/common'; // Added import
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { EditProfileDialogData } from '../models/EditProfileDialogData';
 import { TimezoneSelectorComponent } from '../../core/sharedComponent/Timezone/timezone-selector.component';
 import { TIMEZONES } from '../../core/constants/timezones.constant';
 import { CustomValidators } from '../../core/validators/CustomValidators';
 import { MatSelectModule } from '@angular/material/select';
-import { CountrySelectorComponent } from "../../core/sharedComponent/Country/country-selector.component";
+import { ResidenceSelectorComponent } from '../../core/sharedComponent/Country/country-selector.component';
 import { ProfileServices } from '../services/profile.services';
 import { ProfileRequestDto } from '../models/ProfileRequestDto';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-edit-profile-dialog',
@@ -26,7 +27,7 @@ import { ProfileRequestDto } from '../models/ProfileRequestDto';
     MatSelectModule,
     MatAutocompleteModule,
     TimezoneSelectorComponent,
-    CountrySelectorComponent
+    ResidenceSelectorComponent
   ],
   templateUrl: './edit-profile-dialog.component.html',
   styleUrls: ['./edit-profile-dialog.component.css']
@@ -35,41 +36,52 @@ export class EditProfileDialogComponent {
   profileForm: FormGroup;
   coverPhotoFile: File | null = null;
   profilePhotoFile: File | null = null;
-  coverPhotoUrl = '';
-  profilePhotoUrl = '';
+  coverPhotoUrl: string | SafeUrl;
+  profilePhotoUrl: string | SafeUrl;
   allTimezonesFlat = TIMEZONES.flatMap(g => g.zones);
+  isDefaultProfilePhoto = false;
+  defaultProfilePhoto = 'assets/ProfileAvatar.png';
+  defaultCoverPhoto = 'assets/coverPhoto.png';
 
   constructor(
     public dialogRef: MatDialogRef<EditProfileDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public profileData: EditProfileDialogData,
-    private fb: FormBuilder, private profileServices: ProfileServices
+    private fb: FormBuilder,
+    private profileServices: ProfileServices,
+    private snackBar: MatSnackBar,
+    private sanitizer: DomSanitizer
   ) {
-    this.coverPhotoUrl = profileData.profileCoverPhoto || '';
-    this.profilePhotoUrl = profileData.profilePicture || '';
+    this.coverPhotoUrl = profileData.profileCoverPhoto;
+    this.profilePhotoUrl = profileData.profilePicture;
 
     this.profileForm = this.fb.group({
       displayName: [profileData.displayName || '', [Validators.required, Validators.maxLength(50)]],
-      bio: [profileData.profileBio || '', Validators.maxLength(160)],
+      bio: [profileData.profileBio || '', Validators.maxLength(30)],
       residence: [profileData.residence || '', Validators.required],
       dob: [profileData.dob || '', CustomValidators.ageValidator(10, 100)],
-      gender: [profileData.gender.toUpperCase() || '', Validators.required],
+      gender: [profileData.gender?.toUpperCase() || '', Validators.required],
       timezoneId: [profileData.timezoneId || '', [Validators.required, CustomValidators.validTimezoneValidator(this.allTimezonesFlat)]]
     });
-
   }
+
   get gender() { return this.profileForm.get('gender')!; }
   get dateOfBirth() { return this.profileForm.get('dob')!; }
-
-  get timezoneControl(): FormControl {
-    return this.profileForm.get('timezoneId') as FormControl;
-
-  }
-  get residence(): FormControl {
-    return this.profileForm.get('residence') as FormControl;
-  }
+  get timezoneControl(): FormControl { return this.profileForm.get('timezoneId') as FormControl; }
+  get residence(): FormControl { return this.profileForm.get('residence') as FormControl; }
 
   closeDialog(isChanged: boolean) {
     this.dialogRef.close(isChanged);
+  }
+
+
+  removeProfilePhoto(): void {
+    this.profilePhotoUrl = this.defaultProfilePhoto;
+    this.profilePhotoFile = null;
+  }
+
+  removeCoverPhoto(): void {
+    this.coverPhotoUrl = this.defaultCoverPhoto;
+    this.coverPhotoFile = null;
   }
 
   onCoverPhotoSelected(event: Event) {
@@ -77,18 +89,11 @@ export class EditProfileDialogComponent {
     if (file && this.isValidImage(file)) {
       this.coverPhotoFile = file;
       const reader = new FileReader();
-      reader.onload = () => (this.coverPhotoUrl = reader.result as string);
+      reader.onload = () => {
+        this.coverPhotoUrl = this.sanitizer.bypassSecurityTrustUrl(reader.result as string);
+      };
       reader.readAsDataURL(file);
     }
-  }
-  onAvatarError(event: Event) {
-    (event.target as HTMLImageElement).src =
-      'assets/ProfileAvatar.png';
-  }
-
-  onCoverError(event: Event) {
-    (event.target as HTMLImageElement).src =
-      'assets/coverPhoto.png';
   }
 
   onProfilePhotoSelected(event: Event) {
@@ -96,9 +101,20 @@ export class EditProfileDialogComponent {
     if (file && this.isValidImage(file)) {
       this.profilePhotoFile = file;
       const reader = new FileReader();
-      reader.onload = () => (this.profilePhotoUrl = reader.result as string);
+      reader.onload = () => {
+        this.profilePhotoUrl = this.sanitizer.bypassSecurityTrustUrl(reader.result as string);
+      };
       reader.readAsDataURL(file);
     }
+  }
+
+  onAvatarError() {
+    this.profilePhotoUrl = this.defaultProfilePhoto;
+
+  }
+
+  onCoverError() {
+    this.coverPhotoUrl = this.defaultCoverPhoto;
   }
 
   private isValidImage(file: File): boolean {
@@ -106,90 +122,118 @@ export class EditProfileDialogComponent {
     return validTypes.includes(file.type) && file.size <= 5 * 1024 * 1024;
   }
 
-  isFormValid(): boolean {
-    return this.profileForm.valid;
-  }
   save() {
-    if (this.isFormValid()) {
+    if (this.profileForm.valid) {
       if (!this.hasChangedFields()) {
         this.closeDialog(false);
         return;
       }
-      const ProfileFields = this.getChangedProfileFields();
-
-
-      this.profileServices.UpdateDataOfProfile(ProfileFields)
-        .subscribe({
-          next: () => this.closeDialog(true),
-          error: (e) => {
-            confirm('Update failed');
-            this.closeDialog(true);
-          }
-        });
+      this.profileForm.disable();
+      const formData = this.createFormData();
+      console.log('FormData contents:');
+      for (const [key, value] of formData.entries()) {
+        console.log(`${key}:`, value instanceof File ? `[File: ${value.name}, ${value.type}]` : value);
+      }
+      this.profileServices.UpdateDataOfProfile(formData).subscribe({
+        next: () => {
+          this.profileForm.enable();
+          this.closeDialog(true);
+        },
+        error: () => {
+          this.profileForm.enable();
+          this.snackBar.open('Failed to update profile. Please try again.', 'Close', { duration: 5000 });
+          this.closeDialog(true);
+        }
+      });
     }
   }
-
-  private getChangedProfileFields(): Partial<ProfileRequestDto> {
-    const changes: Partial<ProfileRequestDto> = {};
-
-
-    changes.displayName = this.profileForm.get('displayName')?.value.trim();
-
-    changes.profileBio = this.profileForm.get('bio')?.value.trim().substring(0, 160);
-
-    changes.residence = this.profileForm.get('residence')?.value.trim().substring(0, 30);
-
-    changes.dob = this.profileForm.get('dob')?.value || "empty";
-
-    changes.gender = this.profileForm.get('gender')?.value;
-
-    changes.timezoneId = this.profileForm.get('timezoneId')?.value;
-
-    if (this.profilePhotoFile) {
-      changes.profilePicture = this.profilePhotoFile;
-    }
-
-    if (this.coverPhotoFile) {
-      changes.profileCoverPhoto = this.coverPhotoFile;
-    }
-
-    return changes;
-  }
-
   private hasChangedFields(): boolean {
-    if (this.profileForm.get('displayName')?.value.trim() !== this.profileData.displayName) {
-      return true;
-    }
-
-    if (this.profileForm.get('bio')?.value.trim() !== this.profileData.profileBio) {
-      return true;
-    }
-
-    if (this.profileForm.get('residence')?.value.trim() !== this.profileData.residence) {
-      return true;
-    }
-
-    if (this.profileForm.get('dob')?.value !== this.profileData.dob) {
-      return true;
-    }
-
-    if (this.profileForm.get('gender')?.value !== this.profileData.gender.toUpperCase()) {
-      return true;
-    }
-
-    if (this.profileForm.get('timezoneId')?.value !== this.profileData.timezoneId) {
-      return true;
-    }
-
-    if (this.profilePhotoFile) {
-      return true;
-    }
-
-    if (this.coverPhotoFile) {
-      return true;
-    }
-
-    return false; // No changes found
+    const formValue = this.profileForm.value;
+    return (
+      formValue.displayName?.trim() !== (this.profileData.displayName || '') ||
+      formValue.bio?.trim() !== (this.profileData.profileBio || '') ||
+      formValue.residence?.trim() !== (this.profileData.residence || '') ||
+      formValue.dob !== (this.profileData.dob || '') ||
+      formValue.gender?.toUpperCase() !== (this.profileData.gender?.toUpperCase() || '') ||
+      formValue.timezoneId !== (this.profileData.timezoneId || '') ||
+      !!this.profilePhotoFile ||
+      (this.profilePhotoUrl === this.defaultProfilePhoto && this.profilePhotoUrl !== this.profileData.profilePicture) ||
+      !!this.coverPhotoFile ||
+      (this.coverPhotoUrl === this.defaultCoverPhoto && this.coverPhotoUrl !== this.profileData.profileCoverPhoto)
+    );
   }
+  private base64ToFile(base64: string, fileName: string, mimeType: string): File | null {
+    try {
+      const base64Data = base64.replace(/^data:image\/[a-z]+;base64,/, '');
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType });
+      return new File([blob], fileName, { type: mimeType });
+    } catch (error) {
+      console.error('Failed to convert base64 to File:', error);
+      return null;
+    }
+  }
+  private createFormData(): FormData {
+    const formData = new FormData();
+    const formValue = this.profileForm.value;
 
+    // Append text fields, including old values if unchanged
+    formData.append('displayName', formValue.displayName?.trim() && formValue.displayName.trim() !== this.profileData.displayName
+      ? formValue.displayName.trim()
+      : this.profileData.displayName || '');
+
+    formData.append('profileBio', formValue.bio === '' ? '' :
+      (formValue.bio?.trim() && formValue.bio.trim() !== this.profileData.profileBio
+        ? formValue.bio.trim()
+        : this.profileData.profileBio || ''));
+
+    formData.append('residence', formValue.residence?.trim() && formValue.residence.trim() !== this.profileData.residence
+      ? formValue.residence.trim()
+      : this.profileData.residence || '');
+
+    formData.append('dob', formValue.dob && formValue.dob !== this.profileData.dob
+      ? formValue.dob
+      : this.profileData.dob || '');
+
+    formData.append('gender', formValue.gender && formValue.gender.toUpperCase() !== this.profileData.gender?.toUpperCase()
+      ? formValue.gender.toUpperCase()
+      : this.profileData.gender?.toUpperCase() || '');
+
+    formData.append('timezoneId', formValue.timezoneId && formValue.timezoneId !== this.profileData.timezoneId
+      ? formValue.timezoneId
+      : this.profileData.timezoneId || '');
+
+    // Append profile picture, including old value if unchanged, skip if removed
+    if (this.profilePhotoFile) {
+      formData.append('profilePicture', this.profilePhotoFile);
+    } else if (this.profilePhotoUrl !== this.defaultProfilePhoto || this.profilePhotoUrl === this.profileData.profilePicture) {
+      // Append existing profile picture if unchanged
+      const existingProfileFile = this.base64ToFile(this.profileData.profilePicture, 'profile-picture.png', 'image/png');
+      if (existingProfileFile) {
+        formData.append('profilePicture', existingProfileFile);
+      }
+    }
+    // If profile photo was removed (profilePhotoUrl === defaultProfilePhoto and differs from profileData.profilePicture), 
+    // do not append to indicate removal
+
+    // Append cover photo, including old value if unchanged, skip if removed
+    if (this.coverPhotoFile) {
+      formData.append('profileCoverPhoto', this.coverPhotoFile);
+    } else if (this.coverPhotoUrl !== this.defaultCoverPhoto || this.coverPhotoUrl === this.profileData.profileCoverPhoto) {
+      // Append existing cover photo if unchanged
+      const existingCoverFile = this.base64ToFile(this.profileData.profileCoverPhoto, 'cover-photo.png', 'image/png');
+      if (existingCoverFile) {
+        formData.append('profileCoverPhoto', existingCoverFile);
+      }
+    }
+    // If cover photo was removed (coverPhotoUrl === defaultCoverPhoto and differs from profileData.profileCoverPhoto), 
+    // do not append to indicate removal
+
+    return formData;
+  }
 }

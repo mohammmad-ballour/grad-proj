@@ -5,9 +5,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatOptionModule } from '@angular/material/core';
-import { COUNTRIES } from '../../constants/countries.constant';
 @Component({
-  selector: 'app-country-selector',
+  selector: 'app-residence-selector',
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -18,6 +17,6 @@ import { COUNTRIES } from '../../constants/countries.constant';
   ], templateUrl: 'country-selector.component.html',
   styleUrl: './country-selector.component.css'
 })
-export class CountrySelectorComponent {
+export class ResidenceSelectorComponent {
   @Input() control!: FormControl;
 }
