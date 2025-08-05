@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS public.users
     account_status      ACCOUNT_STATUS        DEFAULT 'ACTIVE',
     who_can_message     WHO_CAN_MESSAGE       DEFAULT 'EVERYONE',
     joined_at           DATE                  DEFAULT CURRENT_DATE,
-    profile_picture     BYTEA        NOT NULL DEFAULT '\x',
-    profile_cover_photo BYTEA        NOT NULL DEFAULT '\x',
+    profile_picture     BYTEA,
+    profile_cover_photo BYTEA,
     profile_bio         VARCHAR(100),
     CONSTRAINT check_protected_message
         CHECK (NOT (is_protected AND who_can_message = 'EVERYONE'))
