@@ -27,7 +27,6 @@ public class FirebaseAuthService implements AuthService {
                 .setDisabled(false);
         try {
             UserRecord userRecord = this.firebaseAuth.createUser(request);
-            System.out.println("account created");
             return userRecord.getUid();
         } catch (FirebaseAuthException e) {
             throw new ActionNotAllowedException(UserErrorCode.CANNOT_CREATE_ACCOUNT);

@@ -74,7 +74,6 @@ public class AuthFilter extends OncePerRequestFilter {
             String userId = String.valueOf(firebaseToken.getClaims().get(USER_ID_CLAIM));
             return Optional.of(userId);
         } catch (FirebaseAuthException exception) {
-            System.out.println(exception.getMessage());
             return Optional.empty();
         }
     }

@@ -130,10 +130,6 @@ export class EditProfileDialogComponent {
       }
       this.profileForm.disable();
       const formData = this.createFormData();
-      console.log('FormData contents:');
-      for (const [key, value] of formData.entries()) {
-        console.log(`${key}:`, value instanceof File ? `[File: ${value.name}, ${value.type}]` : value);
-      }
       this.profileServices.UpdateDataOfProfile(formData).subscribe({
         next: () => {
           this.profileForm.enable();
@@ -223,7 +219,7 @@ export class EditProfileDialogComponent {
         formData.append('profilePicture', existingProfileFile);
       }
     }
-    // If profile photo was removed (profilePhotoUrl === defaultProfilePhoto and differs from profileData.profilePicture), 
+    // If profile photo was removed (profilePhotoUrl === defaultProfilePhoto and differs from profileData.profilePicture),
     // do not append to indicate removal
 
     // Append cover photo, including old value if unchanged, skip if removed
@@ -240,7 +236,7 @@ export class EditProfileDialogComponent {
       }
     }
 
-    // If cover photo was removed (coverPhotoUrl === defaultCoverPhoto and differs from profileData.profileCoverPhoto), 
+    // If cover photo was removed (coverPhotoUrl === defaultCoverPhoto and differs from profileData.profileCoverPhoto),
     // do not append to indicate removal
 
     return formData;
