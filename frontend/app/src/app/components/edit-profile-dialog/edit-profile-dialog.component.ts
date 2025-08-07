@@ -13,7 +13,6 @@ import { CustomValidators } from '../../core/validators/CustomValidators';
 import { MatSelectModule } from '@angular/material/select';
 import { ResidenceSelectorComponent } from '../../core/sharedComponent/Country/country-selector.component';
 import { ProfileServices } from '../services/profile.services';
-import { ProfileRequestDto } from '../models/ProfileRequestDto';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
 @Component({

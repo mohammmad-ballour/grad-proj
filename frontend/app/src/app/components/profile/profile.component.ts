@@ -9,27 +9,38 @@ import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { ActivatedRoute } from '@angular/router';
+import { MatMenuModule } from "@angular/material/menu";
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [MatTabsModule, MatIconModule, CommonModule, MatProgressSpinnerModule],
+  imports: [MatTabsModule, MatIconModule, CommonModule, MatProgressSpinnerModule, MatMenuModule],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
 export class ProfileComponent implements OnInit {
+
   profile!: ProfileResponseDto;
   spinner = true;
   isNotFound = true;
   CurrentUserName!: string;
   isPersonalProfile!: boolean;
-  isBeingFollowed!: boolean;
+  isBeingFollowed = false;;
   followSpinner = false;
+  blockSpinner = false;
+  isBlocked = false;
+  menuSpinner = false;
+  menuOpen = false;
+
+  currentPriority: 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT' = 'DEFAULT'; // initial value from backend
+
   constructor(
     private dialog: MatDialog,
     private profileServices: ProfileServices,
     private userService: UserService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private snackBar: MatSnackBar,
   ) { }
 
   ngOnInit(): void {
@@ -38,6 +49,8 @@ export class ProfileComponent implements OnInit {
       this.isPersonalProfile = (this.CurrentUserName == this.profileServices.userName)
       this.fetchProfileData();
     });
+
+
   }
 
   onAvatarError(event: Event) {
@@ -110,6 +123,74 @@ export class ProfileComponent implements OnInit {
         this.followSpinner = false;
       }
     });
+  }
+  isMuted = false;
+
+  updatePriority(priorityName: string): void {
+    this.followSpinner = true;
+
+    const normalized = priorityName.toUpperCase() as 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
+
+    this.userService.UpdatePriority(this.profile.userAvatar.userId, normalized).subscribe({
+      next: () => this.handlePriorityUpdateSuccess(normalized),
+      error: (err) => this.handlePriorityUpdateError(err),
+      complete: () => this.followSpinner = false
+    });
+  }
+
+  private handlePriorityUpdateSuccess(priority: 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT'): void {
+    this.currentPriority = priority;
+    console.log('Priority updated to', priority);
+    this.snackBar.open('Priority is updated.', 'Close', { duration: 1000 });
+  }
+
+  private handlePriorityUpdateError(err: any): void {
+    console.error('Priority update failed:', err);
+    this.snackBar.open('Saving failed. Please try again.', 'Close', { duration: 1000 });
+  }
+
+
+  toggleBlock(): void {
+    this.menuSpinner = true;
+
+    this.userService.ToggleBlock(this.profile.userAvatar.userId).subscribe({
+      next: () => this.handleToggleResult(true),
+      error: () => {
+        this.handleToggleResult(false);
+        this.menuSpinner = false
+      },
+      complete: () => this.menuSpinner = false
+    });
+  }
+
+  private handleToggleResult(success: boolean): void {
+    const wasBlocked = this.isBlocked;
+    const action = wasBlocked ? 'Unblock' : 'Block';
+
+    if (success) {
+      this.isBlocked = !wasBlocked;
+      this.snackBar.open(`${action}ed successfully`, 'Close', { duration: 1000 });
+    } else {
+      this.snackBar.open(`${action} failed, please try again`, 'Close', { duration: 1000 });
+    }
+  }
+
+
+
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    // this.userService.ToggleMute(this.profile.userAvatar.userId).subscribe({
+    //   error: () => {
+    //     this.snackBar.open('muteed Failed  . Please try again.', 'Close', { duration: 1000 });
+    //     this.isMuted = !this.isMuted;
+
+    //   },
+    //   complete: () => {
+    //     this.isBlocked = !this.isBlocked;
+    //     this.snackBar.open('muteed', 'Close', { duration: 1000 });
+    //   }
+    // });
   }
 
 
