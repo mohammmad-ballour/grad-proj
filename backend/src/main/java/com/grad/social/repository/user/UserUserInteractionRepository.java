@@ -43,7 +43,7 @@ public class UserUserInteractionRepository {
 
 
     public List<UserAvatarDto> findFollowersWithPagination(Long userId, LocalDate lastFollowedAt, Long lastFollower) {
-        if (lastFollowedAt == null) { // this is the first page
+        if (lastFollowedAt == null && lastFollower == null) { // this is the first page
             lastFollowedAt = AppConstants.DEFAULT_MAX_DATE;
         }
         return dsl.select(USERS.ID, USERS.USERNAME, USERS.PROFILE_PICTURE)
@@ -53,6 +53,21 @@ public class UserUserInteractionRepository {
                 .where(USER_FOLLOWERS.FOLLOWED_USER_ID.eq(userId))
                 .orderBy(USER_FOLLOWERS.FOLLOWED_AT.desc(), USER_FOLLOWERS.FOLLOWER_ID.desc())
                 .seek(lastFollowedAt, lastFollower) // and (lastFollowedAt, lastFollowerId) < (X, Y)
+                .limit(AppConstants.DEFAULT_PAGE_SIZE)
+                .fetch(mapping(UserAvatarDto::new));
+    }
+
+    public List<UserAvatarDto> findFollowingsWithPagination(Long userId, LocalDate lastFollowedAt, Long lastFollowedUser) {
+        if (lastFollowedAt == null && lastFollowedUser == null) { // this is the first page
+            lastFollowedAt = AppConstants.DEFAULT_MAX_DATE;
+        }
+        return dsl.select(USERS.ID, USERS.USERNAME, USERS.PROFILE_PICTURE)
+                .from(USER_FOLLOWERS)
+                .join(USERS)
+                .on(USER_FOLLOWERS.FOLLOWED_USER_ID.eq(USERS.ID))
+                .where(USER_FOLLOWERS.FOLLOWER_ID.eq(userId))
+                .orderBy(USER_FOLLOWERS.FOLLOWED_AT.desc(), USER_FOLLOWERS.FOLLOWED_USER_ID.desc())
+                .seek(lastFollowedAt, lastFollowedUser) // and (lastFollowedAt, lastFollowedUserId) < (X, Y)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
                 .fetch(mapping(UserAvatarDto::new));
     }

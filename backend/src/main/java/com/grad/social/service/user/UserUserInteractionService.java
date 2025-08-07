@@ -21,9 +21,14 @@ import static com.grad.social.exception.user.UserErrorCode.*;
 public class UserUserInteractionService {
     private final UserUserInteractionRepository userRepository;
 
-    public List<UserAvatarDto> retrieveFollowerList(Long userId, SeekRequest seekRequest) {
+    public List<UserAvatarDto> retrieveFollowerList(Long userId, SeekRequest lastPage) {
         return this.userRepository.findFollowersWithPagination(userId,
-                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastUserId());
+                lastPage == null ? null : lastPage.lastHappenedAt(), lastPage == null ? null : lastPage.lastUserId());
+    }
+
+    public List<UserAvatarDto> retrieveFollowingList(Long userId, SeekRequest lastPage) {
+        return this.userRepository.findFollowingsWithPagination(userId,
+                lastPage == null ? null : lastPage.lastHappenedAt(), lastPage == null ? null : lastPage.lastUserId());
     }
 
     public void followUser(Long userId, Long toFollow) {
@@ -45,9 +50,12 @@ public class UserUserInteractionService {
     }
 
     public void updateFollowingPriority(Long userId, long followedUserId, FollowingPriority newPriority) {
+        if (Objects.equals(userId, followedUserId))
+            throw new ActionNotAllowedException(ACTION_MEANT_FOR_OTHERS_ONLY);
         int recordsUpdated = this.userRepository.updateFollowingPriority(userId, followedUserId, newPriority);
         if (recordsUpdated == 0)
             throw new AssociationNotFoundException(TARGET_NOT_FOLLOWED);
     }
+
 
 }
