@@ -1,88 +1,98 @@
-@if (spinner) {
-<div class="loading-state-overlay">
+<!-- Spinner Loading -->
+<div *ngIf="spinner; else profileContent" class="loading-state-overlay">
   <mat-spinner></mat-spinner>
   <p style="color: white;">Loading profile...</p>
 </div>
-}
 
-@else {
-
-@if(isNotFound){
-<div class="not-found-container">
-  <h2>User Not Found</h2>
-  <p>The profile you are looking for does not exist or has been removed.</p>
-  <mat-icon>person_off</mat-icon>
-</div>
-}
-@else {
-<div class="profile-container">
-  <div class="profile-header">
-    <img [src]="profile.profileCoverPhoto " (error)="onCoverError($event)" class="cover-img" />
-
-    <div class="avatar-section">
-      <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
-    </div>
-
-    <div class="user-info">
-      <div class="profile-actions">
-        @if (isPersonalProfile) {
-        <button (click)="openEditProfile()">Edit Profile</button>
-        } @else {
-        <button mat-flat-button color="primary" class="follow-btn" (click)="toggleFollow()" [disabled]="followSpinner">
-          @if (followSpinner) {
-          <mat-progress-spinner diameter="18" strokeWidth="3" mode="indeterminate" color="accent"
-            class="follow-spinner"></mat-progress-spinner>
-          }
-          @else {
-          {{ isBeingFollowed ? 'Unfollow' : 'Follow' }}
-          }
-        </button>
-
-
-        }
-      </div>
-
-      <h1 class="username">
-        {{ profile.userAvatar.displayName }}
-        @if (profile.aboutUser.gender === 'MALE') {
-        <mat-icon>male</mat-icon>
-        }
-        @if (profile.aboutUser.gender === 'FEMALE') {
-        <mat-icon>female</mat-icon>
-        }
-      </h1>
-
-      <span class="handle">{{ '@' + profile.username }}</span>
-      <p class="bio">{{ profile.profileBio }}</p>
-
-      <div class="field-joined">
-        <mat-icon>calendar_today</mat-icon>
-        <span>Joined {{ profile.joinedAt | date: 'MMMM yyyy' }}</span>
-        @if (profile.aboutUser.residence) {
-        <span> · <mat-icon inline>location_on</mat-icon> {{ profile.aboutUser.residence }}</span>
-        }
-      </div>
-
-      <div class="stats">
-        <span><b>{{ profile.followingNo ?? 0 }}</b> Following</span>
-        <span><b>{{ profile.followerNo ?? 0 }}</b> Followers</span>
-      </div>
-    </div>
+<ng-template #profileContent>
+  <!-- Not Found Message -->
+  <div *ngIf="isNotFound; else fullProfile" class="not-found-container">
+    <h2>User Not Found</h2>
+    <p>The profile you are looking for does not exist or has been removed.</p>
+    <mat-icon>person_off</mat-icon>
   </div>
+</ng-template>
 
-  <mat-tab-group class="tabs" mat-align-tabs="start">
-    <mat-tab label="Posts">
-      <div class="tab-content">Post content goes here</div>
-    </mat-tab>
-    <mat-tab label="Replies">
-      <div class="tab-content">Reply content goes here</div>
-    </mat-tab>
-    <mat-tab label="Media">
-      <div class="tab-content">Media content goes here</div>
-    </mat-tab>
-  </mat-tab-group>
-</div>
+<ng-template #fullProfile>
+  <div class="profile-container">
+    <div class="profile-header">
+      <img [src]="profile.profileCoverPhoto" (error)="onCoverError($event)" class="cover-img" />
 
-}
+      <div class="avatar-section">
+        <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
+      </div>
 
-}
+      <div class="user-info">
+        <div class="profile-actions">
+          <button *ngIf="isPersonalProfile" (click)="openEditProfile()">Edit Profile</button>
+          <button *ngIf="!isPersonalProfile"
+                  mat-flat-button
+                  color="primary"
+                  class="follow-btn"
+                  (click)="toggleFollow()"
+                  [disabled]="followSpinner">
+            <ng-container *ngIf="followSpinner; else followText">
+              <mat-progress-spinner diameter="18" strokeWidth="3" mode="indeterminate" color="accent" class="follow-spinner"></mat-progress-spinner>
+            </ng-container>
+            <ng-template #followText>
+              {{ isBeingFollowed ? 'Unfollow' : 'Follow' }}
+            </ng-template>
+          </button>
+        </div>
+
+        <h1 class="username">
+          {{ profile.userAvatar.displayName }}
+          <mat-icon *ngIf="profile.aboutUser.gender === 'MALE'">male</mat-icon>
+          <mat-icon *ngIf="profile.aboutUser.gender === 'FEMALE'">female</mat-icon>
+        </h1>
+
+        <span class="handle">{{ '@' + profile.username }}</span>
+        <p class="bio">{{ profile.profileBio }}</p>
+
+        <div class="field-joined">
+          <mat-icon>calendar_today</mat-icon>
+          <span>Joined {{ profile.joinedAt | date: 'MMMM yyyy' }}</span>
+          <span *ngIf="profile.aboutUser.residence">
+            · <mat-icon inline>location_on</mat-icon> {{ profile.aboutUser.residence }}
+          </span>
+        </div>
+
+        <div class="stats">
+          <span><b>{{ profile.followingNo ?? 0 }}</b> Following</span>
+          <span><b>{{ profile.followerNo ?? 0 }}</b> Followers</span>
+        </div>
+
+        <!-- MUTUAL FOLLOWERS SECTION -->
+        <div class="mutual-followers-row" *ngIf="!isPersonalProfile && mutualFollowers.length > 0">
+          <div class="mutual-followers-avatars">
+            <ng-container *ngFor="let user of mutualFollowers.slice(0, 3)">
+              <img
+                [src]="user.profilePicture"
+                [alt]="user.displayName"
+                (error)="onAvatarError($event)"
+                class="mutual-avatar"
+              />
+            </ng-container>
+          </div>
+          <div class="mutual-followers-label">
+            {{ getMutualFollowersText() }}
+          </div>
+        </div>
+        <!-- END MUTUAL FOLLOWERS -->
+
+      </div>
+    </div>
+
+    <mat-tab-group class="tabs" mat-align-tabs="start">
+      <mat-tab label="Posts">
+        <div class="tab-content">Post content goes here</div>
+      </mat-tab>
+      <mat-tab label="Replies">
+        <div class="tab-content">Reply content goes here</div>
+      </mat-tab>
+      <mat-tab label="Media">
+        <div class="tab-content">Media content goes here</div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</ng-template>

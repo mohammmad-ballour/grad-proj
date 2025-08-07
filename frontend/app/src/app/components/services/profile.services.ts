@@ -47,6 +47,13 @@ export class ProfileServices extends BaseService {
         return this.authService.UserName;
     }
 
+  getMutualFollowers(username: string): Observable<{ displayName: string; profilePicture: string }[]> {
+    return this.httpClient.get<{ displayName: string; profilePicture: string }[]>(
+      `${this.baseUrl}/api/user/${username}/mutual-followers`
+    );
+  }
+
+
 
 
 

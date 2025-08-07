@@ -1,178 +1,215 @@
 :host {
-    display: block;
-    --bg-color: #0f1419;
-    /* ✅ fixed hash */
-    --text-color: white;
-    --primary-color: #1da1f2;
-    --border-color: #e1e8ed;
-    --secondary-text: #536471;
+  display: block;
+  --bg-color: #0f1419;
+  --text-color: white;
+  --primary-color: #1da1f2;
+  --border-color: #e1e8ed;
+  --secondary-text: #536471;
 }
 
 .profile-container {
-    background: var(--bg-color);
-    color: var(--text-color);
-    border-radius: 8px;
-    overflow: hidden;
-    margin: 10px 100px 0;
-    font-family: Arial, sans-serif;
-    position: relative;
+  background: var(--bg-color);
+  color: var(--text-color);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 10px 100px 0;
+  font-family: Arial, sans-serif;
+  position: relative;
 }
 
 .not-found-container {
-    text-align: center;
-    padding: 50px;
-    color: #ca2424;
+  text-align: center;
+  padding: 50px;
+  color: #ca2424;
 }
 
 .not-found-container mat-icon {
-    font-size: 48px;
-    color: #ca2424;
-
+  font-size: 48px;
+  color: #ca2424;
 }
 
 .profile-header {
-    position: relative;
+  position: relative;
 }
 
 .cover-img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    background-color: #536471;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  background-color: #536471;
 }
 
 .avatar-section {
-    position: absolute;
-    top: 140px;
-    left: 16px;
+  position: absolute;
+  top: 140px;
+  left: 16px;
 }
 
 .avatar-img {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    border: 4px solid var(--border-color);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--border-color);
 }
 
 .user-info {
-    padding: 80px 16px 16px;
-    position: relative;
+  padding: 80px 16px 16px;
+  position: relative;
 }
 
 .field-joined {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    color: var(--secondary-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--secondary-text);
 }
 
 .field-joined mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    color: var(--secondary-text);
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--secondary-text);
 }
 
 .profile-actions {
-    position: absolute;
-    top: 16px;
-    right: 16px;
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
 
 .profile-actions button {
-    border-radius: 20px;
-    padding: 6px 16px;
-    font-weight: 600;
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-weight: 600;
 }
 
 .blurred {
-    filter: blur(4px);
-    pointer-events: none;
+  filter: blur(4px);
+  pointer-events: none;
 }
 
 .loading-state-overlay {
-    position: absolute;
-    inset: 0;
-    backdrop-filter: blur(2px);
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
 }
 
 .username {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 800;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
 }
 
 .handle {
-    display: block;
-    font-size: 15px;
-    color: var(--secondary-text);
+  display: block;
+  font-size: 15px;
+  color: var(--secondary-text);
 }
 
 .bio {
-    margin: 8px 0;
-    font-size: 15px;
+  margin: 8px 0;
+  font-size: 15px;
 }
 
 .stats {
-    display: flex;
-    gap: 16px;
-    margin-top: 12px;
-    font-size: 14px;
-    color: var(--secondary-text);
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--secondary-text);
 }
 
 .stats span b {
-    color: var(--text-color);
+  color: var(--text-color);
 }
 
 ::ng-deep .mdc-tab-indicator__content--underline {
-    border-bottom-width: 4px !important;
-    border-bottom-color: var(--primary-color) !important;
-    border-bottom-style: solid !important;
+  border-bottom-width: 4px !important;
+  border-bottom-color: var(--primary-color) !important;
+  border-bottom-style: solid !important;
 }
 
 ::ng-deep .mat-mdc-tab .mdc-tab__text-label {
-    color: var(--text-color) !important;
-    font-weight: 600;
+  color: var(--text-color) !important;
+  font-weight: 600;
 }
 
 ::ng-deep .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
-    color: var(--text-color);
+  color: var(--text-color);
 }
 
 .tab-content {
-    padding: 16px;
-    min-height: 200px;
+  padding: 16px;
+  min-height: 200px;
 }
 
 .follow-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-width: 120px;
-    padding: 6px 16px;
-    font-weight: 600;
-    border-radius: 20px;
-    text-transform: capitalize;
-    transition: background-color 0.3s ease;
-    color: rgb(34, 142, 214);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+  padding: 6px 16px;
+  font-weight: 600;
+  border-radius: 20px;
+  text-transform: capitalize;
+  transition: background-color 0.3s ease;
+  color: rgb(34, 142, 214);
 
-    &:disabled {
-        background-color: aliceblue;
-        pointer-events: none;
-    }
+  &:disabled {
+    background-color: aliceblue;
+    pointer-events: none;
+  }
 }
 
 .follow-spinner {
-    width: 18px !important;
-    height: 18px !important;
-    color: white;
+  width: 18px !important;
+  height: 18px !important;
+  color: white;
+}
+
+.mutual-followers-avatars {
+  position: relative;
+  width: 54px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.mutual-followers-avatars img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #5e5e5e;
+  position: absolute;
+  object-fit: cover;
+}
+
+.mutual-followers-avatars img:nth-child(1) {
+  left: 0;
+  z-index: 3;
+}
+.mutual-followers-avatars img:nth-child(2) {
+  left: 15px;
+  z-index: 2;
+}
+.mutual-followers-avatars img:nth-child(3) {
+  left: 30px;
+  z-index: 1;
+}
+
+.mutual-followers-label {
+  position: absolute;
+  top: 225px;
+  left: 77px;
+  font-size: 14px;
+  color: #536471FF;
+  line-height: 1;
 }
