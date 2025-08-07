@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { ActivatedRoute } from '@angular/router';
 import { MatMenuModule } from "@angular/material/menu";
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { UpdatePriority } from "../models/UpdatePriority";
 
 @Component({
   selector: 'app-profile',
@@ -26,7 +27,7 @@ export class ProfileComponent implements OnInit {
   isNotFound = true;
   CurrentUserName!: string;
   isPersonalProfile!: boolean;
-  isBeingFollowed = false;;
+  isBeingFollowed = false;
   followSpinner = false;
   blockSpinner = false;
   isBlocked = false;

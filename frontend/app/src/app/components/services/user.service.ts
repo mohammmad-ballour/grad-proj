@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { BaseService } from '../../core/services/base.service';
-import { catchError, Observable, throwError } from 'rxjs';
+import {Injectable} from '@angular/core';
+import {HttpClient, HttpParams} from '@angular/common/http';
+import {BaseService} from '../../core/services/base.service';
+import {catchError, Observable, throwError} from 'rxjs';
+import {UpdatePriority} from "../models/UpdatePriority";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({providedIn: 'root'})
 export class UserService extends BaseService {
 
   // API Endpoints
@@ -31,11 +32,10 @@ export class UserService extends BaseService {
   }
 
   // ✅ Priority update (PATCH)
-  UpdatePriority(userId: number, priorityName: string): Observable<void> {
-    const url = `${this.baseUrl}${this.ENDPOINTS.UPDATE_PRIORITY}${userId}`;
-    const params = new HttpParams().set('newPriority', priorityName);
-
-    return this.httpClient.patch<void>(url, params).pipe(
+  UpdatePriority(followedUserId: number, newPriority: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.UPDATE_PRIORITY}${followedUserId}`;
+    const newPriorityObj: UpdatePriority = {priority: newPriority};
+    return this.httpClient.patch<void>(url, newPriorityObj).pipe(
       catchError(error => {
         console.error('Error updating priority:', error);
         return throwError(() => error);
