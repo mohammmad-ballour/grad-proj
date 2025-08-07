@@ -1,6 +1,6 @@
 package com.grad.social.model;
 
-import java.time.LocalDate;
+import java.time.temporal.Temporal;
 
-public record SeekRequest(LocalDate lastHappenedAt, Long lastUserId) {
+public record SeekRequest(Temporal lastHappenedAt, Long lastEntityId) {
 }

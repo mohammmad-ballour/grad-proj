@@ -265,6 +265,12 @@
                             <includes>.*</includes>
                             <excludes>flyway_schema_history</excludes>
                             <inputSchema>public</inputSchema>
+                            <forcedTypes>
+                                <forcedType>
+                                    <name>INSTANT</name> <!-- Java type -->
+                                    <types>timestamptz</types> <!-- PostgreSQL type -->
+                                </forcedType>
+                            </forcedTypes>
                         </database>
                         <generate>
                             <routines>false</routines>
