@@ -1,5 +1,6 @@
 package com.grad.social.common;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -12,7 +13,7 @@ public final class AppConstants {
 
 	public static final LocalDate DEFAULT_MAX_DATE = LocalDate.of(4000, 1, 1);
 
-	public static final OffsetDateTime DEFAULT_MAX_TIMESTAMP = DEFAULT_MAX_DATE.atStartOfDay().atOffset(ZoneOffset.UTC);
+	public static final Instant DEFAULT_MAX_TIMESTAMP = DEFAULT_MAX_DATE.atStartOfDay().toInstant(ZoneOffset.UTC);
 
 	public static final int DEFAULT_PAGE_SIZE = 10;
 

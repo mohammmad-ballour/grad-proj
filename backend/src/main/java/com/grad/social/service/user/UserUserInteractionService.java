@@ -1,8 +1,10 @@
 package com.grad.social.service.user;
 
+import com.grad.social.common.AppConstants;
 import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.AssociationNotFoundException;
+import com.grad.social.common.utils.TemporalUtils;
 import com.grad.social.model.SeekRequest;
 import com.grad.social.model.UserSeekResponse;
 import com.grad.social.model.enums.FollowingPriority;
@@ -14,12 +16,13 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 
 import static com.grad.social.exception.user.UserErrorCode.*;
+import static java.time.ZoneOffset.UTC;
 
 @Service
 @RequiredArgsConstructor
@@ -28,12 +31,17 @@ public class UserUserInteractionService {
 
     public List<UserSeekResponse> retrieveFollowerList(Long userId, SeekRequest lastPage) {
         return this.userRepository.findFollowersWithPagination(userId,
-                lastPage == null ? null : (LocalDate) lastPage.lastHappenedAt(), lastPage == null ? null : lastPage.lastEntityId());
+                lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
     }
 
     public List<UserSeekResponse> retrieveFollowingList(Long userId, SeekRequest lastPage) {
         return this.userRepository.findFollowingsWithPagination(userId,
-                lastPage == null ? null : (LocalDate) lastPage.lastHappenedAt(), lastPage == null ? null : lastPage.lastEntityId());
+                lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
+    }
+
+    public List<UserSeekResponse> findMutualFollowings(Long userId, Long currentUserId, SeekRequest lastPage) {
+        return this.userRepository.findMutualFollowings(userId, currentUserId,
+                lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
     }
 
     public void followUser(Long userId, Long toFollow) {
@@ -70,11 +78,23 @@ public class UserUserInteractionService {
         if (Objects.equals(userId, toMute)) {
             throw new ActionNotAllowedException(CANNOT_MUTE_SELF);
         }
-        Instant mutedUntil;
+        Instant mutedUntil = Instant.now();
         if (muteDuration.unit().equals("FOREVER")) {
-            mutedUntil = Instant.MAX;
+            mutedUntil = AppConstants.DEFAULT_MAX_TIMESTAMP;
         } else {
-            mutedUntil = Instant.now().plus(Duration.of(muteDuration.amount(), ChronoUnit.valueOf(muteDuration.unit().toUpperCase())));
+            ChronoUnit unit = ChronoUnit.valueOf(muteDuration.unit().toUpperCase());
+            int amount = muteDuration.amount();
+            if (unit.isDateBased()) {
+                switch (unit) {
+                    case DAYS -> mutedUntil = TemporalUtils.addDays(mutedUntil, amount);
+                    case MONTHS -> mutedUntil = TemporalUtils.addMonths(mutedUntil, amount);
+                    case YEARS -> mutedUntil = TemporalUtils.addYears(mutedUntil, amount);
+                    default -> throw new IllegalArgumentException("Unsupported date unit: " + unit);
+                }
+            } else {
+                mutedUntil = TemporalUtils.addHours(mutedUntil, amount);
+            }
+
         }
         try {
             this.userRepository.muteUser(userId, toMute, mutedUntil);
@@ -121,7 +141,7 @@ public class UserUserInteractionService {
 
     public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, SeekRequest lastPage) {
         return this.userRepository.findBlockedUsersWithPagination(userId,
-                lastPage == null ? null : (LocalDate) lastPage.lastHappenedAt(), lastPage == null ? null : lastPage.lastEntityId());
+                lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
     }
 
 
