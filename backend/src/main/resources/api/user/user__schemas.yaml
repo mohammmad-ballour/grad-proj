@@ -63,6 +63,12 @@ components:
           format: int32
         isBeingFollowed:
           type: boolean
+        followingPriority:
+          type: string
+        isBlocked:
+          type: boolean
+        isMuted:
+          type: boolean
         posts:
           type: array
           items:
