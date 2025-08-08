@@ -18,11 +18,11 @@ export class LoginService extends BaseService {
   }
 
   login(logInRequestDto: LogInRequestDto, routerLink: AppRoutes): Observable<string | null> {
+    this.authService.TokenKey = null;
     return this.httpClient.post(`${this.baseUrl}${this.API_ENDPOINTS_LOGIN}`, logInRequestDto, {
       responseType: 'text'  // <-- expects plain text response (i.e. the id token)
     }).pipe(
       tap((token: string) => {
-        this.authService.TokenKey = null;
         this.authService.TokenKey = token;
         this.router.navigate([routerLink == AppRoutes.PROFILE ? this.authService.UserName : routerLink]);
       }),

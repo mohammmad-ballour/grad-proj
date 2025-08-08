@@ -11,5 +11,15 @@ VALUES ('test@gmail.com',
         'Köln',
         'Europe/Berlin',
         'System admin'
+       );
+INSERT INTO users (email, username, display_name, dob, gender, residence, timezone_id, profile_bio)
+VALUES ('mshokor2005@gmail.com',
+        'moh',
+        'DISPLAY NAME DEMO',
+        '1990-01-01',
+        'MALE',
+        'Köln',
+        'Europe/Berlin',
+        'System admin'
        )
 ON CONFLICT (email) DO NOTHING;;

@@ -1,28 +1,62 @@
 import {Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpParams} from '@angular/common/http';
 import {BaseService} from '../../core/services/base.service';
-import {Observable} from 'rxjs';
-import {AuthService} from '../../core/services/auth.service';
+import {catchError, Observable, throwError} from 'rxjs';
+import {UpdatePriority} from "../models/UpdatePriority";
 
-
-@Injectable({ providedIn: 'root' })
+@Injectable({providedIn: 'root'})
 export class UserService extends BaseService {
 
-    private readonly API_ENDPOINTS_FOLLOW = "/api/users/follow/";
-    private readonly API_ENDPOINTS_UNFOLLOW = "/api/users/unfollow/";
+  // API Endpoints
+  private readonly ENDPOINTS = {
+    FOLLOW: '/api/users/follow/',
+    UNFOLLOW: '/api/users/unfollow/',
+    BLOCK: '/api/users/block/',
+    MUTE: '/api/users/toMute/',
+    UPDATE_PRIORITY: '/api/users/update-priority/'
+  };
 
-    constructor(private httpClient: HttpClient, private authService: AuthService) {
-        super();
-    }
+  constructor(private httpClient: HttpClient) {
+    super();
+  }
 
+  // 🔁 Shared POST handler
+  private postAction(endpoint: string, userId: number): Observable<void> {
+    const url = `${this.baseUrl}${endpoint}${userId}`;
+    return this.httpClient.post<void>(url, {}).pipe(
+      catchError(error => {
+        console.error(`POST request failed to ${url}`, error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // ✅ Priority update (PATCH)
+  UpdatePriority(followedUserId: number, newPriority: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.UPDATE_PRIORITY}${followedUserId}`;
+    const newPriorityObj: UpdatePriority = {priority: newPriority};
+    return this.httpClient.patch<void>(url, newPriorityObj).pipe(
+      catchError(error => {
+        console.error('Error updating priority:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // 🔁 Follow/Unfollow/Block/Mute actions
   follow(userId: number): Observable<void> {
-    return this.httpClient.post<void>(`${this.baseUrl}${this.API_ENDPOINTS_FOLLOW}${userId}`, {});
+    return this.postAction(this.ENDPOINTS.FOLLOW, userId);
   }
 
   unfollow(userId: number): Observable<void> {
-    return this.httpClient.post<void>(`${this.baseUrl}${this.API_ENDPOINTS_UNFOLLOW}${userId}`, {});
+    return this.postAction(this.ENDPOINTS.UNFOLLOW, userId);
   }
 
+  ToggleBlock(userId: number): Observable<void> {
+    return this.postAction(this.ENDPOINTS.BLOCK, userId);
+  }
 
+  // ToggleMute(userId: number): Observable<void> {
+  //   return this.postAction(this.ENDPOINTS.MUTE, userId);
+  // }
 }
-

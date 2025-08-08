@@ -5,6 +5,7 @@ import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
 import com.grad.grad_proj.generated.api.model.UserAboutDto;
 import com.grad.grad_proj.generated.api.model.UserAvatarDto;
 import com.grad.social.common.database.utils.JooqUtils;
+import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.user.UserBasicData;
 import com.grad.social.model.enums.Gender;
 import com.grad.social.model.tables.records.UsersRecord;
@@ -20,6 +21,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.grad.social.model.tables.UserBlocks.USER_BLOCKS;
+import static com.grad.social.model.tables.UserMutes.USER_MUTES;
 import static com.grad.social.model.tables.Users.USERS;
 import static com.grad.social.model.tables.UserFollowers.USER_FOLLOWERS;
 import static org.jooq.Records.mapping;
@@ -58,19 +61,39 @@ public class UserRepository {
                         .where(USER_FOLLOWERS.FOLLOWER_ID.eq(currentUserId).and(USER_FOLLOWERS.FOLLOWED_USER_ID.eq(profileOwnerId)))
         ).as("isBeingFollowed");
 
-        System.out.println("*****************************************************");
+        // Return the priority or NULL if not following or is self
+        Field<FollowingPriority> followingPriorityField = Objects.equals(currentUserId, profileOwnerId) ? DSL.val((FollowingPriority) null).as("followingPriority")
+                : DSL.select(USER_FOLLOWERS.FOLLOWING_PRIORITY)
+                .from(USER_FOLLOWERS)
+                .where(USER_FOLLOWERS.FOLLOWER_ID.eq(currentUserId).and(USER_FOLLOWERS.FOLLOWED_USER_ID.eq(profileOwnerId)))
+                .asField("followingPriority");
+
+        Field<Boolean> isBlockedField = Objects.equals(currentUserId, profileOwnerId) ? DSL.val(false).as("isBlocked") : DSL.exists(
+                DSL.selectOne()
+                        .from(USER_BLOCKS)
+                        .where(USER_BLOCKS.USER_ID.eq(currentUserId).and(USER_BLOCKS.BLOCKED_USER_ID.eq(profileOwnerId)))
+        ).as("isBlocked");
+
+        Field<Boolean> isMutedField = Objects.equals(currentUserId, profileOwnerId) ? DSL.val(false).as("isMuted") : DSL.exists(
+                DSL.selectOne()
+                        .from(USER_MUTES)
+                        .where(USER_MUTES.USER_ID.eq(currentUserId).and(USER_MUTES.MUTED_USER_ID.eq(profileOwnerId).and(USER_MUTES.MUTED_UNTIL.isNotNull())))
+        ).as("isMuted");
 
         return dsl.select(USERS.ID, USERS.DISPLAY_NAME, USERS.USERNAME, USERS.JOINED_AT, USERS.PROFILE_PICTURE, USERS.PROFILE_COVER_PHOTO, USERS.PROFILE_BIO, USERS.DOB, USERS.RESIDENCE, USERS.GENDER,
-                        USERS.TIMEZONE_ID, followingNumberField, followerNumberField, isBeingFollowedField)
+                        USERS.TIMEZONE_ID, followingNumberField, followerNumberField, isBeingFollowedField, followingPriorityField, isBlockedField, isMutedField)
                 .from(USERS)
                 .where(USERS.ID.eq(profileOwnerId))
                 .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender,
-                                   timezoneId, followingNumber, followerNumber, isBeingFollowed) -> {
+                                   timezoneId, followingNumber, followerNumber, isBeingFollowed, followingPriority,isBlocked, isMuted) -> {
                     var profile = new ProfileResponseDto(username, new UserAvatarDto(userId, displayName, profilePicture), profileCover, bio, joinedAt,
                             new UserAboutDto(gender.name(), dob, residence, timezoneId));
                     profile.setFollowerNo(followerNumber);
                     profile.setFollowingNo(followingNumber);
                     profile.isBeingFollowed(isBeingFollowed);
+                    profile.setFollowingPriority(followingPriority == null? null : followingPriority.name());
+                    profile.isBlocked(isBlocked);
+                    profile.isMuted(isMuted);
                     return profile;
                 }));
     }

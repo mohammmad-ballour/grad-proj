@@ -18,27 +18,28 @@
     <div class="profile-header">
       <img [src]="profile.profileCoverPhoto" (error)="onCoverError($event)" class="cover-img" />
 
-      <div class="avatar-section">
-        <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
-      </div>
+    <div class="avatar-section">
+      <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
+    </div>
 
-      <div class="user-info">
-        <div class="profile-actions">
-          <button *ngIf="isPersonalProfile" (click)="openEditProfile()">Edit Profile</button>
-          <button *ngIf="!isPersonalProfile"
-                  mat-flat-button
-                  color="primary"
-                  class="follow-btn"
-                  (click)="toggleFollow()"
-                  [disabled]="followSpinner">
-            <ng-container *ngIf="followSpinner; else followText">
-              <mat-progress-spinner diameter="18" strokeWidth="3" mode="indeterminate" color="accent" class="follow-spinner"></mat-progress-spinner>
-            </ng-container>
-            <ng-template #followText>
-              {{ isBeingFollowed ? 'Unfollow' : 'Follow' }}
-            </ng-template>
-          </button>
-        </div>
+    <div class="user-info">
+      <div class="profile-actions">
+        @if (isPersonalProfile) {
+        <button (click)="openEditProfile()">Edit Profile</button>
+        } @else {
+        <button mat-flat-button color="primary" class="follow-btn" (click)="toggleFollow()" [disabled]="followSpinner">
+          @if (followSpinner) {
+          <mat-progress-spinner diameter="18" strokeWidth="3" mode="indeterminate" color="accent"
+            class="follow-spinner"></mat-progress-spinner>
+          }
+          @else {
+          {{ isBeingFollowed ? 'Unfollow' : 'Follow' }}
+          }
+        </button>
+
+
+        }
+      </div>
 
         <h1 class="username">
           {{ profile.userAvatar.displayName }}
