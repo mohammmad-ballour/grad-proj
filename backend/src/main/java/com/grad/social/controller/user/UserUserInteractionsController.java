@@ -34,6 +34,13 @@ public class UserUserInteractionsController {
         return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, lastPage));
     }
 
+    // Find followings
+    @GetMapping("/{userId}/mutual-followings")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<UserSeekResponse>> retrieveMutualFollowings(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
+        return ResponseEntity.ok(this.userInteractionService.findMutualFollowings(userId, currentUser.userId(), lastPage));
+    }
+
     // Follow a user
     @PostMapping("/follow/{toFollow}")
     @PreAuthorize("isAuthenticated()")

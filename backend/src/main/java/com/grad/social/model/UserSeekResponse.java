@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.temporal.Temporal;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -13,7 +13,7 @@ public final class UserSeekResponse {
     private Long userId;
     private String displayName;
     private byte[] profilePicture;
-    private Temporal actionHappenedAt;
+    private Instant actionHappenedAt;
     private String profileBio;
 
 }
