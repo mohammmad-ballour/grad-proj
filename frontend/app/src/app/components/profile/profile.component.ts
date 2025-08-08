@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
@@ -9,14 +9,20 @@ import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { ActivatedRoute } from '@angular/router';
-import { MatMenuModule } from "@angular/material/menu";
+import { MatMenuModule, MatMenuTrigger } from "@angular/material/menu";
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { UpdatePriority } from "../models/UpdatePriority";
+import { MatInputModule } from "@angular/material/input";
+import { MatAutocompleteModule } from "@angular/material/autocomplete";
+import { MatSliderModule } from '@angular/material/slider';
+import { MuteDialogComponent } from '../mute-dialog-component/mute-dialog-component.component';
+import { MuteDuration } from '../models/MuteDurationDto';
+
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [MatTabsModule, MatIconModule, CommonModule, MatProgressSpinnerModule, MatMenuModule],
+  imports: [MatTabsModule, MatIconModule, CommonModule, MatProgressSpinnerModule, MatMenuModule,
+    MatInputModule, MatAutocompleteModule, MatSliderModule],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
@@ -34,7 +40,9 @@ export class ProfileComponent implements OnInit {
   menuSpinner = false;
   menuOpen = false;
 
+
   currentPriority: 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT' = 'DEFAULT'; // initial value from backend
+  durationInSeconds: any;
 
   constructor(
     private dialog: MatDialog,
@@ -152,24 +160,32 @@ export class ProfileComponent implements OnInit {
 
 
   toggleBlock(): void {
-    this.menuSpinner = true;
+    const profileOwnerId = this.profile.userAvatar.userId;
 
-    this.userService.ToggleBlock(this.profile.userAvatar.userId).subscribe({
+    this.menuSpinner = true; // spinner for menu
+    const request$ = this.isBlocked
+      ? this.userService.UNBlock(profileOwnerId)
+      : this.userService.Block(profileOwnerId);
+
+    request$.subscribe({
       next: () => this.handleToggleResult(true),
       error: () => {
         this.handleToggleResult(false);
-        this.menuSpinner = false
-      },
+        this.menuSpinner = false; // spinner for menu
+
+
+      }
+      ,
       complete: () => this.menuSpinner = false
     });
   }
 
   private handleToggleResult(success: boolean): void {
-    const wasBlocked = this.isBlocked;
-    const action = wasBlocked ? 'Unblock' : 'Block';
+    const previousState = this.isBlocked;
+    const action = previousState ? 'Unblock' : 'Block';
 
     if (success) {
-      this.isBlocked = !wasBlocked;
+      this.isBlocked = !previousState;
       this.snackBar.open(`${action}ed successfully`, 'Close', { duration: 1000 });
     } else {
       this.snackBar.open(`${action} failed, please try again`, 'Close', { duration: 1000 });
@@ -179,20 +195,64 @@ export class ProfileComponent implements OnInit {
 
 
 
-  toggleMute() {
-    this.isMuted = !this.isMuted;
-    // this.userService.ToggleMute(this.profile.userAvatar.userId).subscribe({
-    //   error: () => {
-    //     this.snackBar.open('muteed Failed  . Please try again.', 'Close', { duration: 1000 });
-    //     this.isMuted = !this.isMuted;
+  openMuteDialog(): void {
+    const dialogRef = this.dialog.open(MuteDialogComponent, {
+      width: '3000px', // corrected from 3000px which is very large
+      data: { userId: this.profile.userAvatar.userId },
+    });
 
-    //   },
-    //   complete: () => {
-    //     this.isBlocked = !this.isBlocked;
-    //     this.snackBar.open('muteed', 'Close', { duration: 1000 });
-    //   }
-    // });
+    dialogRef.afterClosed().subscribe((result: MuteDuration | undefined) => {
+      if (result) {
+        this.mute(result);
+      } else {
+        this.unmute();
+      }
+    });
   }
+
+  private mute(duration: MuteDuration): void {
+    this.menuSpinner = true;
+    this.userService.Mute(this.profile.userAvatar.userId, duration)
+      .subscribe({
+        next: () => this.onMuteResult(true),
+        error: () => this.onMuteResult(false),
+        complete: () => (this.menuSpinner = false),
+      });
+  }
+
+  private unmute(): void {
+    this.menuSpinner = true;
+    this.userService.Unmute(this.profile.userAvatar.userId)
+      .subscribe({
+        next: () => this.onUnmuteResult(true),
+        error: () => this.onUnmuteResult(false),
+        complete: () => (this.menuSpinner = false),
+      });
+  }
+
+  private onMuteResult(success: boolean): void {
+    if (success) {
+      this.isMuted = true;
+      this.showSnackBar('Muted successfully');
+    } else {
+      this.showSnackBar('Mute failed, please try again');
+    }
+  }
+
+  private onUnmuteResult(success: boolean): void {
+    if (success) {
+      this.isMuted = false;
+      this.showSnackBar('Unmuted successfully');
+    } else {
+      this.showSnackBar('Unmute failed, please try again');
+    }
+  }
+
+  private showSnackBar(message: string): void {
+    this.snackBar.open(message, 'Close', { duration: 1000 });
+  }
+
+
 
 
 }

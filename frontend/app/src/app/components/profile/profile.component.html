@@ -23,17 +23,11 @@
       <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
       @if (isBeingFollowed) {
       <div class="mute">
-        <button mat-icon-button (click)="toggleMute()" aria-label="Toggle notifications"
-          [matMenuTriggerFor]="muteOPtion" [disabled]="isMuted">
+        <button mat-icon-button (click)="openMuteDialog()">
           <mat-icon>{{ isMuted ? 'notifications_off' : 'notifications_on' }}</mat-icon>
         </button>
-        <mat-menu #muteOPtion>
-          <button mat-menu-item class="mat-button" (click)="toggleMute()">Always</button>
-          <button mat-menu-item class="mat-button" (click)="toggleMute()">mute for 1 day</button>
-          <button mat-menu-item class="mat-button" (click)="toggleMute()">mute for 1 Weak</button>
-          <button mat-menu-item class="mat-button" (click)="toggleMute()">un mute</button>
-        </mat-menu>
       </div>
+
       }
     </div>
 
@@ -62,20 +56,21 @@
             class="follow-spinner">
           </mat-progress-spinner>
           }@else{
-            Follow
+          Follow
           }
-          
+
         </button>
         }@else {
 
-        <button mat-icon-button [matMenuTriggerFor]="Priority" class="unfollow-btn" (click)="menuOpen=!menuOpen"  #menuTrigger="matMenuTrigger">
+        <button mat-icon-button [matMenuTriggerFor]="Priority" class="unfollow-btn" (click)="menuOpen=!menuOpen"
+          #menuTrigger="matMenuTrigger">
           @if (followSpinner) {
           <mat-progress-spinner diameter="18" strokeWidth="3" mode="indeterminate" color="accent"
             class="follow-spinner">
           </mat-progress-spinner>
           }@else {
           unfollow
-         <mat-icon class="arrow-icon" [class.rotate]="menuOpen"  > keyboard_double_arrow_down</mat-icon>
+          <mat-icon class="arrow-icon" [class.rotate]="menuOpen"> keyboard_double_arrow_down</mat-icon>
           }
 
         </button>
@@ -119,14 +114,14 @@
               </button>
 
               <!-- Favourite -->
-              <button mat-menu-item class="mat-button"  (click)="updatePriority('FAVOURITE')">
+              <button mat-menu-item class="mat-button" (click)="updatePriority('FAVOURITE')">
                 <mat-icon style="color: rgb(17, 199, 138);">favorite</mat-icon>
-                  Add to faavourites 
+                Add to faavourites
                 @if (currentPriority === 'FAVOURITE') {
                 <mat-icon style="color
                 :  rgb(21, 85, 168);">bookmark_check</mat-icon>
                 }
-             
+
 
               </button>
 
