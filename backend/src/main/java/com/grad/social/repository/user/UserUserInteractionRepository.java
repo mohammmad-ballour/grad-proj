@@ -191,6 +191,7 @@ public class UserUserInteractionRepository {
         dsl.insertInto(um, um.USER_ID, um.MUTED_USER_ID, um.MUTED_UNTIL).values(userId, toMute, mutedUntil)
                 .onConflict(um.USER_ID, um.MUTED_USER_ID) // PK columns
                 .doUpdate()
+                .set(um.MUTED_AT, Instant.now())
                 .set(um.MUTED_UNTIL, mutedUntil)
                 .execute();
     }
