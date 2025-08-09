@@ -3,6 +3,7 @@ package com.grad.social.controller.user;
 import com.grad.social.common.security.CurrentUser;
 import com.grad.social.model.SeekRequest;
 import com.grad.social.model.UserSeekResponse;
+import com.grad.social.model.user.FollowerType;
 import com.grad.social.model.user.MuteDuration;
 import com.grad.social.model.user.UpdatePriority;
 import com.grad.social.service.user.UserUserInteractionService;
@@ -12,7 +13,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,22 +26,22 @@ public class UserUserInteractionsController {
     // Find followers
     @GetMapping("/{userId}/followers")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<List<UserSeekResponse>> retrieveFollowerList(@PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.retrieveFollowerList(userId, lastPage));
+    public ResponseEntity<Map<FollowerType, List<UserSeekResponse>>> retrieveFollowerList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
+        return ResponseEntity.ok(this.userInteractionService.retrieveFollowerList(userId, currentUser.userId(), lastPage));
     }
 
     // Find followings
     @GetMapping("/{userId}/followings")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<List<UserSeekResponse>> retrieveFollowingList(@PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, lastPage));
+    public ResponseEntity<List<UserSeekResponse>> retrieveFollowingList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
+        return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, currentUser.userId(), lastPage));
     }
 
     // Find followings
     @GetMapping("/{userId}/mutual-followings")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserSeekResponse>> retrieveMutualFollowings(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.findMutualFollowings(userId, currentUser.userId(), lastPage));
+        return ResponseEntity.ok(this.userInteractionService.findFollowersCurrentUserFollows(userId, currentUser.userId(), lastPage));
     }
 
     // Follow a user
