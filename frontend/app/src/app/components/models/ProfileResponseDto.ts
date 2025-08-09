@@ -18,9 +18,10 @@ export interface ProfileResponseDto {
     followerNo?: number;
     isBeingFollowed: boolean;   // false if it is user's own profile'
     posts: PostCard[];
-
+    followingPriority: string;
+    isBlocked: boolean;
+    isMuted: boolean;
 }
-
 export interface PostCard {
     content: string;
     postedAt: string;

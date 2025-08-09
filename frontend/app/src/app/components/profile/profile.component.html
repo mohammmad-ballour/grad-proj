@@ -1,4 +1,4 @@
- @if (spinner) {
+ @if ( initialSpinner) {
 <div class="loading-state-overlay">
   <mat-spinner></mat-spinner>
   <p style="color: white;">Loading profile...</p>
@@ -17,14 +17,14 @@
 @else {
 <div class="profile-container">
   <div class="profile-header">
-    <img [src]="profile.profileCoverPhoto " (error)="onCoverError($event)" class="cover-img" />
+    <img [src]="profile.profileCoverPhoto " (error)="onImageError($event,'assets/coverPhoto.png')" class="cover-img" />
 
     <div class="avatar-section">
-      <img [src]="profile.userAvatar.profilePicture" (error)="onAvatarError($event)" class="avatar-img" />
-      @if (isBeingFollowed) {
+      <img [src]="profile.userAvatar.profilePicture" (error)="onImageError($event,'assets/ProfileAvatar.png')" class="avatar-img" />
+      @if (profile.isBeingFollowed && !profile.isBlocked) {
       <div class="mute">
         <button mat-icon-button (click)="openMuteDialog()">
-          <mat-icon>{{ isMuted ? 'notifications_off' : 'notifications_on' }}</mat-icon>
+          <mat-icon>{{ profile.isMuted ? 'notifications_off' : 'notifications_on' }}</mat-icon>
         </button>
       </div>
 
@@ -36,7 +36,7 @@
         @if (isPersonalProfile) {
         <button (click)="openEditProfile()">Edit Profile</button>
         } @else {
-        @if(isBlocked){
+        @if(profile.isBlocked){
         <button style="color: white; background-color: red;" class="block-btn" (click)="toggleBlock()"
           [disabled]="blockSpinner">
           @if (blockSpinner) {
@@ -49,8 +49,8 @@
 
         </button>
         } @else{
-        @if (!isBeingFollowed) {
-        <button mat-flat-button color="primary" class="follow-btn" (click)="toggleFollow()" [disabled]="followSpinner">
+        @if (!profile.isBeingFollowed) {
+        <button mat-flat-button color="primary" class="follow-btn" (click)="toggleFollow(true)" [disabled]="followSpinner">
           @if (followSpinner) {
           <mat-progress-spinner diameter="18" strokeWidth="3" mode="indeterminate" color="accent"
             class="follow-spinner">
@@ -108,7 +108,7 @@
               <button mat-menu-item class="mat-button" (click)="updatePriority('RESTRICTED')">
                 <mat-icon style="color: rgb(1, 0, 0);">lock</mat-icon>
                 <span>Restrict account</span>
-                @if (currentPriority === 'RESTRICTED') {
+                @if (profile.followingPriority === 'RESTRICTED') {
                 <mat-icon style="color: rgb(21, 85, 168);">bookmark_check</mat-icon>
                 }
               </button>
@@ -117,7 +117,7 @@
               <button mat-menu-item class="mat-button" (click)="updatePriority('FAVOURITE')">
                 <mat-icon style="color: rgb(17, 199, 138);">favorite</mat-icon>
                 Add to faavourites
-                @if (currentPriority === 'FAVOURITE') {
+                @if (profile.followingPriority === 'FAVOURITE') {
                 <mat-icon style="color
                 :  rgb(21, 85, 168);">bookmark_check</mat-icon>
                 }
@@ -128,14 +128,14 @@
               <!-- Default -->
               <button mat-menu-item class="mat-button" (click)="updatePriority('DEFAULT')">
                 <mat-icon style="color: rgb(72, 168, 237);">star</mat-icon>
-                @if (currentPriority === 'DEFAULT') {
+                @if (profile.followingPriority === 'DEFAULT') {
                 <mat-icon style="color: rgb(21, 85, 168);">bookmark_check</mat-icon>
                 }
                 <span>Default</span>
 
               </button>
 
-              <button mat-menu-item class="mat-button" (click)="toggleFollow()">
+              <button mat-menu-item class="mat-button" (click)="toggleFollow(true)">
                 <mat-icon style="color: rgb(222, 21, 21);">person_remove</mat-icon>
                 unfollow
               </button>

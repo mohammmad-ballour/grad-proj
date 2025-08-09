@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
@@ -9,41 +9,41 @@ import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { ActivatedRoute } from '@angular/router';
-import { MatMenuModule, MatMenuTrigger } from "@angular/material/menu";
+import { MatMenuModule } from "@angular/material/menu";
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatInputModule } from "@angular/material/input";
 import { MatAutocompleteModule } from "@angular/material/autocomplete";
 import { MatSliderModule } from '@angular/material/slider';
 import { MuteDialogComponent } from '../mute-dialog-component/mute-dialog-component.component';
 import { MuteDuration } from '../models/MuteDurationDto';
+import { Observable, Subscription } from 'rxjs';
 
+type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
+const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [MatTabsModule, MatIconModule, CommonModule, MatProgressSpinnerModule, MatMenuModule,
-    MatInputModule, MatAutocompleteModule, MatSliderModule],
+  imports: [
+    MatTabsModule, MatIconModule, CommonModule,
+    MatProgressSpinnerModule, MatMenuModule,
+    MatInputModule, MatAutocompleteModule, MatSliderModule
+  ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
 export class ProfileComponent implements OnInit {
 
   profile!: ProfileResponseDto;
-  spinner = true;
+  initialSpinner = false;
   isNotFound = true;
   CurrentUserName!: string;
   isPersonalProfile!: boolean;
-  isBeingFollowed = false;
   followSpinner = false;
-  blockSpinner = false;
-  isBlocked = false;
   menuSpinner = false;
-  menuOpen = false;
-
-
-  currentPriority: 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT' = 'DEFAULT'; // initial value from backend
-  durationInSeconds: any;
-
+  menuOpen: any;
+  blockSpinner: any;
+  displaySnackBar = true;
   constructor(
     private dialog: MatDialog,
     private profileServices: ProfileServices,
@@ -55,41 +55,29 @@ export class ProfileComponent implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       this.CurrentUserName = params.get('username') || '';
-      this.isPersonalProfile = (this.CurrentUserName == this.profileServices.userName)
-      this.fetchProfileData();
+      this.isPersonalProfile = this.CurrentUserName === this.profileServices.userName;
+      this.fetchProfileData(true);
     });
-
-
   }
 
-  onAvatarError(event: Event) {
-    (event.target as HTMLImageElement).src =
-      'assets/ProfileAvatar.png';
-  }
-
-  onCoverError(event: Event) {
-    (event.target as HTMLImageElement).src =
-      'assets/coverPhoto.png';
-  }
-
-  fetchProfileData(): void {
+  private fetchProfileData(isInitialCall: boolean): void {
+    this.initialSpinner = isInitialCall;
     this.profileServices.GetDataOfProfile(this.CurrentUserName).subscribe({
       next: (result) => {
         if (result) {
           this.profile = result;
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
-          this.spinner = false;
           this.isNotFound = false;
-          this.isBeingFollowed = result.isBeingFollowed;
-        } else {
-          this.spinner = false
         }
+        this.initialSpinner = false;
       }
     });
   }
 
-
+  onImageError(event: Event, fallback: string): void {
+    (event.target as HTMLImageElement).src = fallback;
+  }
 
   openEditProfile(): void {
     const dialogRef = this.dialog.open(EditProfileDialogComponent, {
@@ -108,96 +96,116 @@ export class ProfileComponent implements OnInit {
       }
     });
 
-    dialogRef.afterClosed().subscribe((changed) => {
-      if (changed) {
-        this.fetchProfileData();
-      }
+    dialogRef.afterClosed().subscribe(changed => {
+      if (changed) this.fetchProfileData(true);
     });
   }
 
-  toggleFollow(): void {
-    const profileOwnerId = this.profile.userAvatar.userId;
-    this.followSpinner = true;
+  /** ---------- GENERIC TOGGLE HANDLER ---------- **/
+  private handleToggleAction(
+    condition: boolean,
+    actionIfFalse$: Observable<void>,
+    actionIfTrue$: Observable<void>,
+    successMessageIfFalse: string,
+    successMessageIfTrue: string,
+    errorMessageIfFalse: string,
+    errorMessageIfTrue: string,
+    stateUpdater: () => void,
+    spinnerSetter: (state: boolean) => void,
+    refrech: boolean
+  ): void {
+    spinnerSetter(true);
 
-    const request$ = this.isBeingFollowed
-      ? this.userService.unfollow(profileOwnerId)
-      : this.userService.follow(profileOwnerId);
+    const request$ = condition ? actionIfTrue$ : actionIfFalse$;
 
     request$.subscribe({
       next: () => {
-        this.isBeingFollowed = !this.isBeingFollowed;
-        this.profile.followerNo! += this.isBeingFollowed ? 1 : -1;
+        stateUpdater();
+        if (refrech)
+          this.showSnackBar(condition ? successMessageIfTrue : successMessageIfFalse);
+        this.fetchProfileData(false)
+      },
+      error: () => {
+        if (refrech)
+          this.showSnackBar(condition ? errorMessageIfTrue : errorMessageIfFalse);
       },
       complete: () => {
-        this.followSpinner = false;
+        spinnerSetter(false);
       }
     });
-  }
-  isMuted = false;
 
-  updatePriority(priorityName: string): void {
-    this.followSpinner = true;
 
-    const normalized = priorityName.toUpperCase() as 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
-
-    this.userService.UpdatePriority(this.profile.userAvatar.userId, normalized).subscribe({
-      next: () => this.handlePriorityUpdateSuccess(normalized),
-      error: (err) => this.handlePriorityUpdateError(err),
-      complete: () => this.followSpinner = false
-    });
   }
 
-  private handlePriorityUpdateSuccess(priority: 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT'): void {
-    this.currentPriority = priority;
-    console.log('Priority updated to', priority);
-    this.snackBar.open('Priority is updated.', 'Close', { duration: 1000 });
+  /** ---------- FOLLOW ---------- **/
+  toggleFollow(refrech: boolean): void {
+    const userId = this.profile.userAvatar.userId;
+
+    this.handleToggleAction(
+      this.profile.isBeingFollowed,
+      this.userService.follow(userId),
+      this.userService.unfollow(userId),
+      'Followed successfully',
+      'Unfollowed successfully',
+      'Failed to follow',
+      'Failed to unfollow',
+      () => (this.profile.isBeingFollowed = !this.profile.isBeingFollowed),
+      (state) => (this.followSpinner = state),
+      refrech
+    );
   }
 
-  private handlePriorityUpdateError(err: any): void {
-    console.error('Priority update failed:', err);
-    this.snackBar.open('Saving failed. Please try again.', 'Close', { duration: 1000 });
-  }
-
-
+  /** ---------- BLOCK ---------- **/
   toggleBlock(): void {
-    const profileOwnerId = this.profile.userAvatar.userId;
+    const userId = this.profile.userAvatar.userId;
 
-    this.menuSpinner = true; // spinner for menu
-    const request$ = this.isBlocked
-      ? this.userService.UNBlock(profileOwnerId)
-      : this.userService.Block(profileOwnerId);
-
-    request$.subscribe({
-      next: () => this.handleToggleResult(true),
-      error: () => {
-        this.handleToggleResult(false);
-        this.menuSpinner = false; // spinner for menu
-
-
-      }
-      ,
-      complete: () => this.menuSpinner = false
-    });
+    this.handleToggleAction(
+      this.profile.isBlocked,
+      this.userService.Block(userId),
+      this.userService.UNBlock(userId),
+      'Blocked successfully',
+      'Unblocked successfully',
+      'Failed to block',
+      'Failed to unblock',
+      () => {
+        this.profile.isBlocked = !this.profile.isBlocked;
+        // Auto-unfollow on block if needed
+        if (this.profile.isBlocked && this.profile.isBeingFollowed) {
+          this.toggleFollow(false); // will unfollow
+        }
+      },
+      (state) => (this.menuSpinner = state),
+      true
+    );
   }
 
-  private handleToggleResult(success: boolean): void {
-    const previousState = this.isBlocked;
-    const action = previousState ? 'Unblock' : 'Block';
+  /** ---------- PRIORITY ---------- **/
+  updatePriority(priorityName: string): void {
+    const normalized = PRIORITIES.includes(priorityName.toUpperCase() as Priority)
+      ? priorityName.toUpperCase() as Priority
+      : 'DEFAULT';
 
-    if (success) {
-      this.isBlocked = !previousState;
-      this.snackBar.open(`${action}ed successfully`, 'Close', { duration: 1000 });
-    } else {
-      this.snackBar.open(`${action} failed, please try again`, 'Close', { duration: 1000 });
-    }
+    const userId = this.profile.userAvatar.userId;
+
+    this.handleToggleAction(
+      false, // no toggle here, just call once
+      this.userService.UpdatePriority(userId, normalized),
+      this.userService.UpdatePriority(userId, normalized),
+      'Priority updated successfully',  // Success message added
+      'Priority updated successfully',
+      'Failed to update priority',      // Error message added
+      'Failed to update priority',
+      () => (this.profile.followingPriority = normalized),
+      (state) => (this.followSpinner = state),
+      true
+    );
   }
 
 
-
-
+  /** ---------- MUTE / UNMUTE ---------- **/
   openMuteDialog(): void {
     const dialogRef = this.dialog.open(MuteDialogComponent, {
-      width: '3000px', // corrected from 3000px which is very large
+      width: '400px',
       data: { userId: this.profile.userAvatar.userId },
     });
 
@@ -205,54 +213,65 @@ export class ProfileComponent implements OnInit {
       if (result) {
         this.mute(result);
       } else {
-        this.unmute();
+        this.unmute(true);
       }
     });
   }
 
+
+
   private mute(duration: MuteDuration): void {
-    this.menuSpinner = true;
-    this.userService.Mute(this.profile.userAvatar.userId, duration)
-      .subscribe({
-        next: () => this.onMuteResult(true),
-        error: () => this.onMuteResult(false),
-        complete: () => (this.menuSpinner = false),
+    if (this.profile.isMuted) {
+      this.displaySnackBar = false;
+      // First unmute, then mute again with the new duration
+      this.unmute(false).add(() => {
+        this.callMute(duration);
       });
-  }
-
-  private unmute(): void {
-    this.menuSpinner = true;
-    this.userService.Unmute(this.profile.userAvatar.userId)
-      .subscribe({
-        next: () => this.onUnmuteResult(true),
-        error: () => this.onUnmuteResult(false),
-        complete: () => (this.menuSpinner = false),
-      });
-  }
-
-  private onMuteResult(success: boolean): void {
-    if (success) {
-      this.isMuted = true;
-      this.showSnackBar('Muted successfully');
     } else {
-      this.showSnackBar('Mute failed, please try again');
+      this.callMute(duration);
     }
   }
 
-  private onUnmuteResult(success: boolean): void {
-    if (success) {
-      this.isMuted = false;
-      this.showSnackBar('Unmuted successfully');
-    } else {
-      this.showSnackBar('Unmute failed, please try again');
-    }
+  private callMute(duration: MuteDuration): void {
+    this.executeSimpleAction(
+      this.userService.Mute(this.profile.userAvatar.userId, duration),
+      () => {
+        this.profile.isMuted = true;
+        this.showSnackBar('Muted successfully');
+      },
+      () => this.showSnackBar('Mute failed.')
+    );
   }
 
+  private unmute(refrech: boolean): Subscription {
+    return this.userService.Unmute(this.profile.userAvatar.userId).subscribe({
+      next: () => {
+        if (refrech) {
+          this.showSnackBar('Unmuted successfully');
+          this.fetchProfileData(false);
+        }
+      },
+      error: () => {
+        if (refrech)
+          this.showSnackBar('Unmute failed.');
+      }
+    });
+  }
+
+  private executeSimpleAction(
+    action$: Observable<void>,
+    onSuccess: () => void,
+    onError: () => void
+  ): void {
+    action$.subscribe({
+      next: () => onSuccess(),
+      error: () => onError()
+    });
+  }
+
+  /** ---------- UTILITIES ---------- **/
   private showSnackBar(message: string): void {
-    this.snackBar.open(message, 'Close', { duration: 1000 });
+
+    this.snackBar.open(message, 'Close', { duration: 1500 });
   }
-
-
-
-
 }
