@@ -257,14 +257,8 @@ button {
   stroke: rgb(46, 159, 215) !important;
 }
 
-.mute {
-  position: absolute;
-  right: 35%;
-  bottom: -15px;
-  z-index: 3;
-}
 
-.mute button {
+.mute {
   background-color: transparent;
   color: #1da1f2;
 }

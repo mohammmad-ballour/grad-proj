@@ -4,7 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
 import { EditProfileDialogComponent } from '../edit-profile-dialog/edit-profile-dialog.component';
 import { ProfileServices } from '../services/profile.services';
-import { UserService } from '../services/user.service';
+import { UserSeekResponse, UserService } from '../services/user.service';
 import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
@@ -17,6 +17,7 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MuteDialogComponent } from '../mute-dialog-component/mute-dialog-component.component';
 import { MuteDuration } from '../models/MuteDurationDto';
 import { Observable, Subscription } from 'rxjs';
+import { UserListDialogComponent } from '../user-list-dialog-component/user-list-dialog-component.component';
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
@@ -69,6 +70,9 @@ export class ProfileComponent implements OnInit {
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
           this.isNotFound = false;
+          const userId = this.profile.userAvatar.userId;
+          this.loadFollowers(userId);
+          this.loadFollowings(userId);
         }
         this.initialSpinner = false;
       }
@@ -206,17 +210,29 @@ export class ProfileComponent implements OnInit {
   openMuteDialog(): void {
     const dialogRef = this.dialog.open(MuteDialogComponent, {
       width: '400px',
-      data: { userId: this.profile.userAvatar.userId },
+      data: {
+        userId: this.profile.userAvatar.userId,
+        isMuted: this.profile.isMuted
+      },
     });
 
-    dialogRef.afterClosed().subscribe((result: MuteDuration | undefined) => {
-      if (result) {
+    dialogRef.afterClosed().subscribe((result: MuteDuration | boolean | undefined) => {
+      if (result === false || result === undefined) {
+        // Cancel clicked → do nothing
+        return;
+      }
+
+      if (typeof result === 'object' && 'unit' in result) {
+        // Mute action
         this.mute(result);
-      } else {
+      }
+      else if (result === true) {
+        // Unmute action
         this.unmute(true);
       }
     });
   }
+
 
 
 
@@ -233,45 +249,82 @@ export class ProfileComponent implements OnInit {
   }
 
   private callMute(duration: MuteDuration): void {
-    this.executeSimpleAction(
-      this.userService.Mute(this.profile.userAvatar.userId, duration),
-      () => {
-        this.profile.isMuted = true;
-        this.showSnackBar('Muted successfully');
-      },
-      () => this.showSnackBar('Mute failed.')
+    this.menuSpinner = true
+
+    this.userService.Mute(this.profile.userAvatar.userId, duration).subscribe(
+
+      {
+        next: () => {
+          this.profile.isMuted = true;
+          this.showSnackBar('Muted successfully');
+        },
+        error: () => {
+          this.showSnackBar('Mute failed.');
+          this.menuSpinner = false;
+        },
+        complete: () => {
+          this.menuSpinner = false
+        }
+      }
     );
+
   }
 
   private unmute(refrech: boolean): Subscription {
+    this.menuSpinner = true
+
     return this.userService.Unmute(this.profile.userAvatar.userId).subscribe({
       next: () => {
         if (refrech) {
           this.showSnackBar('Unmuted successfully');
           this.fetchProfileData(false);
+
         }
       },
       error: () => {
         if (refrech)
           this.showSnackBar('Unmute failed.');
+        this.menuSpinner = false
+
+      },
+      complete: () => {
+        this.menuSpinner = false
       }
     });
   }
 
-  private executeSimpleAction(
-    action$: Observable<void>,
-    onSuccess: () => void,
-    onError: () => void
-  ): void {
-    action$.subscribe({
-      next: () => onSuccess(),
-      error: () => onError()
-    });
-  }
+
 
   /** ---------- UTILITIES ---------- **/
   private showSnackBar(message: string): void {
 
     this.snackBar.open(message, 'Close', { duration: 1500 });
+  }
+
+
+  followers: UserSeekResponse[] = [];
+  followings: UserSeekResponse[] = [];
+
+  private loadFollowers(userId: number): void {
+    this.userService.getFollowers(userId)
+      .subscribe(data => {
+        console.log(data)
+
+        this.followers = data;
+      });
+  }
+
+  private loadFollowings(userId: number): void {
+    this.userService.getFollowings(userId)
+      .subscribe(data => {
+        console.log(data)
+        this.followings = data;
+      });
+  }
+  openUserList(title: string, users: UserSeekResponse[]): void {
+    this.dialog.open(UserListDialogComponent, {
+      width: '400px', height: "400px",
+      data: { title, users }
+    });
   }
 }

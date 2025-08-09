@@ -1,0 +1,89 @@
+.user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #e6e6e6;
+    gap: 12px;
+    /* space between elements */
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1 1 auto;
+    /* take available space */
+    min-width: 0;
+    /* allow text truncation */
+}
+
+.user-info img {
+    border-radius: 50%;
+    object-fit: cover;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    /* important for text truncation */
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #262626;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-bio {
+    font-size: 13px;
+    color: #8e8e8e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+    /* adjust as needed */
+}
+
+.follow-btn {
+    background-color: #0095f6;
+    /* Instagram blue */
+    color: white;
+    font-weight: 600;
+    border-radius: 20px;
+    padding: 6px 16px;
+    min-width: 80px;
+    height: 32px;
+    line-height: 1;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    border: none;
+    flex-shrink: 0;
+}
+
+.follow-btn:hover:not(:disabled) {
+    background-color: #1877f2;
+    /* slightly lighter blue */
+    box-shadow: 0 2px 6px rgb(0 149 246 / 0.3);
+}
+
+.follow-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.follow-spinner {
+    margin: 0 auto;
+}

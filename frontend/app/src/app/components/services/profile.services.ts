@@ -33,6 +33,7 @@ export class ProfileServices extends BaseService {
                 })
             );
     }
+
     UpdateDataOfProfile(FormData: FormData): Observable<void> {
 
         return this.httpClient.put<void>(
@@ -41,18 +42,9 @@ export class ProfileServices extends BaseService {
         );
     }
 
-
-
     get userName() {
         return this.authService.UserName;
     }
-
-  getMutualFollowers(username: string): Observable<{ displayName: string; profilePicture: string }[]> {
-    return this.httpClient.get<{ displayName: string; profilePicture: string }[]>(
-      `${this.baseUrl}/api/user/${username}/mutual-followers`
-    );
-  }
-
 
 
 

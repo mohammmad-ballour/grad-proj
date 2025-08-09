@@ -1,4 +1,4 @@
- @if ( initialSpinner) {
+@if ( initialSpinner) {
 <div class="loading-state-overlay">
   <mat-spinner></mat-spinner>
   <p style="color: white;">Loading profile...</p>
@@ -20,15 +20,9 @@
     <img [src]="profile.profileCoverPhoto " (error)="onImageError($event,'assets/coverPhoto.png')" class="cover-img" />
 
     <div class="avatar-section">
-      <img [src]="profile.userAvatar.profilePicture" (error)="onImageError($event,'assets/ProfileAvatar.png')" class="avatar-img" />
-      @if (profile.isBeingFollowed && !profile.isBlocked) {
-      <div class="mute">
-        <button mat-icon-button (click)="openMuteDialog()">
-          <mat-icon>{{ profile.isMuted ? 'notifications_off' : 'notifications_on' }}</mat-icon>
-        </button>
-      </div>
+      <img [src]="profile.userAvatar.profilePicture" (error)="onImageError($event,'assets/ProfileAvatar.png')"
+        class="avatar-img" />
 
-      }
     </div>
 
     <div class="user-info">
@@ -50,7 +44,8 @@
         </button>
         } @else{
         @if (!profile.isBeingFollowed) {
-        <button mat-flat-button color="primary" class="follow-btn" (click)="toggleFollow(true)" [disabled]="followSpinner">
+        <button mat-flat-button color="primary" class="follow-btn" (click)="toggleFollow(true)"
+          [disabled]="followSpinner">
           @if (followSpinner) {
           <mat-progress-spinner diameter="18" strokeWidth="3" mode="indeterminate" color="accent"
             class="follow-spinner">
@@ -94,18 +89,28 @@
             </button>
 
             <mat-menu #menu="matMenu">
-              @if (!menuSpinner) {
+            @if(!menuSpinner){
               <!-- Block User -->
               <button mat-menu-item class="mat-button" (click)="toggleBlock()">
                 <mat-icon style="color: red;">block</mat-icon>
                 block <span>{{'@'+profile.username}}</span>
               </button>
+              @if (profile.isBeingFollowed && !profile.isBlocked) {
+
+              <button mat-menu-item class="mat-button" class="mute" (click)="openMuteDialog()">
+                <mat-icon style="color: rgb(26, 167, 214);">{{ profile.isMuted ? 'notifications_off' :
+                  'notifications_on' }}</mat-icon>
+                {{profile.isMuted? 'unMute' : 'mute'}}
+              </button>
+
               }
+            }
             </mat-menu>
 
             <mat-menu #Priority="matMenu">
               <!-- Restricted -->
-              <button mat-menu-item class="mat-button" (click)="updatePriority('RESTRICTED')">
+              <button mat-menu-item class="mat-button" (click)="updatePriority('RESTRICTED')"
+                [disabled]="profile.followingPriority=='RESTRICTED'">
                 <mat-icon style="color: rgb(1, 0, 0);">lock</mat-icon>
                 <span>Restrict account</span>
                 @if (profile.followingPriority === 'RESTRICTED') {
@@ -114,7 +119,8 @@
               </button>
 
               <!-- Favourite -->
-              <button mat-menu-item class="mat-button" (click)="updatePriority('FAVOURITE')">
+              <button mat-menu-item class="mat-button" (click)="updatePriority('FAVOURITE')"
+                [disabled]="profile.followingPriority=='FAVOURITE'">
                 <mat-icon style="color: rgb(17, 199, 138);">favorite</mat-icon>
                 Add to faavourites
                 @if (profile.followingPriority === 'FAVOURITE') {
@@ -126,7 +132,8 @@
               </button>
 
               <!-- Default -->
-              <button mat-menu-item class="mat-button" (click)="updatePriority('DEFAULT')">
+              <button mat-menu-item class="mat-button" (click)="updatePriority('DEFAULT')"
+                [disabled]="profile.followingPriority=='DEFAULT'">
                 <mat-icon style="color: rgb(72, 168, 237);">star</mat-icon>
                 @if (profile.followingPriority === 'DEFAULT') {
                 <mat-icon style="color: rgb(21, 85, 168);">bookmark_check</mat-icon>
@@ -173,9 +180,17 @@
       </div>
 
       <div class="stats">
-        <span><b>{{ profile.followingNo ?? 0 }}</b> Following</span>
-        <span><b>{{ profile.followerNo ?? 0 }}</b> Followers</span>
+        <span (click)="openUserList('Followers', followers)" style="cursor:pointer;">
+          <b>{{ profile.followerNo ?? 0 }}</b> Followers
+        </span>
+        <span (click)="openUserList('Following', followings)" style="cursor:pointer;">
+          <b>{{ profile.followingNo ?? 0 }}</b> Following
+        </span>
       </div>
+
+
+
+
     </div>
   </div>
 

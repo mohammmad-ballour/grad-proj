@@ -1,9 +1,23 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BaseService } from '../../core/services/base.service';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, Observable, throwError } from 'rxjs';
-import { UpdatePriority } from "../models/UpdatePriority";
+import { BaseService } from '../../core/services/base.service';
+import { UpdatePriority } from '../models/UpdatePriority';
 import { MuteDuration } from '../models/MuteDurationDto';
+// Matches backend SeekRequest.java
+export interface SeekRequest {
+  lastHappenedAt?: string; // ISO 8601 string, e.g. "2025-08-09T10:20:30Z"
+  lastEntityId?: number;
+}
+
+// Matches backend UserSeekResponse.java
+export interface UserSeekResponse {
+  userId: number;
+  displayName: string;
+  profilePicture: string | null; // Base64 encoded
+  actionHappenedAt: string;      // ISO string
+  profileBio: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class UserService extends BaseService {
@@ -15,7 +29,8 @@ export class UserService extends BaseService {
     UNBLOCK: '/api/users/unblock/',
     MUTE: '/api/users/mute/',
     UNMUTE: '/api/users/unmute/',
-    UPDATE_PRIORITY: '/api/users/update-priority/'
+    UPDATE_PRIORITY: '/api/users/update-priority/',
+    USERS: '/api/users/' // base for followings/followers/mutual
   };
 
   constructor(private httpClient: HttpClient) {
@@ -32,6 +47,7 @@ export class UserService extends BaseService {
     );
   }
 
+  // ===== Action methods =====
   UpdatePriority(followedUserId: number, newPriority: string): Observable<void> {
     const url = `${this.baseUrl}${this.ENDPOINTS.UPDATE_PRIORITY}${followedUserId}`;
     const newPriorityObj: UpdatePriority = { priority: newPriority };
@@ -66,4 +82,31 @@ export class UserService extends BaseService {
   Unmute(userId: number): Observable<void> {
     return this.postAction(this.ENDPOINTS.UNMUTE, userId);
   }
+
+
+
+  /** Get followers for a user */
+  getFollowers(userId: number, seekRequest?: SeekRequest): Observable<UserSeekResponse[]> {
+    const params = this.buildSeekParams(seekRequest);
+    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, { params });
+  }
+
+  /** Get followings for a user */
+  getFollowings(userId: number, seekRequest?: SeekRequest): Observable<UserSeekResponse[]> {
+    const params = this.buildSeekParams(seekRequest);
+    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, { params });
+  }
+
+  /** Build query parameters from SeekRequest */
+  private buildSeekParams(seekRequest?: SeekRequest): HttpParams {
+    let params = new HttpParams();
+    if (seekRequest?.lastHappenedAt) {
+      params = params.set('lastHappenedAt', seekRequest.lastHappenedAt);
+    }
+    if (seekRequest?.lastEntityId !== undefined) {
+      params = params.set('lastEntityId', seekRequest.lastEntityId.toString());
+    }
+    return params;
+  }
+
 }
