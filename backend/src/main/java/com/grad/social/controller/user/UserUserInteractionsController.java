@@ -25,14 +25,14 @@ public class UserUserInteractionsController {
 
     // Find followers
     @GetMapping("/{userId}/followers")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<FollowerType, List<UserSeekResponse>>> retrieveFollowerList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
         return ResponseEntity.ok(this.userInteractionService.retrieveFollowerList(userId, currentUser.userId(), lastPage));
     }
 
     // Find followings
     @GetMapping("/{userId}/followings")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserSeekResponse>> retrieveFollowingList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
         return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, currentUser.userId(), lastPage));
     }
