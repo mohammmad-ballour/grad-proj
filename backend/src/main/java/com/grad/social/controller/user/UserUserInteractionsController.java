@@ -13,7 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +32,7 @@ public class UserUserInteractionsController {
     // Find followings
     @GetMapping("/{userId}/followings")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<UserSeekResponse>> retrieveFollowingList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
+    public ResponseEntity<Map<Boolean, List<UserSeekResponse>>> retrieveFollowingList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
         return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, currentUser.userId(), lastPage));
     }
 
@@ -41,7 +40,7 @@ public class UserUserInteractionsController {
     @GetMapping("/{userId}/mutual-followings")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserSeekResponse>> retrieveMutualFollowings(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.findFollowersCurrentUserFollows(userId, currentUser.userId(), lastPage));
+        return ResponseEntity.ok(this.userInteractionService.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUser.userId(), lastPage));
     }
 
     // Follow a user

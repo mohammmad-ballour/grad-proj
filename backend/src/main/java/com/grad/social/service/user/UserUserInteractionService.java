@@ -34,13 +34,13 @@ public class UserUserInteractionService {
                 lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
     }
 
-    public List<UserSeekResponse> retrieveFollowingList(Long userId, Long currentUserId, SeekRequest lastPage) {
+    public Map<Boolean, List<UserSeekResponse>> retrieveFollowingList(Long userId, Long currentUserId, SeekRequest lastPage) {
         return this.userRepository.findFollowingsWithPagination(userId, currentUserId,
                 lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
     }
 
-    public List<UserSeekResponse> findFollowersCurrentUserFollows(Long userId, Long currentUserId, SeekRequest lastPage) {
-        return this.userRepository.findFollowersCurrentUserFollows(userId, currentUserId,
+    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, SeekRequest lastPage) {
+        return this.userRepository.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUserId,
                 lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
     }
 

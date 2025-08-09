@@ -12,15 +12,18 @@ import com.grad.social.model.tables.Users;
 import com.grad.social.model.user.FollowerType;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.impl.DSL;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.HashMap;
 
 import static org.jooq.Records.mapping;
 import static org.jooq.impl.DSL.row;
@@ -58,99 +61,128 @@ public class UserUserInteractionRepository {
         if (lastFollowedAt == null && lastFollower == null) { // this is the first page
             lastFollowedAt = AppConstants.DEFAULT_MAX_DATE;
         }
-        var allFollowers = dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO)
-                .from(uf1)
-                .join(u)
-                .on(uf1.FOLLOWER_ID.eq(u.ID))
-                .where(uf1.FOLLOWED_USER_ID.eq(userId).and(uf1.FOLLOWER_ID.ne(currentUserId)))
-                .andNotExists(
-                        dsl.selectOne()
-                                .from(ub)
-                                .where(ub.USER_ID.eq(currentUserId))
-                                .and(ub.BLOCKED_USER_ID.eq(u.ID))
-                )
+
+        Field<Boolean> isFollowedByCurrentUserField = DSL
+                .when(uf2.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+                .otherwise(DSL.falseCondition())
+                .as("is_followed_by_current_user");
+
+        List<UserSeekResponse> followedByCurrentUser = new ArrayList<>();
+        List<UserSeekResponse> unfollowedByCurrentUser = new ArrayList<>();
+        // add a verified users list later
+
+        var allFollowers = dsl.select(uf1.FOLLOWER_ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, isFollowedByCurrentUserField)
+                .from(u)
+                .join(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID))
+                .leftJoin(uf2).on((uf2.FOLLOWED_USER_ID.eq(uf1.FOLLOWER_ID)).and(uf2.FOLLOWER_ID.eq(currentUserId)))
+                .where(uf1.FOLLOWED_USER_ID.eq(userId).and(uf1.FOLLOWER_ID.ne(currentUserId))
+                        .andNotExists(
+                                dsl.selectOne()
+                                        .from(ub)
+                                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(uf1.FOLLOWER_ID)))
+                        ))
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
                 .seek(lastFollowedAt, lastFollower) // and (lastFollowedAt, lastFollowerId) < (X, Y)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio) -> {
+                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isFollowedByCurrentUser) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
                     res.setProfileBio(profileBio);
+                    if (isFollowedByCurrentUser) {
+                        followedByCurrentUser.add(res);
+                    } else {
+                        unfollowedByCurrentUser.add(res);
+                    }
                     return res;
                 }));
 
-        var followersCurrentUserFollows = findFollowersCurrentUserFollows(userId, currentUserId, lastFollowedAt, lastFollower);
-        Map<FollowerType, List<UserSeekResponse>> partitionedByIsMutualFollowing = new HashMap<>();
-        partitionedByIsMutualFollowing.put(FollowerType.YOU_FOLLOW, followersCurrentUserFollows);
+//        var followersCurrentUserFollows = findFollowersCurrentUserFollows(userId, currentUserId, lastFollowedAt, lastFollower);
+        Map<FollowerType, List<UserSeekResponse>> resultMap = new HashMap<>();
+//        partitionedByIsMutualFollowing.put(FollowerType.YOU_FOLLOW, followersCurrentUserFollows);
+//        var otherFollowers = allFollowers.stream().filter(e -> !followersCurrentUserFollows.contains(e)).toList();
+//        partitionedByIsMutualFollowing.put(FollowerType.NORMAL, otherFollowers);
 
-        var otherFollowers = allFollowers.stream().filter(e -> !followersCurrentUserFollows.contains(e)).toList();
-        partitionedByIsMutualFollowing.put(FollowerType.NORMAL, otherFollowers);
-
-        return partitionedByIsMutualFollowing;
+        resultMap.put(FollowerType.YOU_FOLLOW, followedByCurrentUser);
+        resultMap.put(FollowerType.NORMAL, unfollowedByCurrentUser);
+        return resultMap;
 
     }
 
-    public List<UserSeekResponse> findFollowingsWithPagination(Long userId, Long currentUserId, LocalDate lastFollowedAt, Long lastFollowedUser) {
+    public Map<Boolean, List<UserSeekResponse>> findFollowingsWithPagination(Long userId, Long currentUserId, LocalDate lastFollowedAt, Long lastFollowedUser) {
         if (lastFollowedAt == null && lastFollowedUser == null) { // this is the first page
             lastFollowedAt = AppConstants.DEFAULT_MAX_DATE;
         }
-        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO)
+
+        Field<Boolean> isFollowedByCurrentUserField = DSL
+                .when(uf2.FOLLOWER_ID.isNotNull(), DSL.trueCondition())
+                .otherwise(DSL.falseCondition())
+                .as("is_followed_by_current_user");
+
+        List<UserSeekResponse> followed = new ArrayList<>();
+        List<UserSeekResponse> unfollowed = new ArrayList<>();
+        var response = dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, isFollowedByCurrentUserField)
                 .from(uf1)
-                .join(u)
-                .on(uf1.FOLLOWED_USER_ID.eq(u.ID))
-                .where(uf1.FOLLOWER_ID.eq(userId).and(uf1.FOLLOWED_USER_ID.ne(currentUserId)))
-                .andNotExists(
-                        dsl.selectOne()
-                                .from(ub)
-                                .where(ub.USER_ID.eq(currentUserId))
-                                .and(ub.BLOCKED_USER_ID.eq(u.ID))
-                )
+                .join(u).on(uf1.FOLLOWED_USER_ID.eq(u.ID))
+                .leftJoin(uf2).on((uf2.FOLLOWED_USER_ID.eq(u.ID)).and(uf2.FOLLOWER_ID.eq(currentUserId)))
+                .where(uf1.FOLLOWER_ID.eq(userId).and(uf1.FOLLOWED_USER_ID.ne(currentUserId))
+                        .andNotExists(
+                                dsl.selectOne()
+                                        .from(ub)
+                                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(u.ID)))
+                        ))
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWED_USER_ID.desc())
                 .seek(lastFollowedAt, lastFollowedUser) // and (lastFollowedAt, lastFollowedUserId) < (X, Y)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio) -> {
+                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isFollowedByCurrentUser) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
                     res.setProfileBio(profileBio);
+                    if (isFollowedByCurrentUser) {
+                        followed.add(res);
+                    } else {
+                        unfollowed.add(res);
+                    }
                     return res;
                 }));
+
+        Map<Boolean, List<UserSeekResponse>> resultMap = new HashMap<>();
+        resultMap.put(true, followed);
+        resultMap.put(false, unfollowed);
+        return resultMap;
     }
 
-    // followers of userId (profile owner) that the current user (you) is following
-    public List<UserSeekResponse> findFollowersCurrentUserFollows(Long userId, Long currentUserId, LocalDate lastFollowedAt, Long lastFollower) {
+    // followings of userId (profile owner) that the current user (you) is following
+    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, LocalDate lastFollowedAt, Long lastFollower) {
         if (lastFollowedAt == null && lastFollower == null) { // this is the first page
             lastFollowedAt = AppConstants.DEFAULT_MAX_DATE;
         }
 
-        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT)
-                .from(uf1)
-                .join(uf2)
-                .on(uf1.FOLLOWER_ID.eq(uf2.FOLLOWED_USER_ID))
-                .join(u)
-                .on(uf1.FOLLOWER_ID.eq(u.ID))
-                .where(uf1.FOLLOWED_USER_ID.eq(currentUserId))
-                .and(uf2.FOLLOWER_ID.eq(userId))
-                .andNotExists(
-                        dsl.selectOne()
-                                .from(ub)
-                                .where(ub.USER_ID.eq(currentUserId))
-                                .and(ub.BLOCKED_USER_ID.eq(u.ID))
-                )
+        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO)
+                .from(u)
+                .join(uf1).on(u.ID.eq(uf1.FOLLOWED_USER_ID))
+                .leftJoin(uf2).on((uf2.FOLLOWED_USER_ID.eq(u.ID)).and(uf2.FOLLOWER_ID.eq(currentUserId)))
+                .where(uf1.FOLLOWER_ID.eq(userId).and(uf1.FOLLOWED_USER_ID.ne(currentUserId)).and(uf2.FOLLOWER_ID.isNotNull())
+                        .andNotExists(
+                                dsl.selectOne()
+                                        .from(ub)
+                                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(u.ID)))
+                                        ))
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
                 .seek(lastFollowedAt, lastFollower) // and (lastFollowedAt, lastFollowerId) < (X, Y)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt) -> {
+                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
+                    res.setProfileBio(profileBio);
                     return res;
                 }));
     }
