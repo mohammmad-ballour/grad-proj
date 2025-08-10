@@ -5,85 +5,85 @@ DELETE FROM users;
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (1, 'test@gmail.com', 'testusername', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (1, 'test@gmail.com', 'testusername', 'USER 1', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin')
 ON CONFLICT DO NOTHING;
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (2, 'test2@gmail.com', 'testusername2', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin',
+VALUES (2, 'test2@gmail.com', 'testusername2', 'USER 2', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin',
         false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin')
 ON CONFLICT DO NOTHING;
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (3, 'mshokor2003@gmail.com', 'moh2', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (3, 'mshokor2003@gmail.com', 'moh2', 'USER 3', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (4, 'mshokor2004@gmail.com', 'moh3', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (4, 'mshokor2004@gmail.com', 'moh3', 'USER 4', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (5, 'mshokor2005@gmail.com', 'moh4', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (5, 'mshokor2005@gmail.com', 'moh4', 'USER 5', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (6, 'mshokor2006@gmail.com', 'moh5', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (6, 'mshokor2006@gmail.com', 'moh5', 'USER 6', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (7, 'mshokor2007@gmail.com', 'moh6', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (7, 'mshokor2007@gmail.com', 'moh6', 'USER 7', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (8, 'mshokor2008@gmail.com', 'moh7', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (8, 'mshokor2008@gmail.com', 'moh7', 'USER 8', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        true, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
+INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
+                          is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
+                          profile_bio)
+VALUES (9, 'mshokor2009@gmail.com', 'moh8', 'USER 9', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (9, 'mshokor2009@gmail.com', 'moh8', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (10, 'mshokor2010@gmail.com', 'moh9', 'USER 10', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (10, 'mshokor2010@gmail.com', 'moh9', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (11, 'mshokor2011@gmail.com', 'moh10', 'USER 11', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (11, 'mshokor2011@gmail.com', 'moh10', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (12, 'mshokor2012@gmail.com', 'mohA', 'USER 12', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (12, 'mshokor2012@gmail.com', 'mohA', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (13, 'mshokor2013@gmail.com', 'DSADA', 'USER 13', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (13, 'mshokor2013@gmail.com', 'DSADA', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (14, 'mshokor2014@gmail.com', 'FSEDW', 'USER 14', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (14, 'mshokor2014@gmail.com', 'FSEDW', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES (15, 'mshokor2015@gmail.com', 'SAS', 'USER 15', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES (15, 'mshokor2015@gmail.com', 'SAS', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
-INSERT INTO public.users (id, email, username, display_name, dob, gender, residence, timezone_id, is_protected,
-                          is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
-                          profile_bio)
-VALUES (16, 'mshokor2016@gmail.com', 'ADADAW', 'DISPLAY NAME DEMO', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin',
+VALUES (16, 'mshokor2016@gmail.com', 'ADADAW', 'USER 16', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin',
         false, false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 
 

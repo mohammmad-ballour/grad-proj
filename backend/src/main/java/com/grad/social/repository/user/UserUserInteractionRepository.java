@@ -70,11 +70,11 @@ public class UserUserInteractionRepository {
 
         List<UserSeekResponse> followedByCurrentUser = new ArrayList<>();
         List<UserSeekResponse> unfollowedByCurrentUser = new ArrayList<>();
-        // add a verified users list later
+        List<UserSeekResponse> verified = new ArrayList<>();
 
-        var allFollowers = dsl.select(uf1.FOLLOWER_ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, isFollowedByCurrentUserField)
+        var allFollowers = dsl.select(uf1.FOLLOWER_ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField)
                 .from(u)
-                .join(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID))
+                .join(uf1).on(uf1.FOLLOWER_ID.eq(u.ID))
                 .leftJoin(uf2).on((uf2.FOLLOWED_USER_ID.eq(uf1.FOLLOWER_ID)).and(uf2.FOLLOWER_ID.eq(currentUserId)))
                 .where(uf1.FOLLOWED_USER_ID.eq(userId).and(uf1.FOLLOWER_ID.ne(currentUserId))
                         .andNotExists(
@@ -85,17 +85,22 @@ public class UserUserInteractionRepository {
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
                 .seek(lastFollowedAt, lastFollower) // and (lastFollowedAt, lastFollowerId) < (X, Y)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isFollowedByCurrentUser) -> {
+                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isVerified,isFollowedByCurrentUser) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
                     res.setProfileBio(profileBio);
-                    if (isFollowedByCurrentUser) {
-                        followedByCurrentUser.add(res);
+                    res.setVerified(isVerified);
+                    if (isVerified) {
+                        verified.add(res);
                     } else {
-                        unfollowedByCurrentUser.add(res);
+                        if (isFollowedByCurrentUser) {
+                            followedByCurrentUser.add(res);
+                        } else {
+                            unfollowedByCurrentUser.add(res);
+                        }
                     }
                     return res;
                 }));
@@ -103,6 +108,7 @@ public class UserUserInteractionRepository {
         Map<FollowerType, List<UserSeekResponse>> resultMap = new HashMap<>();
         resultMap.put(FollowerType.YOU_FOLLOW, followedByCurrentUser);
         resultMap.put(FollowerType.NORMAL, unfollowedByCurrentUser);
+        resultMap.put(FollowerType.VERIFIED, verified);
         return resultMap;
 
     }

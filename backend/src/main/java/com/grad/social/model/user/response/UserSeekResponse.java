@@ -15,5 +15,6 @@ public final class UserSeekResponse {
     private byte[] profilePicture;
     private Instant actionHappenedAt;
     private String profileBio;
+    private boolean isVerified;
 
 }
