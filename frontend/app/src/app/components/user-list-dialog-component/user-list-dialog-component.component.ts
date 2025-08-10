@@ -5,6 +5,7 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialogActions, MatDialogModule } from
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { UserService } from '../services/user.service';
+import { FollowerMap } from '../profile/profile.component';
 
 export interface UserSeekResponse {
   userId: number;
@@ -25,39 +26,7 @@ export interface UserSeekResponse {
     MatProgressSpinnerModule,
     CommonModule
   ],
-  template: `
-    <h2 mat-dialog-title>{{ data.title }}</h2>
-    <mat-dialog-content>
-      <div *ngFor="let user of data.users" class="user-item">
-  <div class="user-info">
-    <img  
-      [src]="showImage(user.profilePicture)"
-      alt="{{ user.displayName }}"
-      width="40" height="40" />
-    <div class="user-details">
-      <span class="user-name">{{ user.displayName }}</span>
-      <span class="profile-bio">{{ user.profileBio }}</span>
-    </div>
-  </div>
-
-  <button mat-flat-button color="primary" class="follow-btn" (click)="follow(user.userId)" [disabled]="followSpinner && currentFollowingUserId === user.userId">
-    <mat-progress-spinner 
-      *ngIf="followSpinner && currentFollowingUserId === user.userId"
-      diameter="18" strokeWidth="3" mode="indeterminate" color="accent"
-      class="follow-spinner">
-    </mat-progress-spinner>
-    <span *ngIf="!followSpinner || currentFollowingUserId !== user.userId">Follow</span>
-  </button>
-</div>
-
-      <ng-template #noUsers>
-        <p>No users found.</p>
-      </ng-template>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="close()">Close</button>
-    </mat-dialog-actions>
-  `,
+  templateUrl: `user-list-dialog-component.component.html`,
   styleUrls: [`user-list-dialog-component.component.css`]
 })
 export class UserListDialogComponent {
@@ -65,7 +34,7 @@ export class UserListDialogComponent {
   currentFollowingUserId!: number;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { title: string; users: UserSeekResponse[] },
+    @Inject(MAT_DIALOG_DATA) public data: { title: string; FollowerMap: FollowerMap },
     private dialogRef: MatDialogRef<UserListDialogComponent>,
     private userService: UserService
   ) { }

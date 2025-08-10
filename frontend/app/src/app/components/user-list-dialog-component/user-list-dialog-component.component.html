@@ -1,1 +1,39 @@
-<p>user-list-dialog-component works!</p>
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content>
+  @if (data.FollowerMap['NORMAL']) {
+    @for (user of data.FollowerMap['NORMAL']; track user.userId) {
+      <div class="user-item">
+        <div class="user-info">
+          <img  
+            [src]="showImage(user.profilePicture)"
+            alt="{{ user.displayName }}"
+            width="40" height="40" />
+          <div class="user-details">
+            <span class="user-name">{{ user.displayName }}</span>
+            <span class="profile-bio">{{ user.profileBio }}</span>
+          </div>
+        </div>
+
+        <button mat-flat-button color="primary" class="follow-btn"
+          (click)="follow(user.userId)"
+          [disabled]="followSpinner && currentFollowingUserId === user.userId">
+          @if (followSpinner && currentFollowingUserId === user.userId) {
+            <mat-progress-spinner 
+              diameter="18" strokeWidth="3" mode="indeterminate" color="accent"
+              class="follow-spinner">
+            </mat-progress-spinner>
+          } @else {
+            <span>Follow</span>
+          }
+        </button>
+      </div>
+    }
+  } @else {
+    <p>No users found.</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Close</button>
+</mat-dialog-actions>

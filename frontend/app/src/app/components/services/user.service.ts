@@ -4,6 +4,7 @@ import { catchError, Observable, throwError } from 'rxjs';
 import { BaseService } from '../../core/services/base.service';
 import { UpdatePriority } from '../models/UpdatePriority';
 import { MuteDuration } from '../models/MuteDurationDto';
+import { FollowerMap } from '../profile/profile.component';
 // Matches backend SeekRequest.java
 export interface SeekRequest {
   lastHappenedAt?: string; // ISO 8601 string, e.g. "2025-08-09T10:20:30Z"
@@ -84,12 +85,14 @@ export class UserService extends BaseService {
   }
 
 
-
-  /** Get followers for a user */
-  getFollowers(userId: number, seekRequest?: SeekRequest): Observable<UserSeekResponse[]> {
+  getFollowers(userId: number, seekRequest?: SeekRequest): Observable<FollowerMap> {
     const params = this.buildSeekParams(seekRequest);
-    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, { params });
+
+    return this.httpClient.get<FollowerMap>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, { params });
   }
+
+
+
 
   /** Get followings for a user */
   getFollowings(userId: number, seekRequest?: SeekRequest): Observable<UserSeekResponse[]> {

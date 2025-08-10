@@ -180,10 +180,10 @@
       </div>
 
       <div class="stats">
-        <span (click)="openUserList('Followers', followers)" style="cursor:pointer;">
+        <span (click)="loadFollowers()" style="cursor:pointer;">
           <b>{{ profile.followerNo ?? 0 }}</b> Followers
         </span>
-        <span (click)="openUserList('Following', followings)" style="cursor:pointer;">
+        <span   style="cursor:pointer;">
           <b>{{ profile.followingNo ?? 0 }}</b> Following
         </span>
       </div>

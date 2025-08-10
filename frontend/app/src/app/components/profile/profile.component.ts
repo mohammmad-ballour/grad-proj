@@ -21,6 +21,7 @@ import { UserListDialogComponent } from '../user-list-dialog-component/user-list
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
+export type FollowerMap = { [key: string]: UserSeekResponse[] };
 
 @Component({
   selector: 'app-profile',
@@ -71,8 +72,6 @@ export class ProfileComponent implements OnInit {
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
           this.isNotFound = false;
           const userId = this.profile.userAvatar.userId;
-          this.loadFollowers(userId);
-          this.loadFollowings(userId);
         }
         this.initialSpinner = false;
       }
@@ -302,29 +301,21 @@ export class ProfileComponent implements OnInit {
   }
 
 
-  followers: UserSeekResponse[] = [];
-  followings: UserSeekResponse[] = [];
-
-  private loadFollowers(userId: number): void {
-    this.userService.getFollowers(userId)
+  loadFollowers(): void {
+    this.userService.getFollowers(this.profile.userAvatar.userId)
       .subscribe(data => {
-        console.log(data)
+        if (data)
+          this.openUserList("Followers", data)
 
-        this.followers = data;
       });
   }
 
-  private loadFollowings(userId: number): void {
-    this.userService.getFollowings(userId)
-      .subscribe(data => {
-        console.log(data)
-        this.followings = data;
-      });
-  }
-  openUserList(title: string, users: UserSeekResponse[]): void {
+
+  openUserList(title: string, FollowerMap: FollowerMap): void {
+    console.log(FollowerMap)
     this.dialog.open(UserListDialogComponent, {
       width: '400px', height: "400px",
-      data: { title, users }
+      data: { title, FollowerMap }
     });
   }
 }
