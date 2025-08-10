@@ -38,7 +38,7 @@ public class UserRepository {
     private final UserMutes um = UserMutes.USER_MUTES.as("UM");
     private final UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
 
-    public ProfileResponseDto fetchUserAccountByName(Long currentUserId, String nameToSearch) {
+    public ProfileResponseDto fetchUserProfileByName(Long currentUserId, String nameToSearch) {
         Long profileOwnerId = dsl.select(u.ID)
                 .from(u)
                 .where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch)))
@@ -46,7 +46,10 @@ public class UserRepository {
         if (profileOwnerId == null) {
             return null;
         }
+        return fetchUserProfileById(currentUserId, profileOwnerId);
+    }
 
+    public ProfileResponseDto fetchUserProfileById(Long currentUserId, Long profileOwnerId) {
         // number of followers of the profile owner
         Field<Integer> followerNumberField = DSL.selectCount()
                 .from(uf)

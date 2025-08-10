@@ -1,4 +1,4 @@
-package com.grad.social.model;
+package com.grad.social.model.user.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

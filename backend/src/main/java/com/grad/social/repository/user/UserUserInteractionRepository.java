@@ -3,13 +3,14 @@ package com.grad.social.repository.user;
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.common.utils.TemporalUtils;
-import com.grad.social.model.UserSeekResponse;
 import com.grad.social.model.enums.FollowingPriority;
+import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.model.tables.UserBlocks;
 import com.grad.social.model.tables.UserFollowers;
 import com.grad.social.model.tables.UserMutes;
 import com.grad.social.model.tables.Users;
 import com.grad.social.model.user.FollowerType;
+import com.grad.social.model.user.response.UserSeekResponse;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -20,10 +21,10 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.jooq.Records.mapping;
 import static org.jooq.impl.DSL.row;
@@ -99,12 +100,7 @@ public class UserUserInteractionRepository {
                     return res;
                 }));
 
-//        var followersCurrentUserFollows = findFollowersCurrentUserFollows(userId, currentUserId, lastFollowedAt, lastFollower);
         Map<FollowerType, List<UserSeekResponse>> resultMap = new HashMap<>();
-//        partitionedByIsMutualFollowing.put(FollowerType.YOU_FOLLOW, followersCurrentUserFollows);
-//        var otherFollowers = allFollowers.stream().filter(e -> !followersCurrentUserFollows.contains(e)).toList();
-//        partitionedByIsMutualFollowing.put(FollowerType.NORMAL, otherFollowers);
-
         resultMap.put(FollowerType.YOU_FOLLOW, followedByCurrentUser);
         resultMap.put(FollowerType.NORMAL, unfollowedByCurrentUser);
         return resultMap;
@@ -124,8 +120,8 @@ public class UserUserInteractionRepository {
         List<UserSeekResponse> followed = new ArrayList<>();
         List<UserSeekResponse> unfollowed = new ArrayList<>();
         var response = dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, isFollowedByCurrentUserField)
-                .from(uf1)
-                .join(u).on(uf1.FOLLOWED_USER_ID.eq(u.ID))
+                .from(u)
+                .join(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID))
                 .leftJoin(uf2).on((uf2.FOLLOWED_USER_ID.eq(u.ID)).and(uf2.FOLLOWER_ID.eq(currentUserId)))
                 .where(uf1.FOLLOWER_ID.eq(userId).and(uf1.FOLLOWED_USER_ID.ne(currentUserId))
                         .andNotExists(
@@ -172,7 +168,7 @@ public class UserUserInteractionRepository {
                                 dsl.selectOne()
                                         .from(ub)
                                         .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(u.ID)))
-                                        ))
+                        ))
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
                 .seek(lastFollowedAt, lastFollower) // and (lastFollowedAt, lastFollowerId) < (X, Y)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
@@ -254,6 +250,32 @@ public class UserUserInteractionRepository {
                     res.setActionHappenedAt(actionHappenedAt.atStartOfDay().toInstant(ZoneOffset.UTC));
                     return res;
                 }));
+    }
+
+    // Utils
+    public ProfileStatus getProfileStatus(Long profileOwnerId, Long currentUserId) {
+        if (profileOwnerId.equals(currentUserId)) {
+            return new ProfileStatus(false, false, false);
+        }
+        return dsl
+                .select(
+                        DSL.exists(
+                                dsl.selectOne()
+                                        .from(ub)
+                                        .where(ub.USER_ID.eq(currentUserId)
+                                                .and(ub.BLOCKED_USER_ID.eq(profileOwnerId)))
+                        ).as("is_blocked"),
+                        DSL.exists(
+                                dsl.selectOne()
+                                        .from(uf1)
+                                        .where(uf1.FOLLOWER_ID.eq(currentUserId)
+                                                .and(uf1.FOLLOWED_USER_ID.eq(profileOwnerId)))
+                        ).as("is_followed"),
+                        u.IS_PROTECTED.as("is_protected")
+                )
+                .from(u)
+                .where(u.ID.eq(profileOwnerId))
+                .fetchOneInto(ProfileStatus.class);
     }
 
 }

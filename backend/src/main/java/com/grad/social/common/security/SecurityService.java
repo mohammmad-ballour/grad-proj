@@ -1,5 +1,7 @@
 package com.grad.social.common.security;
 
+import com.grad.social.model.shared.ProfileStatus;
+import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -9,15 +11,40 @@ import org.springframework.stereotype.Service;
 @Service("SecurityService")
 @Slf4j
 public class SecurityService {
+    private final UserUserInteractionRepository userUserInteractionRepository;
 
     public boolean hasUserLongId(Authentication authentication, Long requestedId) {
         try {
-            Long accountId = Long.parseLong(authentication.getName());
-            return accountId.equals(requestedId);
+            long accountId = extractUserIdFromAuthentication(authentication);
+            return accountId != -1 && accountId == requestedId;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             return false;
         }
+    }
+
+    public boolean canAccessProfileProtectedData(Authentication authentication, Long profileOwnerId) {
+        long currentUserId = extractUserIdFromAuthentication(authentication);
+        if (currentUserId == -1) {
+            return false;       // anonymouse user
+        }
+        ProfileStatus profileStatus = this.userUserInteractionRepository.getProfileStatus(profileOwnerId, currentUserId);
+        boolean isTargetProfileBlockedByCurrentUser = profileStatus.isProfileBlockedByCurrentUser();
+        if (isTargetProfileBlockedByCurrentUser) {
+            return false;
+        }
+        boolean isProfileProtected = profileStatus.isProtected();
+        if (!isProfileProtected) {
+            return true;
+        }
+        return profileStatus.isProfileFollowedByCurrentUser();
+    }
+
+    private long extractUserIdFromAuthentication(Authentication authentication) {
+        if (authentication == null) {
+            return -1;
+        }
+        return Long.parseLong(authentication.getName());
     }
 
 }

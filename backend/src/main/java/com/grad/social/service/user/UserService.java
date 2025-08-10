@@ -39,7 +39,7 @@ public class UserService {
 //        boolean isAccountProtected = this.userRepository.isAccountProtected(nameToSearch);
 //        boolean currentUserAccount = this.userRepository.isAccountOwner(currentUserId, nameToSearch);
 //        if (isAccountProtected && !currentUserAccount)
-        return this.userRepository.fetchUserAccountByName(currentUserId, nameToSearch);
+        return this.userRepository.fetchUserProfileByName(currentUserId, nameToSearch);
     }
 
     public void createUser(CreateUserDto user) {

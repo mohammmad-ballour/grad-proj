@@ -1,8 +1,8 @@
 package com.grad.social.controller.user;
 
 import com.grad.social.common.security.CurrentUser;
-import com.grad.social.model.SeekRequest;
-import com.grad.social.model.UserSeekResponse;
+import com.grad.social.model.shared.SeekRequest;
+import com.grad.social.model.user.response.UserSeekResponse;
 import com.grad.social.model.user.FollowerType;
 import com.grad.social.model.user.MuteDuration;
 import com.grad.social.model.user.UpdatePriority;
@@ -24,21 +24,21 @@ public class UserUserInteractionsController {
 
     // Find followers
     @GetMapping("/{userId}/followers")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(authentication, #userId)")
     public ResponseEntity<Map<FollowerType, List<UserSeekResponse>>> retrieveFollowerList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
         return ResponseEntity.ok(this.userInteractionService.retrieveFollowerList(userId, currentUser.userId(), lastPage));
     }
 
     // Find followings
     @GetMapping("/{userId}/followings")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(authentication, #userId)")
     public ResponseEntity<Map<Boolean, List<UserSeekResponse>>> retrieveFollowingList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
         return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, currentUser.userId(), lastPage));
     }
 
     // Find followings
     @GetMapping("/{userId}/mutual-followings")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(authentication, #userId)")
     public ResponseEntity<List<UserSeekResponse>> retrieveMutualFollowings(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
         return ResponseEntity.ok(this.userInteractionService.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUser.userId(), lastPage));
     }

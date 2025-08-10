@@ -1,4 +1,4 @@
-package com.grad.social.model;
+package com.grad.social.model.shared;
 
 import java.time.Instant;
 
