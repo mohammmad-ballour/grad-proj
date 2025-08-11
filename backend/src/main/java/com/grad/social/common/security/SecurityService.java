@@ -5,6 +5,7 @@ import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -23,8 +24,8 @@ public class SecurityService {
         }
     }
 
-    public boolean canAccessProfileProtectedData(Authentication authentication, Long profileOwnerId) {
-        long currentUserId = extractUserIdFromAuthentication(authentication);
+    public boolean canAccessProfileProtectedData(Jwt jwt, Long profileOwnerId) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
         if (currentUserId == -1) {
             return false;       // anonymouse user
         }
@@ -45,6 +46,13 @@ public class SecurityService {
             return -1;
         }
         return Long.parseLong(authentication.getName());
+    }
+
+    private long extractUserIdFromAuthentication(Jwt jwt) {
+        if (jwt == null) {
+            return -1;
+        }
+        return Long.parseLong(jwt.getClaimAsString("uid"));
     }
 
 }

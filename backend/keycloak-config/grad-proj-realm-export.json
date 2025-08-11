@@ -666,7 +666,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
+      "secret": "Oo8r20jb555AZ3yBhXtSMQzICtZ57m1z",
       "redirectUris": [
         "http://localhost:4200/*"
       ],

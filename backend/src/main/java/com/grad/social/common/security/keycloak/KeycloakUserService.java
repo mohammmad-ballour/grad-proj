@@ -44,7 +44,7 @@ public class KeycloakUserService implements AuthService {
     public String createUserAccount(String userId, String email, String username, String password) {
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setEnabled(true);
-        userRepresentation.setUsername(email);
+        userRepresentation.setUsername(username);
         userRepresentation.setEmail(email);
         userRepresentation.setEmailVerified(true);        //FIXME
 

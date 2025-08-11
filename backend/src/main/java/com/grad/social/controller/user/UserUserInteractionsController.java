@@ -1,6 +1,5 @@
 package com.grad.social.controller.user;
 
-import com.grad.social.common.security.CurrentUser;
 import com.grad.social.model.shared.SeekRequest;
 import com.grad.social.model.user.MuteDuration;
 import com.grad.social.model.user.UpdatePriority;
@@ -10,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,92 +22,104 @@ public class UserUserInteractionsController {
 
     // Find followers
     @GetMapping("/{userId}/followers")
-    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(authentication, #userId)")
-    public ResponseEntity<List<UserSeekResponse>> retrieveFollowerList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.retrieveFollowerList(userId, currentUser.userId(), lastPage));
+    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(#jwt, #userId)")
+    public ResponseEntity<List<UserSeekResponse>> retrieveFollowerList(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userInteractionService.retrieveFollowerList(userId, uid, lastPage));
     }
 
     // Find followings
     @GetMapping("/{userId}/followings")
-    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(authentication, #userId)")
-    public ResponseEntity<List<UserSeekResponse>> retrieveFollowingList(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, currentUser.userId(), lastPage));
+    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(#jwt, #userId)")
+    public ResponseEntity<List<UserSeekResponse>> retrieveFollowingList(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, uid, lastPage));
     }
 
     // Find followings
     @GetMapping("/{userId}/mutual-followings")
-    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(authentication, #userId)")
-    public ResponseEntity<List<UserSeekResponse>> retrieveMutualFollowings(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUser.userId(), lastPage));
+    @PreAuthorize("@SecurityService.canAccessProfileProtectedData(#jwt, #userId)")
+    public ResponseEntity<List<UserSeekResponse>> retrieveMutualFollowings(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId, @RequestBody(required = false) SeekRequest lastPage) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userInteractionService.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, uid, lastPage));
     }
 
     // Follow a user
     @PostMapping("/follow/{toFollow}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> followUser(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long toFollow) {
-        this.userInteractionService.followUser(currentUser.userId(), toFollow);
+    public ResponseEntity<Void> followUser(@AuthenticationPrincipal Jwt jwt, @PathVariable Long toFollow) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userInteractionService.followUser(uid, toFollow);
         return ResponseEntity.ok().build();
     }
 
     // Unfollow a user
     @PostMapping("/unfollow/{toUnfollow}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> unfollowUser(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long toUnfollow) {
-        this.userInteractionService.unfollowUser(currentUser.userId(), toUnfollow);
+    public ResponseEntity<Void> unfollowUser(@AuthenticationPrincipal Jwt jwt, @PathVariable Long toUnfollow) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userInteractionService.unfollowUser(uid, toUnfollow);
         return ResponseEntity.ok().build();
     }
 
     // Update following priority
     @PatchMapping("/update-priority/{followedUserId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> updateFollowingPriority(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable long followedUserId, @RequestBody UpdatePriority newPriority) {
-        this.userInteractionService.updateFollowingPriority(currentUser.userId(), followedUserId, newPriority.priority());
+    public ResponseEntity<Void> updateFollowingPriority(@AuthenticationPrincipal Jwt jwt, @PathVariable long followedUserId, @RequestBody UpdatePriority newPriority) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userInteractionService.updateFollowingPriority(uid, followedUserId, newPriority.priority());
         return ResponseEntity.ok().build();
     }
 
     // Retrieve the current user blocklist
     @GetMapping("/block-list")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<UserSeekResponse>> retrieveBlockList(@AuthenticationPrincipal CurrentUser currentUser, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.findBlockedUsersWithPagination(currentUser.userId(), lastPage));
+    public ResponseEntity<List<UserSeekResponse>> retrieveBlockList(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) SeekRequest lastPage) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userInteractionService.findBlockedUsersWithPagination(uid, lastPage));
     }
 
     // Block a user
     @PostMapping("/block/{toBlock}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> blockUser(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long toBlock) {
-        this.userInteractionService.blockUser(currentUser.userId(), toBlock);
+    public ResponseEntity<Void> blockUser(@AuthenticationPrincipal Jwt jwt, @PathVariable Long toBlock) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userInteractionService.blockUser(uid, toBlock);
         return ResponseEntity.ok().build();
     }
 
     // Unblock a user
     @PostMapping("/unblock/{toUnblock}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> unblockUser(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long toUnblock) {
-        this.userInteractionService.unblockUser(currentUser.userId(), toUnblock);
+    public ResponseEntity<Void> unblockUser(@AuthenticationPrincipal Jwt jwt, @PathVariable Long toUnblock) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userInteractionService.unblockUser(uid, toUnblock);
         return ResponseEntity.ok().build();
     }
 
     // Retrieve the current user mute list
     @GetMapping("/mute-list")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<UserSeekResponse>> retrieveMuteList(@AuthenticationPrincipal CurrentUser currentUser, @RequestBody(required = false) SeekRequest lastPage) {
-        return ResponseEntity.ok(this.userInteractionService.findMutedUsersWithPagination(currentUser.userId(), lastPage));
+    public ResponseEntity<List<UserSeekResponse>> retrieveMuteList(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) SeekRequest lastPage) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userInteractionService.findMutedUsersWithPagination(uid, lastPage));
     }
 
     // Mute a user
     @PostMapping("/mute/{toMute}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> muteUser(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long toMute, @RequestBody MuteDuration muteDuration) {
-        this.userInteractionService.muteUser(currentUser.userId(), toMute, muteDuration);
+    public ResponseEntity<Void> muteUser(@AuthenticationPrincipal Jwt jwt, @PathVariable Long toMute, @RequestBody MuteDuration muteDuration) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userInteractionService.muteUser(uid, toMute, muteDuration);
         return ResponseEntity.ok().build();
     }
 
     // Unmute a user
     @PostMapping("/unmute/{toUnmute}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> unmuteUser(@AuthenticationPrincipal CurrentUser currentUser, @PathVariable Long toUnmute) {
-        this.userInteractionService.unmuteUser(currentUser.userId(), toUnmute);
+    public ResponseEntity<Void> unmuteUser(@AuthenticationPrincipal Jwt jwt, @PathVariable Long toUnmute) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userInteractionService.unmuteUser(uid, toUnmute);
         return ResponseEntity.ok().build();
     }
 }
