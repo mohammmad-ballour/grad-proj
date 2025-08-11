@@ -16,5 +16,5 @@ public final class UserSeekResponse {
     private Instant actionHappenedAt;
     private String profileBio;
     private boolean isVerified;
-
+    private boolean isFollowedByCurrentUser ;
 }
