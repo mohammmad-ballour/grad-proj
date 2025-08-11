@@ -8,7 +8,6 @@ import com.grad.social.common.utils.TemporalUtils;
 import com.grad.social.model.shared.SeekRequest;
 import com.grad.social.model.user.response.UserSeekResponse;
 import com.grad.social.model.enums.FollowingPriority;
-import com.grad.social.model.user.FollowerType;
 import com.grad.social.model.user.MuteDuration;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +28,12 @@ import static java.time.ZoneOffset.UTC;
 public class UserUserInteractionService {
     private final UserUserInteractionRepository userRepository;
 
-    public Map<FollowerType, List<UserSeekResponse>> retrieveFollowerList(Long userId, Long currentUserId, SeekRequest lastPage) {
+    public List<UserSeekResponse> retrieveFollowerList(Long userId, Long currentUserId, SeekRequest lastPage) {
         return this.userRepository.findFollowersWithPagination(userId, currentUserId,
                 lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
     }
 
-    public Map<Boolean, List<UserSeekResponse>> retrieveFollowingList(Long userId, Long currentUserId, SeekRequest lastPage) {
+    public List<UserSeekResponse> retrieveFollowingList(Long userId, Long currentUserId, SeekRequest lastPage) {
         return this.userRepository.findFollowingsWithPagination(userId, currentUserId,
                 lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
     }
