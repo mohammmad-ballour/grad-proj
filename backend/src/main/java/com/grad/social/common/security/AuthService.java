@@ -4,7 +4,7 @@ import com.grad.grad_proj.generated.api.model.SignInRequestDto;
 import org.springframework.security.authentication.BadCredentialsException;
 
 public interface AuthService {
-    String createUserAccount(String userId, String email, String password);
+    String createUserAccount(String userId, String email, String username, String password);
 
     /**
      * Authenticates a user using their email and password credentials.
