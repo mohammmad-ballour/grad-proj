@@ -183,7 +183,7 @@
         <span (click)="loadFollowers()" style="cursor:pointer;">
           <b>{{ profile.followerNo ?? 0 }}</b> Followers
         </span>
-        <span   style="cursor:pointer;">
+        <span  (click)="loadFollowing()" style="cursor:pointer;">
           <b>{{ profile.followingNo ?? 0 }}</b> Following
         </span>
       </div>

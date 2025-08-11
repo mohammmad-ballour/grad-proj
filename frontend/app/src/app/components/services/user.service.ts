@@ -95,10 +95,11 @@ export class UserService extends BaseService {
 
 
   /** Get followings for a user */
-  getFollowings(userId: number, seekRequest?: SeekRequest): Observable<UserSeekResponse[]> {
+  getFollowings(userId: number, seekRequest?: SeekRequest): Observable<FollowerMap> {
     const params = this.buildSeekParams(seekRequest);
-    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, { params });
+    return this.httpClient.get<FollowerMap>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, { params });
   }
+
 
   /** Build query parameters from SeekRequest */
   private buildSeekParams(seekRequest?: SeekRequest): HttpParams {

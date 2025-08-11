@@ -71,7 +71,7 @@ export class ProfileComponent implements OnInit {
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
           this.isNotFound = false;
-          const userId = this.profile.userAvatar.userId;
+          console.log(result)
         }
         this.initialSpinner = false;
       }
@@ -306,6 +306,15 @@ export class ProfileComponent implements OnInit {
       .subscribe(data => {
         if (data)
           this.openUserList("Followers", data)
+
+      });
+  }
+
+  loadFollowing(): void {
+    this.userService.getFollowings(this.profile.userAvatar.userId)
+      .subscribe(data => {
+        if (data)
+          this.openUserList('Following', data)
 
       });
   }
