@@ -311,7 +311,7 @@ export class ProfileComponent implements OnInit {
 
   loadFollowers(): void {
     this.isFollowersLoading = true;
-    this.userService.getFollowers(this.profile.userAvatar.userId)
+    this.userService.getFollowers(this.profile.userAvatar.userId, 0)
       .subscribe({
         next: (followers) => {
           if (followers) {
@@ -327,7 +327,7 @@ export class ProfileComponent implements OnInit {
 
   loadFollowing(): void {
     this.isFollowingLoading = true;
-    this.userService.getFollowings(this.profile.userAvatar.userId)
+    this.userService.getFollowings(this.profile.userAvatar.userId, 0)
       .subscribe({
         next: (following) => {
           if (following) {
@@ -345,7 +345,7 @@ export class ProfileComponent implements OnInit {
   openUserList(title: string, userSeekResponse: UserSeekResponse[]): void {
     console.log(userSeekResponse)
     const dialog = this.dialog.open(UserListDialogComponent, {
-      width: '400px', height: userSeekResponse.length == 0 ? "200px" : "400px",
+      width: '1000px', height: userSeekResponse.length == 0 ? "200px" : "400px",
       data: { title, userSeekResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
     });
     dialog.afterClosed().subscribe(() => {

@@ -6,6 +6,7 @@ import {CommonModule} from '@angular/common';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {UserSeekResponse, UserService} from '../services/user.service';
 import {finalize} from "rxjs/operators";
+import { UserItemComponent } from "../user-item-component/user-item-component";
 
 
 @Component({
@@ -17,7 +18,8 @@ import {finalize} from "rxjs/operators";
     MatDialogActions,
     MatDialogModule,
     MatProgressSpinnerModule,
-    CommonModule
+    CommonModule,
+    UserItemComponent
   ],
   templateUrl: `user-list-dialog-component.component.html`,
   styleUrls: [`user-list-dialog-component.component.css`]
@@ -30,8 +32,9 @@ export class UserListDialogComponent {
   objectKeys = Object.keys; // for template use
 
   isFollowersLoading = false;  // Add this to disable multiple seeMore calls
-  pageSize = 10;
   hasMore = true;
+  page = 1;
+  pageSize = 10;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { title: string; userSeekResponse: UserSeekResponse[], userId: number },
@@ -47,18 +50,13 @@ export class UserListDialogComponent {
 
     this.isFollowersLoading = true;
 
-    const lastFollower = this.data.userSeekResponse.at(-1);
-    const seekRequest = {
-      lastHappenedAt: lastFollower!.actionHappenedAt, // keep EXACT value from backend
-      lastEntityId: lastFollower!.userId
-    };
-
-    this.userService.getFollowers(this.data.userId, seekRequest)
+    this.userService.getFollowers(this.data.userId, this.page)
       .pipe(finalize(() => this.isFollowersLoading = false))
       .subscribe({
         next: (followers) => {
           if (followers?.length) {
             this.data.userSeekResponse.push(...followers);
+            this.page++;
             if (followers.length < this.pageSize) this.hasMore = false;
           } else {
             this.hasMore = false;
