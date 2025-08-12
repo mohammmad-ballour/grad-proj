@@ -36,6 +36,7 @@ public class UserUserInteractionRepository {
     private final UserMutes um = UserMutes.USER_MUTES.as("UM");
     private final UserFollowers uf1 = UserFollowers.USER_FOLLOWERS.as("uf1");
     private final UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
+    private final UserFollowers uf3 = UserFollowers.USER_FOLLOWERS.as("uf3");
 
     // user-to-user interactions (userId is the follower)
     public void followUser(Long userId, Long toFollow) throws DuplicateKeyException {
@@ -65,10 +66,23 @@ public class UserUserInteractionRepository {
                 .otherwise(DSL.falseCondition())
                 .as("is_followed_by_current_user");
 
-        return dsl.select(uf1.FOLLOWER_ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField)
+        Field<Boolean> isFollowingCurrentUserField = DSL
+                .when(uf3.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+                .otherwise(DSL.falseCondition())
+                .as("is_following_current_user");
+
+
+        return dsl.select(uf1.FOLLOWER_ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
                 .join(uf1).on(uf1.FOLLOWER_ID.eq(u.ID))
-                .leftJoin(uf2).on((uf2.FOLLOWED_USER_ID.eq(uf1.FOLLOWER_ID)).and(uf2.FOLLOWER_ID.eq(currentUserId)))
+                // isFollowedByCurrentUserField
+                .leftJoin(uf2).on(
+                        uf2.FOLLOWED_USER_ID.eq(uf1.FOLLOWER_ID).and(uf2.FOLLOWER_ID.eq(currentUserId))
+                )
+                // isFollowingCurrentUser
+                .leftJoin(uf3).on(
+                        uf3.FOLLOWER_ID.eq(uf1.FOLLOWER_ID).and(uf3.FOLLOWED_USER_ID.eq(currentUserId))
+                )
                 .where(uf1.FOLLOWED_USER_ID.eq(userId).and(uf1.FOLLOWER_ID.ne(currentUserId))
                         .andNotExists(
                                 dsl.selectOne()
@@ -81,7 +95,7 @@ public class UserUserInteractionRepository {
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
                 .seek(lastFollowedAt, lastFollower) // and (lastFollowedAt, lastFollowerId) < (X, Y)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser) -> {
+                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
                     res.setDisplayName(displayName);
@@ -89,7 +103,8 @@ public class UserUserInteractionRepository {
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
                     res.setProfileBio(profileBio);
                     res.setVerified(isVerified);
-                    res.setFollowedByCurrentUser(isFollowedByCurrentUser);
+                    res.setIsFollowedByCurrentUser(isFollowedByCurrentUser);
+                    res.setIsFollowingCurrentUser(isFollowingCurrentUser);
                     return res;
                 }));
     }
@@ -104,10 +119,22 @@ public class UserUserInteractionRepository {
                 .otherwise(DSL.falseCondition())
                 .as("is_followed_by_current_user");
 
-        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField)
+        Field<Boolean> isFollowingCurrentUserField = DSL
+                .when(uf3.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+                .otherwise(DSL.falseCondition())
+                .as("is_following_current_user");
+
+        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
                 .join(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID))
-                .leftJoin(uf2).on((uf2.FOLLOWED_USER_ID.eq(u.ID)).and(uf2.FOLLOWER_ID.eq(currentUserId)))
+                // isFollowedByCurrentUserField
+                .leftJoin(uf2).on(
+                        uf2.FOLLOWED_USER_ID.eq(u.ID).and(uf2.FOLLOWER_ID.eq(currentUserId))
+                )
+                // isFollowingCurrentUser
+                .leftJoin(uf3).on(
+                        uf3.FOLLOWER_ID.eq(uf1.FOLLOWED_USER_ID).and(uf3.FOLLOWED_USER_ID.eq(currentUserId))
+                )
                 .where(uf1.FOLLOWER_ID.eq(userId).and(uf1.FOLLOWED_USER_ID.ne(currentUserId))
                         .andNotExists(
                                 dsl.selectOne()
@@ -120,7 +147,7 @@ public class UserUserInteractionRepository {
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWED_USER_ID.desc())
                 .seek(lastFollowedAt, lastFollowedUser) // and (lastFollowedAt, lastFollowedUserId) < (X, Y)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser) -> {
+                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
                     res.setDisplayName(displayName);
@@ -128,7 +155,8 @@ public class UserUserInteractionRepository {
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
                     res.setProfileBio(profileBio);
                     res.setVerified(isVerified);
-                    res.setFollowedByCurrentUser(isFollowedByCurrentUser);
+                    res.setIsFollowedByCurrentUser(isFollowedByCurrentUser);
+                    res.setIsFollowingCurrentUser(isFollowingCurrentUser);
                     return res;
                 }));
     }
@@ -142,7 +170,9 @@ public class UserUserInteractionRepository {
         return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED)
                 .from(u)
                 .join(uf1).on(u.ID.eq(uf1.FOLLOWED_USER_ID))
-                .leftJoin(uf2).on((uf2.FOLLOWED_USER_ID.eq(u.ID)).and(uf2.FOLLOWER_ID.eq(currentUserId)))
+                .leftJoin(uf2).on(
+                        uf2.FOLLOWED_USER_ID.eq(u.ID).and(uf2.FOLLOWER_ID.eq(currentUserId))
+                )
                 .where(uf1.FOLLOWER_ID.eq(userId).and(uf1.FOLLOWED_USER_ID.ne(currentUserId)).and(uf2.FOLLOWER_ID.isNotNull())
                         .andNotExists(
                                 dsl.selectOne()
