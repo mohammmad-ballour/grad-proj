@@ -5,8 +5,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
-import static java.time.ZoneOffset.UTC;
-
 public class TemporalUtils {
     private static final ZoneId UTC = ZoneId.of("UTC");
     public static Instant addHours(Instant instant, long hours) {
@@ -35,11 +33,4 @@ public class TemporalUtils {
         return localDate.atStartOfDay(UTC).toInstant();
     }
 
-    public static LocalDate stringToLocaldate(String timestamp) {
-        return Instant.parse(timestamp).atZone(UTC).toLocalDate();
-    }
-
-    public static Instant stringToInstant(String timestamp) {
-        return Instant.parse(timestamp);
-    }
 }

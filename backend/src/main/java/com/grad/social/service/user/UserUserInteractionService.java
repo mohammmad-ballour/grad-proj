@@ -6,7 +6,6 @@ import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.AssociationNotFoundException;
 import com.grad.social.common.utils.TemporalUtils;
 import com.grad.social.model.enums.FollowingPriority;
-import com.grad.social.model.shared.SeekRequest;
 import com.grad.social.model.user.MuteDuration;
 import com.grad.social.model.user.response.UserSeekResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
@@ -15,31 +14,27 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 
 import static com.grad.social.exception.user.UserErrorCode.*;
-import static java.time.ZoneOffset.UTC;
 
 @Service
 @RequiredArgsConstructor
 public class UserUserInteractionService {
     private final UserUserInteractionRepository userRepository;
 
-    public List<UserSeekResponse> retrieveFollowerList(Long userId, Long currentUserId, String lastHappenedAt, Long lastEntityId) {
-        return this.userRepository.findFollowersWithPagination(userId, currentUserId, lastHappenedAt == null? null : TemporalUtils.stringToLocaldate(lastHappenedAt), lastEntityId);
+    public List<UserSeekResponse> retrieveFollowerList(Long userId, Long currentUserId, int page) {
+        return this.userRepository.findFollowersWithPagination(userId, currentUserId, page);
     }
 
-    public List<UserSeekResponse> retrieveFollowingList(Long userId, Long currentUserId, String lastHappenedAt, Long lastEntityId) {
-        return this.userRepository.findFollowingsWithPagination(userId, currentUserId, lastHappenedAt == null? null : TemporalUtils.stringToLocaldate(lastHappenedAt), lastEntityId);
+    public List<UserSeekResponse> retrieveFollowingList(Long userId, Long currentUserId, int page) {
+        return this.userRepository.findFollowingsWithPagination(userId, currentUserId, page);
     }
 
-    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, String lastHappenedAt, Long lastEntityId) {
-        return this.userRepository.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUserId, lastHappenedAt == null? null : TemporalUtils.stringToLocaldate(lastHappenedAt), lastEntityId);
+    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, int page) {
+        return this.userRepository.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUserId, page);
     }
 
     public void followUser(Long userId, Long toFollow) {
@@ -111,9 +106,8 @@ public class UserUserInteractionService {
         }
     }
 
-    public List<UserSeekResponse> findMutedUsersWithPagination(Long userId, String lastHappenedAt, Long lastEntityId) {
-        return this.userRepository.findMutedUsersWithPagination(userId,
-                lastHappenedAt == null? null : TemporalUtils.stringToInstant(lastHappenedAt), lastEntityId);
+    public List<UserSeekResponse> findMutedUsersWithPagination(Long userId, int page) {
+        return this.userRepository.findMutedUsersWithPagination(userId, page);
     }
 
     public void blockUser(Long userId, Long toBlock) {
@@ -137,9 +131,8 @@ public class UserUserInteractionService {
         }
     }
 
-    public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, String lastHappenedAt, Long lastEntityId) {
-        return this.userRepository.findBlockedUsersWithPagination(userId,
-                lastHappenedAt == null? null : TemporalUtils.stringToLocaldate(lastHappenedAt), lastEntityId);
+    public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, int page) {
+        return this.userRepository.findBlockedUsersWithPagination(userId, page);
     }
 
 

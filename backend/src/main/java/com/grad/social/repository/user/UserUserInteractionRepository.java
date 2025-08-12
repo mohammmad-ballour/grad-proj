@@ -18,13 +18,13 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
 import static org.jooq.Records.mapping;
 import static org.jooq.impl.DSL.row;
+import static org.jooq.impl.DSL.when;
 
 @Repository
 @RequiredArgsConstructor
@@ -56,23 +56,18 @@ public class UserUserInteractionRepository {
     }
 
     // currentUserId is -1 if anonymous
-    public List<UserSeekResponse> findFollowersWithPagination(Long userId, Long currentUserId, LocalDate lastFollowedAt, Long lastFollower) {
-        if (lastFollowedAt == null && lastFollower == null) { // this is the first page
-            lastFollowedAt = AppConstants.DEFAULT_MAX_DATE;
-        }
-
-        Field<Boolean> isFollowedByCurrentUserField = DSL
-                .when(uf2.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+    public List<UserSeekResponse> findFollowersWithPagination(Long userId, Long currentUserId, int offset) {
+        Field<Boolean> isFollowedByCurrentUserField = when(uf2.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
                 .otherwise(DSL.falseCondition())
                 .as("is_followed_by_current_user");
 
-        Field<Boolean> isFollowingCurrentUserField = DSL
-                .when(uf3.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+        Field<Boolean> isFollowingCurrentUserField = when(uf3.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
                 .otherwise(DSL.falseCondition())
                 .as("is_following_current_user");
 
-
-        return dsl.select(uf1.FOLLOWER_ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField, isFollowingCurrentUserField)
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        return dsl.select(uf1.FOLLOWER_ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED,
+                        isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
                 .join(uf1).on(uf1.FOLLOWER_ID.eq(u.ID))
                 // isFollowedByCurrentUserField
@@ -91,13 +86,15 @@ public class UserUserInteractionRepository {
                                                 (ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(uf1.FOLLOWER_ID))).or
                                                         (ub.USER_ID.eq(uf1.FOLLOWER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId)))
                                         )
-                        ))
-                .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
-                .seek(lastFollowedAt, lastFollower) // and (lastFollowedAt, lastFollowerId) < (X, Y)
-                .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
+                        )
+                )
+                .orderBy(isFollowedByCurrentUserField.desc(), uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
+                    res.setUsername(username);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
@@ -109,22 +106,17 @@ public class UserUserInteractionRepository {
                 }));
     }
 
-    public List<UserSeekResponse> findFollowingsWithPagination(Long userId, Long currentUserId, LocalDate lastFollowedAt, Long lastFollowedUser) {
-        if (lastFollowedAt == null && lastFollowedUser == null) { // this is the first page
-            lastFollowedAt = AppConstants.DEFAULT_MAX_DATE;
-        }
-
-        Field<Boolean> isFollowedByCurrentUserField = DSL
-                .when(uf2.FOLLOWER_ID.isNotNull(), DSL.trueCondition())
+    public List<UserSeekResponse> findFollowingsWithPagination(Long userId, Long currentUserId, int offset) {
+        Field<Boolean> isFollowedByCurrentUserField = when(uf2.FOLLOWER_ID.isNotNull(), DSL.trueCondition())
                 .otherwise(DSL.falseCondition())
                 .as("is_followed_by_current_user");
 
-        Field<Boolean> isFollowingCurrentUserField = DSL
-                .when(uf3.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+        Field<Boolean> isFollowingCurrentUserField = when(uf3.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
                 .otherwise(DSL.falseCondition())
                 .as("is_following_current_user");
 
-        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField, isFollowingCurrentUserField)
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
                 .join(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID))
                 // isFollowedByCurrentUserField
@@ -145,11 +137,12 @@ public class UserUserInteractionRepository {
                                         )
                         ))
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWED_USER_ID.desc())
-                .seek(lastFollowedAt, lastFollowedUser) // and (lastFollowedAt, lastFollowedUserId) < (X, Y)
-                .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
+                    res.setUsername(username);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
@@ -162,12 +155,9 @@ public class UserUserInteractionRepository {
     }
 
     // followings of userId (profile owner) that the current user (you) is following
-    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, LocalDate lastFollowedAt, Long lastFollower) {
-        if (lastFollowedAt == null && lastFollower == null) { // this is the first page
-            lastFollowedAt = AppConstants.DEFAULT_MAX_DATE;
-        }
-
-        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED)
+    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, int offset) {
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED)
                 .from(u)
                 .join(uf1).on(u.ID.eq(uf1.FOLLOWED_USER_ID))
                 .leftJoin(uf2).on(
@@ -182,11 +172,12 @@ public class UserUserInteractionRepository {
                                                         (ub.USER_ID.eq(u.ID).and(ub.BLOCKED_USER_ID.eq(currentUserId)))
                                         )))
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
-                .seek(lastFollowedAt, lastFollower) // and (lastFollowedAt, lastFollowerId) < (X, Y)
-                .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, profileBio, isVerified) -> {
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
+                    res.setUsername(username);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
@@ -209,21 +200,20 @@ public class UserUserInteractionRepository {
         return JooqUtils.delete(dsl, um, row(um.USER_ID, um.MUTED_USER_ID).eq(row(userId, toUnmute)));
     }
 
-    public List<UserSeekResponse> findMutedUsersWithPagination(Long userId, Instant lastInstant, Long lastMutedUser) {
-        if (lastInstant == null && lastMutedUser == null) { // this is the first page
-            lastInstant = Instant.MAX;
-        }
-        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, um.MUTED_AT)
+    public List<UserSeekResponse> findMutedUsersWithPagination(Long userId, int offset) {
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, um.MUTED_AT)
                 .from(um)
                 .join(u)
                 .on(um.MUTED_USER_ID.eq(u.ID))
                 .where(um.USER_ID.eq(userId))
                 .orderBy(um.MUTED_AT.desc(), um.MUTED_USER_ID.desc())
-                .seek(lastInstant, lastMutedUser)
+                .offset(offset)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt) -> {
+                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
+                    res.setUsername(username);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(actionHappenedAt);
@@ -243,21 +233,20 @@ public class UserUserInteractionRepository {
         return JooqUtils.delete(dsl, ub, row(ub.USER_ID, ub.BLOCKED_USER_ID).eq(row(userId, toUnblock)));
     }
 
-    public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, LocalDate lastDate, Long lastBlockedUser) {
-        if (lastDate == null && lastBlockedUser == null) { // this is the first page
-            lastDate = AppConstants.DEFAULT_MAX_DATE;
-        }
-        return dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE, ub.BLOCKED_AT, u.IS_VERIFIED)
+    public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, int offset) {
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, ub.BLOCKED_AT, u.IS_VERIFIED)
                 .from(ub)
                 .join(u)
                 .on(ub.BLOCKED_USER_ID.eq(u.ID))
                 .where(ub.USER_ID.eq(userId))
                 .orderBy(ub.BLOCKED_AT.desc(), ub.BLOCKED_USER_ID.desc())
-                .seek(lastDate, lastBlockedUser)
+                .offset(offset)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, displayName, profilePicture, actionHappenedAt, isVerified) -> {
+                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, isVerified) -> {
                     var res = new UserSeekResponse();
                     res.setUserId(uid);
+                    res.setUsername(username);
                     res.setDisplayName(displayName);
                     res.setProfilePicture(profilePicture);
                     res.setActionHappenedAt(actionHappenedAt.atStartOfDay().toInstant(ZoneOffset.UTC));

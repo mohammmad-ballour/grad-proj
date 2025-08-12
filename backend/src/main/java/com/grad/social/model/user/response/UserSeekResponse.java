@@ -11,6 +11,7 @@ import java.time.Instant;
 @AllArgsConstructor
 public final class UserSeekResponse {
     private Long userId;
+    private String username;
     private String displayName;
     private byte[] profilePicture;
     private Instant actionHappenedAt;

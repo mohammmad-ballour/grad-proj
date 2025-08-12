@@ -1,15 +1,10 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { catchError, Observable, throwError } from 'rxjs';
-import { BaseService } from '../../core/services/base.service';
-import { UpdatePriority } from '../models/UpdatePriority';
-import { MuteDuration } from '../models/MuteDurationDto';
-import { Map } from '../profile/profile.component';
-// Matches backend SeekRequest.java
-export interface SeekRequest {
-  lastHappenedAt?: Date | string;
-  lastEntityId?: number;
-}
+import {Injectable} from '@angular/core';
+import {HttpClient} from '@angular/common/http';
+import {catchError, Observable, throwError} from 'rxjs';
+import {BaseService} from '../../core/services/base.service';
+import {UpdatePriority} from '../models/UpdatePriority';
+import {MuteDuration} from '../models/MuteDurationDto';
+
 // Matches backend UserSeekResponse.java
 export interface UserSeekResponse {
   userId: number;
@@ -53,7 +48,7 @@ export class UserService extends BaseService {
   // ===== Action methods =====
   UpdatePriority(followedUserId: number, newPriority: string): Observable<void> {
     const url = `${this.baseUrl}${this.ENDPOINTS.UPDATE_PRIORITY}${followedUserId}`;
-    const newPriorityObj: UpdatePriority = { priority: newPriority };
+    const newPriorityObj: UpdatePriority = {priority: newPriority};
     return this.httpClient.patch<void>(url, newPriorityObj).pipe(
       catchError(error => {
         console.error('Error updating priority:', error);
@@ -87,37 +82,23 @@ export class UserService extends BaseService {
   }
 
 
-
-
-
   /** Get followings for a user */
-  getFollowings(userId: number, seekRequest?: SeekRequest): Observable<UserSeekResponse[]> {
-    const params = this.buildSeekParams(seekRequest);
-    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, { params });
+  getFollowings(userId: number, lastPage: number): Observable<UserSeekResponse[]> {
+    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, {
+      params: {
+        page: lastPage.toString()
+      }
+    });
   }
 
-  private buildSeekParams(seekRequest?: SeekRequest): HttpParams {
-    let params = new HttpParams();
-
-    if (seekRequest?.lastHappenedAt) {
-      const isoDate = typeof seekRequest.lastHappenedAt === 'string'
-        ? seekRequest.lastHappenedAt
-        : seekRequest.lastHappenedAt.toISOString();
-
-      params = params.set('lastHappenedAt', isoDate);
-    }
-
-    if (seekRequest?.lastEntityId !== undefined) {
-      params = params.set('lastEntityId', seekRequest.lastEntityId.toString());
-    }
-
-    return params;
+  getFollowers(userId: number, lastPage: number): Observable<UserSeekResponse[]> {
+    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, {
+      params: {
+        page: lastPage.toString()
+      }
+    });
   }
 
-  getFollowers(userId: number, seekRequest?: SeekRequest) {
-    const params = this.buildSeekParams(seekRequest);
-    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, { params });
-  }
 
 
 }
