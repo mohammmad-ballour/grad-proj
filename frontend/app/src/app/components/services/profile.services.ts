@@ -3,9 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BaseService } from '../../core/services/base.service';
 import { catchError, Observable, of, tap } from 'rxjs';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
-import { ProfileRequestDto } from '../models/ProfileRequestDto';
 import { AuthService } from '../../core/services/auth.service';
-import { formatDate } from '@angular/common';
 
 
 @Injectable({ providedIn: 'root' })

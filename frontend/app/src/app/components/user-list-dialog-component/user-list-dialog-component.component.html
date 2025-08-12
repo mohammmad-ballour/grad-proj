@@ -1,26 +1,38 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
 
 <mat-dialog-content>
-  @if (data.FollowerMap && objectKeys(data.FollowerMap).length > 0) {
-    @for (status of objectKeys(data.FollowerMap); track status) {
-      @for (user of data.FollowerMap[status]; track user.userId) {
-        <app-user-item
-          [user]="user"
-          [isLoading]="followSpinner"
-          [isBeingFollowed]="toggleFollow !== null && toggleFollow !== undefined ? toggleFollow : status === 'YOU_FOLLOW'"
+  @if(data.userSeekResponse.length>0){
+    @for (user of data.userSeekResponse; track user.userId) {
+    <app-user-item [user]="user" 
+      [currentUserId]="currentUserId"
+      [isLoading]="followSpinner"
+    (onFollow)="follow(user)"
+      (onUnFollow)="unFollow(user)">
+    </app-user-item>
+      <hr>
 
-           [currentUserId]="currentUserId"
-          (onFollow)="follow($event)"
-          (onUnFollow)="unFollow($event)"
-          >
-        </app-user-item>
-      }
     }
-  } @else {
-    <p>No users found.</p>
+ } @else {
+  <p>No users found.</p>
   }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="close()">Close</button>
+  <button   color="primary" style="      color: white;
+    background-color: black;
+    border-width: 0px;
+    padding: 2px;
+    height: 28px;
+    width: 100px;
+    font-size: 18px;
+    border-radius: 38px;" (click)="close()">Close</button> 
+    
+    <button   color="primary" style="      color: white;
+    background-color: black;
+    border-width: 0px;
+    padding: 2px;
+    height: 28px;
+    width: 100px;
+    font-size: 18px;
+    border-radius: 38px;" (click)="seeMore()">more</button>
 </mat-dialog-actions>

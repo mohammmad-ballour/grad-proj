@@ -21,8 +21,14 @@ import { UserListDialogComponent } from '../user-list-dialog-component/user-list
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
-export type FollowerMap = { [key: string]: UserSeekResponse[] };
-
+export type Map = { [key: string]: UserSeek[] };
+export interface UserSeek {
+  userId: number;
+  displayName: string;
+  profilePicture: string | null; // Base64 encoded
+  actionHappenedAt: string;      // ISO string
+  profileBio: string | null;
+}
 @Component({
   selector: 'app-profile',
   standalone: true,
@@ -44,6 +50,7 @@ export class ProfileComponent implements OnInit {
   followSpinner = false;
   menuSpinner = false;
   menuOpen: any;
+  dialogViewisOpen = false;
   blockSpinner: any;
   displaySnackBar = true;
   constructor(
@@ -299,32 +306,52 @@ export class ProfileComponent implements OnInit {
 
     this.snackBar.open(message, 'Close', { duration: 1500 });
   }
-
+  isFollowersLoading = false;
+  isFollowingLoading = false;
 
   loadFollowers(): void {
+    this.isFollowersLoading = true;
     this.userService.getFollowers(this.profile.userAvatar.userId)
-      .subscribe(data => {
-        if (data)
-          this.openUserList("Followers", data)
-
+      .subscribe({
+        next: (followers) => {
+          if (followers) {
+            this.openUserList('Followers', followers);
+          }
+        },
+        error: () => { },
+        complete: () => {
+          this.isFollowersLoading = false;
+        }
       });
   }
 
   loadFollowing(): void {
+    this.isFollowingLoading = true;
     this.userService.getFollowings(this.profile.userAvatar.userId)
-      .subscribe(data => {
-        if (data)
-          this.openUserList('Following', data)
-
+      .subscribe({
+        next: (following) => {
+          if (following) {
+            this.openUserList('Following', following);
+          }
+        },
+        error: () => { },
+        complete: () => {
+          this.isFollowingLoading = false;
+        }
       });
   }
 
 
-  openUserList(title: string, FollowerMap: FollowerMap): void {
-    console.log(FollowerMap)
-    this.dialog.open(UserListDialogComponent, {
-      width: '400px', height: "400px",
-      data: { title, FollowerMap }
+  openUserList(title: string, userSeekResponse: UserSeekResponse[]): void {
+    console.log(userSeekResponse)
+    const dialog = this.dialog.open(UserListDialogComponent, {
+      width: '400px', height: userSeekResponse.length == 0 ? "200px" : "400px",
+      data: { title, userSeekResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
     });
+    dialog.afterClosed().subscribe(() => {
+      this.fetchProfileData(false);
+    });
+
+
   }
 }

@@ -4,17 +4,9 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogActions, MatDialogModule } from '@angular/material/dialog';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { UserService } from '../services/user.service';
-import { FollowerMap } from '../profile/profile.component';
+import { SeekRequest, UserSeekResponse, UserService } from '../services/user.service';
 import { UserItemComponent } from "../user-item-component/user-item-component";
 
-export interface UserSeekResponse {
-  userId: number;
-  displayName: string;
-  profilePicture: string | null;
-  actionHappenedAt: string;
-  profileBio: string | null;
-}
 
 @Component({
   selector: 'app-user-list-dialog',
@@ -32,75 +24,91 @@ export interface UserSeekResponse {
   styleUrls: [`user-list-dialog-component.component.css`]
 })
 export class UserListDialogComponent {
+
   followSpinner = false;
   currentUserId!: number;
   isBeingFollowed!: boolean;
-  objectKeys = Object.keys; // 🔹 lets you call objectKeys(...) in the template
-  toggleFollow: boolean | undefined;
+  objectKeys = Object.keys; // for template use
+
+  isFollowersLoading = false;  // Add this to disable multiple seeMore calls
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { title: string; FollowerMap: FollowerMap },
+    @Inject(MAT_DIALOG_DATA) public data: { title: string; userSeekResponse: UserSeekResponse[], userId: number },
     private dialogRef: MatDialogRef<UserListDialogComponent>,
     private userService: UserService
   ) { }
 
+  seeMore(): void {
+    if (this.isFollowersLoading) return; // prevent multi calls
 
-  follow(userId: number) {
-    this.followSpinner = true;
-    this.currentUserId = userId;
+    if (this.data.userSeekResponse.length === 0) return; // no more data to seek from
 
-    this.userService.follow(userId).subscribe({
-      next: () => {
-        this.followSpinner = false;
-        // Find the index of the user in YOU_FOLLOW
-        const index = this.data.FollowerMap['NORMAL'].findIndex(u => u.userId === userId);
+    this.isFollowersLoading = true;
+    const lastFollower = this.data.userSeekResponse[this.data.userSeekResponse.length - 1];
 
-        if (index !== -1) {
-          // Remove the user object from YOU_FOLLOW
-          const [removedUser] = this.data.FollowerMap['NORMAL'].splice(index, 1);
+    const seekRequest = {
+      lastHappenedAt: lastFollower.actionHappenedAt, // Date or ISO string
+      lastEntityId: lastFollower.userId
+    };
 
-          // Add the removed user to NORMAL
-          this.data.FollowerMap['YOU_FOLLOW'].push(removedUser);
+
+
+
+    // Call your API for more followers with pagination parameters
+    this.userService.getFollowers(this.data.userId, seekRequest)
+      .subscribe({
+        next: (followers) => {
+          console.log(this.data.userId)
+
+          console.log(seekRequest);
+          console.log(followers);
+          if (followers && followers.length > 0) {
+            // Append new followers to existing list
+            this.data.userSeekResponse = this.data.userSeekResponse.concat(followers);
+          } else {
+            // No more followers to load - optionally disable further seeMore calls
+          }
+        },
+        error: (error) => {
+          console.log(error)
+        },
+        complete: () => {
+          this.isFollowersLoading = false;
         }
+      });
+  }
 
-        // Additional success logic if needed
+  follow(user: UserSeekResponse) {
+    this.followSpinner = true;
+    this.currentUserId = user.userId;
+    this.userService.follow(user.userId).subscribe({
+      next: () => {
+        user.followedByCurrentUser = true;
       },
       error: () => {
         this.followSpinner = false;
-        // Handle error (show message, etc.)
       },
       complete: () => {
-
+        this.followSpinner = false;
       }
     });
   }
 
-  unFollow(userId: number) {
+  unFollow(user: UserSeekResponse) {
     this.followSpinner = true;
-    this.currentUserId = userId;
-
-    this.userService.unfollow(userId).subscribe({
+    this.currentUserId = user.userId;
+    this.userService.unfollow(user.userId).subscribe({
       next: () => {
-        this.followSpinner = false;
-
-        // Find the index of the user in YOU_FOLLOW
-        const index = this.data.FollowerMap['YOU_FOLLOW'].findIndex(u => u.userId === userId);
-
-        if (index !== -1) {
-          // Remove the user object from YOU_FOLLOW
-          const [removedUser] = this.data.FollowerMap['YOU_FOLLOW'].splice(index, 1);
-
-          // Add the removed user to NORMAL
-          this.data.FollowerMap['NORMAL'].push(removedUser);
-        }
+        user.followedByCurrentUser = false;
       },
       error: () => {
         this.followSpinner = false;
-        // Handle error (show message, etc.)
+      },
+      complete: () => {
+        this.followSpinner = false;
       }
     });
   }
-
 
   close() {
     this.dialogRef.close();

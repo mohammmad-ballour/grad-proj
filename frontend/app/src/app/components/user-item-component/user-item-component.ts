@@ -2,20 +2,24 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
+import { UserSeekResponse } from '../services/user.service';
+import { MatIconModule } from "@angular/material/icon";
 
 @Component({
   selector: 'app-user-item',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [CommonModule, MatButtonModule, MatProgressSpinnerModule, MatIconModule],
   template: `
     <div class="user-item">
       <div class="user-info">
-        <img  
+        <img class="img" 
           [src]="showImage(user.profilePicture)"
           alt="{{ user.displayName }}"
           width="40" height="40" />
+       
+           
         <div class="user-details">
-          <span class="user-name">{{ user.displayName }}</span>
+          <span class="user-name">{{ user.displayName }} <mat-icon class="verified" > verified</mat-icon></span>
           <span class="profile-bio">{{ user.profileBio }}</span>
         </div>
       </div>
@@ -36,28 +40,35 @@ import { CommonModule } from '@angular/common';
             class="follow-spinner">
           </mat-progress-spinner>
         } @else {
-          <span>{{ isBeingFollowed ? 'Unfollow' : 'Follow' }}</span>
+          <span>{{ user.followedByCurrentUser ? 'Unfollow' : 'Follow' }}</span>
         }
       </button>
     </div>
   `,
   styles: [`
     .user-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .user-info { display: flex; align-items: center; }
-    .user-details { margin-left: 10px; display: flex; flex-direction: column; }
-    .user-name { font-weight: bold; }
+    .user-info { display: flex; align-items: center;   }
+    .user-details { margin-left: 10px; display: flex; flex-direction: column;  }
+    .user-name { font-weight: bold;display: flex; }
     .profile-bio { font-size: 0.85em; color: gray; }
-    .follow-btn { min-width: 80px; }
+    .follow-btn {  width: 70px;height:25px }
     .follow-spinner { display: inline-block; }
+    .img{    border-radius: 50px;}
+    .verified{
+          color: #4a7af9;
+              font-size: 20px;
+              
+
+ 
+    }
   `]
 })
 export class UserItemComponent {
-  @Input() user!: any;
+  @Input() user!: UserSeekResponse;
   @Input() isLoading = false;
-  @Input() isBeingFollowed = false;
   @Input() currentUserId?: number;
-  @Output() onFollow = new EventEmitter<number>();
-  @Output() onUnFollow = new EventEmitter<number>();
+  @Output() onFollow = new EventEmitter<UserSeekResponse>();
+  @Output() onUnFollow = new EventEmitter<UserSeekResponse>();
 
   showImage(base64String: string | null): string {
     return base64String
@@ -66,10 +77,10 @@ export class UserItemComponent {
   }
 
   handleClick() {
-    if (this.isBeingFollowed) {
-      this.onUnFollow.emit(this.user.userId);
+    if (this.user.followedByCurrentUser) {
+      this.onUnFollow.emit(this.user);
     } else {
-      this.onFollow.emit(this.user.userId);
+      this.onFollow.emit(this.user);
     }
   }
 }

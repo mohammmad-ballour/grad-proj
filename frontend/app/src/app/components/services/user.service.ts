@@ -4,21 +4,25 @@ import { catchError, Observable, throwError } from 'rxjs';
 import { BaseService } from '../../core/services/base.service';
 import { UpdatePriority } from '../models/UpdatePriority';
 import { MuteDuration } from '../models/MuteDurationDto';
-import { FollowerMap } from '../profile/profile.component';
+import { Map } from '../profile/profile.component';
 // Matches backend SeekRequest.java
 export interface SeekRequest {
-  lastHappenedAt?: string; // ISO 8601 string, e.g. "2025-08-09T10:20:30Z"
+  lastHappenedAt?: Date | string;
   lastEntityId?: number;
 }
-
 // Matches backend UserSeekResponse.java
 export interface UserSeekResponse {
   userId: number;
   displayName: string;
+  userName: string;
   profilePicture: string | null; // Base64 encoded
   actionHappenedAt: string;      // ISO string
   profileBio: string | null;
+  Verified: boolean
+  followedByCurrentUser: boolean
 }
+
+
 
 @Injectable({ providedIn: 'root' })
 export class UserService extends BaseService {
@@ -85,32 +89,37 @@ export class UserService extends BaseService {
   }
 
 
-  getFollowers(userId: number, seekRequest?: SeekRequest): Observable<FollowerMap> {
-    const params = this.buildSeekParams(seekRequest);
-
-    return this.httpClient.get<FollowerMap>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, { params });
-  }
-
 
 
 
   /** Get followings for a user */
-  getFollowings(userId: number, seekRequest?: SeekRequest): Observable<FollowerMap> {
+  getFollowings(userId: number, seekRequest?: SeekRequest): Observable<UserSeekResponse[]> {
     const params = this.buildSeekParams(seekRequest);
-    return this.httpClient.get<FollowerMap>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, { params });
+    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, { params });
   }
 
-
-  /** Build query parameters from SeekRequest */
   private buildSeekParams(seekRequest?: SeekRequest): HttpParams {
     let params = new HttpParams();
+
     if (seekRequest?.lastHappenedAt) {
-      params = params.set('lastHappenedAt', seekRequest.lastHappenedAt);
+      const isoDate = typeof seekRequest.lastHappenedAt === 'string'
+        ? seekRequest.lastHappenedAt
+        : seekRequest.lastHappenedAt.toISOString();
+
+      params = params.set('lastHappenedAt', isoDate);
     }
+
     if (seekRequest?.lastEntityId !== undefined) {
       params = params.set('lastEntityId', seekRequest.lastEntityId.toString());
     }
+
     return params;
   }
+
+  getFollowers(userId: number, seekRequest?: SeekRequest) {
+    const params = this.buildSeekParams(seekRequest);
+    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, { params });
+  }
+
 
 }
