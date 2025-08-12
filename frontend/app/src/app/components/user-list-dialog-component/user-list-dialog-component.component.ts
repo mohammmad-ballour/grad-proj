@@ -1,11 +1,12 @@
-import {MatAutocompleteModule} from '@angular/material/autocomplete';
-import {MatSelectModule} from '@angular/material/select';
-import {Component, Inject} from '@angular/core';
-import {MAT_DIALOG_DATA, MatDialogActions, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
-import {CommonModule} from '@angular/common';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-import {UserSeekResponse, UserService} from '../services/user.service';
-import {finalize} from "rxjs/operators";
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSelectModule } from '@angular/material/select';
+import { Component, Inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogActions, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { CommonModule } from '@angular/common';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { UserSeekResponse, UserService } from '../services/user.service';
+import { finalize } from "rxjs/operators";
+import { UserItemComponent } from "../user-item-component/user-item-component";
 
 
 @Component({
@@ -17,7 +18,8 @@ import {finalize} from "rxjs/operators";
     MatDialogActions,
     MatDialogModule,
     MatProgressSpinnerModule,
-    CommonModule
+    CommonModule,
+    UserItemComponent
   ],
   templateUrl: `user-list-dialog-component.component.html`,
   styleUrls: [`user-list-dialog-component.component.css`]
