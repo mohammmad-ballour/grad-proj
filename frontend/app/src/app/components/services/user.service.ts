@@ -22,8 +22,6 @@ export interface UserSeekResponse {
   followedByCurrentUser: boolean
 }
 
-
-
 @Injectable({ providedIn: 'root' })
 export class UserService extends BaseService {
 

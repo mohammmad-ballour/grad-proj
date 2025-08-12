@@ -1,19 +1,20 @@
 package com.grad.social.controller.user;
 
-import com.grad.grad_proj.generated.api.UsersApi;
 import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
-import com.grad.social.model.user.UserBasicData;
 import com.grad.social.model.enums.Gender;
+import com.grad.social.model.user.UserBasicData;
 import com.grad.social.service.user.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
@@ -21,20 +22,27 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-public class UserController implements UsersApi {
+public class UserController {
 
     private final UserService userService;
 
-    @Override
-    public ResponseEntity<Void> signupUser(CreateUserDto createUserDto) {
+    @PostMapping("/users")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Void> signupUser(@Valid @RequestBody CreateUserDto createUserDto) {
         this.userService.createUser(createUserDto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @Override
+    @PutMapping(value = "/users/{userId}", produces = { "application/json" }, consumes = { "multipart/form-data" })
     @PreAuthorize("@SecurityService.hasUserLongId(authentication, #userId)")
     @SneakyThrows
-    public ResponseEntity<Void> updateUser(Long userId, String displayName, LocalDate dob, String gender, String residence, String timezoneId, String profileBio, MultipartFile profilePicture, MultipartFile profileCoverPhoto) {
+    public ResponseEntity<Void> updateUser(
+            @PathVariable("userId") Long userId,
+            @Valid @RequestParam(value = "displayName") String displayName, @Valid @RequestParam(value = "dob") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dob,
+            @Valid @RequestParam(value = "gender") String gender, @Valid @RequestParam(value = "residence") String residence,
+            @Valid @RequestParam(value = "timezoneId") String timezoneId, @Valid @RequestParam(value = "profileBio") String profileBio,
+            @RequestPart(value = "profilePicture") MultipartFile profilePicture, @RequestPart(value = "profileCoverPhoto") MultipartFile profileCoverPhoto
+    ) {
         UserBasicData userBasicData = UserBasicData.builder()
                 .displayName(displayName)
                 .dob(dob)
@@ -47,10 +55,12 @@ public class UserController implements UsersApi {
         return ResponseEntity.ok().build();
     }
 
-    @Override
+
+    @GetMapping("/users/public/{nameToSearch}")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<ProfileResponseDto> fetchUserAccountByName(String nameToSearch) {
-        Long currentUserId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
+    public ResponseEntity<ProfileResponseDto> fetchUserAccountByName(@PathVariable("nameToSearch") String nameToSearch) {
+        JwtAuthenticationToken authentication = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        Long currentUserId = Long.parseLong(authentication.getToken().getClaimAsString("uid"));
         return ResponseEntity.ok(this.userService.fetchUserAccountByName(currentUserId, nameToSearch));
     }
 
