@@ -66,9 +66,6 @@ import { MuteDuration } from '../models/MuteDurationDto';
     <mat-dialog-actions align="end">
       <button mat-button (click)="onCancel()">Cancel</button>
       <button mat-raised-button color="primary" [disabled]="muteForm.invalid" (click)="mute()">Mute</button>
-      @if(data.isMuted){
-      <button mat-raised-button color="primary" [disabled]="muteForm.invalid" (click)="unMute()">UnMute</button>
-      }
     </mat-dialog-actions>
   `,
   styles: [
@@ -143,9 +140,6 @@ export class MuteDialogComponent {
       const { amount, unit } = this.muteForm.value;
       this.dialogRef.close({ amount: unit === 'forever' ? 0 : amount, unit } as MuteDuration);
     }
-  }
-  unMute(): void {
-    this.dialogRef.close(true);
   }
 
 

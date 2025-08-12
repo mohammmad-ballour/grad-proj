@@ -19,9 +19,16 @@ import { MatIconModule } from "@angular/material/icon";
        
            
         <div class="user-details">
-          <span class="user-name">{{ user.displayName }} <mat-icon class="verified" > verified</mat-icon></span>
-          <span class="profile-bio">{{ user.profileBio }}</span>
+          <span class="user-name">{{ '@'+user.userName }}
+            @if(user.Verified){
+               <mat-icon class="verified" > verified</mat-icon>
+            }
+             
+            </span>
+          <span class="user-name">{{ user.displayName }} </span>
         </div>
+        
+
       </div>
 
       <button 
@@ -44,10 +51,12 @@ import { MatIconModule } from "@angular/material/icon";
         }
       </button>
     </div>
+    <span class="profile-bio" [title]="user.profileBio">{{ user.profileBio }}</span>
+
   `,
   styles: [`
     .user-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .user-info { display: flex; align-items: center;   }
+    .user-info { display: flex; align-items: center;  margin-top:5px;  }
     .user-details { margin-left: 10px; display: flex; flex-direction: column;  }
     .user-name { font-weight: bold;display: flex; }
     .profile-bio { font-size: 0.85em; color: gray; }
@@ -61,6 +70,19 @@ import { MatIconModule } from "@angular/material/icon";
 
  
     }
+    .profile-bio {
+  font-size: 0.85em;
+  color: gray;
+  max-width: 250px; /* limit width so it doesn't take over layout */
+  display: -webkit-box;
+  margin-left:20px;
+  -webkit-line-clamp: 2; /* number of lines to display */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
   `]
 })
 export class UserItemComponent {

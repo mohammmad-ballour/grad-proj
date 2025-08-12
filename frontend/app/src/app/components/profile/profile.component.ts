@@ -276,7 +276,7 @@ export class ProfileComponent implements OnInit {
 
   }
 
-  private unmute(refrech: boolean): Subscription {
+  public unmute(refrech: boolean): Subscription {
     this.menuSpinner = true
 
     return this.userService.Unmute(this.profile.userAvatar.userId).subscribe({

@@ -95,9 +95,9 @@
                 <mat-icon style="color: red;">block</mat-icon>
                 block <span>{{'@'+profile.username}}</span>
               </button>
-              @if (profile.isBeingFollowed && !profile.isBlocked) {
+              @if (  !profile.isBlocked) {
 
-              <button mat-menu-item class="mat-button" class="mute" (click)="openMuteDialog()">
+              <button mat-menu-item class="mat-button" class="mute" (click)="profile.isMuted ? unmute(true): openMuteDialog()">
                 <mat-icon style="color: rgb(26, 167, 214);">{{ profile.isMuted ? 'notifications_off' :
                   'notifications_on' }}</mat-icon>
                 {{profile.isMuted? 'unMute' : 'mute'}}
