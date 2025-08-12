@@ -4,6 +4,7 @@ import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.base.BaseMockedUnitTest;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.security.AuthService;
+import com.grad.social.common.security.UserKey;
 import com.grad.social.exception.user.UserErrorCode;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.service.user.validator.UserInfoValidator;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.Nested;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.dao.DuplicateKeyException;
+
+import java.util.Map;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
@@ -48,7 +51,7 @@ class UserServiceTest extends BaseMockedUnitTest {
             // Assert
             verify(userValidator).validateCreateUserRequest(userDto);
             verify(userRepository).save(userDto);
-            verify(authService).createUserAccount("1", userDto.getEmail(), userDto.getPassword());
+            verify(authService).createUserAccount("1", userDto.getEmail(), userDto.getEmail(), userDto.getPassword(), Map.of(UserKey.TIMEZONE_ID, userDto.getTimezoneId()));
         }
 
         @Test

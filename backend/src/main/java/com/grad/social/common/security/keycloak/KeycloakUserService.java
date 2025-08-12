@@ -2,6 +2,7 @@ package com.grad.social.common.security.keycloak;
 
 import com.grad.grad_proj.generated.api.model.SignInRequestDto;
 import com.grad.social.common.security.AuthService;
+import com.grad.social.common.security.UserKey;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +20,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +38,8 @@ public class KeycloakUserService implements AuthService {
     @Value("${keycloak.client-secret}")
     private String clientSecret;
 
-    // In keyclaok, username is email address
     @Override
-    public String createUserAccount(String userId, String email, String username, String password) {
+    public String createUserAccount(String userId, String email, String username, String password, Map<UserKey, Object> customFields) {
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setEnabled(true);
         userRepresentation.setUsername(username);
@@ -49,10 +47,8 @@ public class KeycloakUserService implements AuthService {
         userRepresentation.setEmailVerified(true);        //FIXME
 
         Map<String, List<String>> attrs = new HashMap<>();
-        String timezoneOffset = ZonedDateTime.now(ZoneId.of("Europe/Berlin")).getOffset().toString();
-
         attrs.put("uid", List.of(userId));  // Postgres ID
-        attrs.put("timezone_offset", List.of(timezoneOffset));
+        attrs.put(UserKey.TIMEZONE_ID.name().toLowerCase(), List.of(customFields.get(UserKey.TIMEZONE_ID).toString()));    // Timezone ID
         userRepresentation.setAttributes(attrs);
 
         // Create the userRepresentation
@@ -80,13 +76,22 @@ public class KeycloakUserService implements AuthService {
                 .users()
                 .get(newUserId)
                 .resetPassword(passwordCred);
-
-//        var usersResource = getUsersResource();
-//        List<UserRepresentation> userRepresentations = usersResource.searchByUsername(newUserRecord.username(), true);
-//        UserRepresentation userRepresentation1 = userRepresentations.get(0);
-//        sendVerificationEmail(userRepresentation1.getId());
-
         return newUserId;
+    }
+
+    @Override
+    public void updateUserAccount(String username, Map<UserKey, Object> fieldsToUpdate) {
+        UserRepresentation user = keycloak.realm(realm).users().searchByUsername(username, true).get(0);
+        Map<String, List<String>> attributes = user.getAttributes();
+        if (attributes == null) {
+            attributes = new HashMap<>();
+        }
+        for(var entry : fieldsToUpdate.entrySet()) {
+            attributes.put(entry.getKey().name().toLowerCase(), List.of(entry.getValue().toString()));
+        }
+        user.setAttributes(attributes);
+        keycloak.realm(realm).users().get(user.getId()).update(user);
+
     }
 
     @Override
@@ -103,11 +108,6 @@ public class KeycloakUserService implements AuthService {
         form.add("password", password);
 
         RestClient restClient = RestClient.create();
-
-        System.out.println("Realm " + realm);
-        System.out.println("Client id " + clientId);
-        System.out.println("Client secret " + clientSecret);
-
         Map<String, Object> response = restClient.post()
                 .uri("http://localhost:9090/realms/" + realm + "/protocol/openid-connect/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)

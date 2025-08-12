@@ -6,6 +6,7 @@ import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.Model;
 import com.grad.social.common.exceptionhandling.ModelNotFoundException;
 import com.grad.social.common.security.AuthService;
+import com.grad.social.common.security.UserKey;
 import com.grad.social.common.validation.ErrorCode;
 import com.grad.social.exception.user.UserErrorCode;
 import com.grad.social.model.user.UserBasicData;
@@ -48,7 +49,7 @@ public class UserService {
             Long userId = this.userRepository.save(user);
             if (userId != null) {
                 // save user's security-related info in the identity provider
-                this.authService.createUserAccount(userId.toString(), user.getEmail(), user.getUsername(), user.getPassword());
+                this.authService.createUserAccount(userId.toString(), user.getEmail(), user.getUsername(), user.getPassword(), Map.of(UserKey.TIMEZONE_ID, user.getTimezoneId()));
             }
         } catch (DuplicateKeyException ex) {
             Pattern DUPLICATE_KEY_PATTERN = Pattern.compile("Key \\((.*?)\\)=");
@@ -73,33 +74,38 @@ public class UserService {
         var existingUser = byId.get();
         this.userValidator.validateUpdateUserRequest(userBasicData);
 
-        Map<TableField<UsersRecord, ?>, Object> fieldsToUpdate = new HashMap<>();
+        Map<TableField<UsersRecord, ?>, Object> fieldsToUpdateInDb = new HashMap<>();
+        Map<UserKey, Object> fieldsToUpdateInAuthProvider = new HashMap<>();
         if (!userBasicData.getDisplayName().equals(existingUser.getDisplayName()))
-            fieldsToUpdate.put(USERS.DISPLAY_NAME, userBasicData.getDisplayName());
+            fieldsToUpdateInDb.put(USERS.DISPLAY_NAME, userBasicData.getDisplayName());
 
         if (!userBasicData.getDob().isEqual(existingUser.getDob()))
-            fieldsToUpdate.put(USERS.DOB, userBasicData.getDob());
+            fieldsToUpdateInDb.put(USERS.DOB, userBasicData.getDob());
 
         if (userBasicData.getGender() != existingUser.getGender())
-            fieldsToUpdate.put(USERS.GENDER, userBasicData.getGender());
+            fieldsToUpdateInDb.put(USERS.GENDER, userBasicData.getGender());
 
         if (!userBasicData.getResidence().equals(existingUser.getResidence()))
-            fieldsToUpdate.put(USERS.RESIDENCE, userBasicData.getResidence());
+            fieldsToUpdateInDb.put(USERS.RESIDENCE, userBasicData.getResidence());
 
-        if (!userBasicData.getTimezoneId().equals(existingUser.getTimezoneId()))
-            fieldsToUpdate.put(USERS.TIMEZONE_ID, userBasicData.getTimezoneId());
+        if (!userBasicData.getTimezoneId().equals(existingUser.getTimezoneId())) {
+            fieldsToUpdateInDb.put(USERS.TIMEZONE_ID, userBasicData.getTimezoneId());
+            fieldsToUpdateInAuthProvider.put(UserKey.TIMEZONE_ID, userBasicData.getTimezoneId());
+        }
 
         if (!userBasicData.getProfileBio().equals(existingUser.getProfileBio()))
-            fieldsToUpdate.put(USERS.PROFILE_BIO, userBasicData.getProfileBio());
+            fieldsToUpdateInDb.put(USERS.PROFILE_BIO, userBasicData.getProfileBio());
 
         if (profilePicture != null && !Arrays.equals(profilePicture.getBytes(), existingUser.getProfilePicture()))
-            fieldsToUpdate.put(USERS.PROFILE_PICTURE, profilePicture.getBytes());
+            fieldsToUpdateInDb.put(USERS.PROFILE_PICTURE, profilePicture.getBytes());
 
         if (profileCoverPhoto != null && !Arrays.equals(profileCoverPhoto.getBytes(), existingUser.getProfileCoverPhoto()))
-            fieldsToUpdate.put(USERS.PROFILE_COVER_PHOTO, profileCoverPhoto.getBytes());
+            fieldsToUpdateInDb.put(USERS.PROFILE_COVER_PHOTO, profileCoverPhoto.getBytes());
 
-        int recordsUpdated = this.userRepository.updateUser(userId, fieldsToUpdate);
-        if (recordsUpdated == 0)
+        int recordsUpdated = this.userRepository.updateUser(userId, fieldsToUpdateInDb);
+        if (recordsUpdated == 0) {
             throw new ModelNotFoundException(Model.USER, userId);
+        }
+        this.authService.updateUserAccount(existingUser.getUsername(), fieldsToUpdateInAuthProvider);
     }
 }

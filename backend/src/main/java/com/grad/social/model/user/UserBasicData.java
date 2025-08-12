@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class UserBasicData {
+    private String username;
     private String displayName;
     private LocalDate dob;
     private Gender gender;
