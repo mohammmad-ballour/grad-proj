@@ -1,11 +1,11 @@
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatSelectModule } from '@angular/material/select';
-import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialogActions, MatDialogModule } from '@angular/material/dialog';
-import { CommonModule } from '@angular/common';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { SeekRequest, UserSeekResponse, UserService } from '../services/user.service';
-import { UserItemComponent } from "../user-item-component/user-item-component";
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatSelectModule} from '@angular/material/select';
+import {Component, Inject} from '@angular/core';
+import {MAT_DIALOG_DATA, MatDialogActions, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {CommonModule} from '@angular/common';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {UserSeekResponse, UserService} from '../services/user.service';
+import {finalize} from "rxjs/operators";
 
 
 @Component({
@@ -17,8 +17,7 @@ import { UserItemComponent } from "../user-item-component/user-item-component";
     MatDialogActions,
     MatDialogModule,
     MatProgressSpinnerModule,
-    CommonModule,
-    UserItemComponent
+    CommonModule
   ],
   templateUrl: `user-list-dialog-component.component.html`,
   styleUrls: [`user-list-dialog-component.component.css`]
@@ -31,50 +30,41 @@ export class UserListDialogComponent {
   objectKeys = Object.keys; // for template use
 
   isFollowersLoading = false;  // Add this to disable multiple seeMore calls
+  pageSize = 10;
+  hasMore = true;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { title: string; userSeekResponse: UserSeekResponse[], userId: number },
     private dialogRef: MatDialogRef<UserListDialogComponent>,
     private userService: UserService
-  ) { }
+  ) {
+  }
+
 
   seeMore(): void {
-    if (this.isFollowersLoading) return; // prevent multi calls
-
-    if (this.data.userSeekResponse.length === 0) return; // no more data to seek from
+    if (this.isFollowersLoading || !this.hasMore) return;
+    if (this.data.userSeekResponse.length === 0) return;
 
     this.isFollowersLoading = true;
-    const lastFollower = this.data.userSeekResponse[this.data.userSeekResponse.length - 1];
 
+    const lastFollower = this.data.userSeekResponse.at(-1);
     const seekRequest = {
-      lastHappenedAt: lastFollower.actionHappenedAt, // Date or ISO string
-      lastEntityId: lastFollower.userId
+      lastHappenedAt: lastFollower!.actionHappenedAt, // keep EXACT value from backend
+      lastEntityId: lastFollower!.userId
     };
 
-
-
-
-    // Call your API for more followers with pagination parameters
     this.userService.getFollowers(this.data.userId, seekRequest)
+      .pipe(finalize(() => this.isFollowersLoading = false))
       .subscribe({
         next: (followers) => {
-          console.log(this.data.userId)
-
-          console.log(seekRequest);
-          console.log(followers);
-          if (followers && followers.length > 0) {
-            // Append new followers to existing list
-            this.data.userSeekResponse = this.data.userSeekResponse.concat(followers);
+          if (followers?.length) {
+            this.data.userSeekResponse.push(...followers);
+            if (followers.length < this.pageSize) this.hasMore = false;
           } else {
-            // No more followers to load - optionally disable further seeMore calls
+            this.hasMore = false;
           }
         },
-        error: (error) => {
-          console.log(error)
-        },
-        complete: () => {
-          this.isFollowersLoading = false;
-        }
+        error: (err) => console.error('Pagination error', err)
       });
   }
 

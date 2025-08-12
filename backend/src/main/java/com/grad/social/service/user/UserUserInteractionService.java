@@ -5,19 +5,21 @@ import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.AssociationNotFoundException;
 import com.grad.social.common.utils.TemporalUtils;
-import com.grad.social.model.shared.SeekRequest;
-import com.grad.social.model.user.response.UserSeekResponse;
 import com.grad.social.model.enums.FollowingPriority;
+import com.grad.social.model.shared.SeekRequest;
 import com.grad.social.model.user.MuteDuration;
+import com.grad.social.model.user.response.UserSeekResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import static com.grad.social.exception.user.UserErrorCode.*;
@@ -28,19 +30,16 @@ import static java.time.ZoneOffset.UTC;
 public class UserUserInteractionService {
     private final UserUserInteractionRepository userRepository;
 
-    public List<UserSeekResponse> retrieveFollowerList(Long userId, Long currentUserId, SeekRequest lastPage) {
-        return this.userRepository.findFollowersWithPagination(userId, currentUserId,
-                lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
+    public List<UserSeekResponse> retrieveFollowerList(Long userId, Long currentUserId, String lastHappenedAt, Long lastEntityId) {
+        return this.userRepository.findFollowersWithPagination(userId, currentUserId, lastHappenedAt == null? null : TemporalUtils.stringToLocaldate(lastHappenedAt), lastEntityId);
     }
 
-    public List<UserSeekResponse> retrieveFollowingList(Long userId, Long currentUserId, SeekRequest lastPage) {
-        return this.userRepository.findFollowingsWithPagination(userId, currentUserId,
-                lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
+    public List<UserSeekResponse> retrieveFollowingList(Long userId, Long currentUserId, String lastHappenedAt, Long lastEntityId) {
+        return this.userRepository.findFollowingsWithPagination(userId, currentUserId, lastHappenedAt == null? null : TemporalUtils.stringToLocaldate(lastHappenedAt), lastEntityId);
     }
 
-    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, SeekRequest lastPage) {
-        return this.userRepository.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUserId,
-                lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
+    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, String lastHappenedAt, Long lastEntityId) {
+        return this.userRepository.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUserId, lastHappenedAt == null? null : TemporalUtils.stringToLocaldate(lastHappenedAt), lastEntityId);
     }
 
     public void followUser(Long userId, Long toFollow) {
@@ -112,9 +111,9 @@ public class UserUserInteractionService {
         }
     }
 
-    public List<UserSeekResponse> findMutedUsersWithPagination(Long userId, SeekRequest lastPage) {
+    public List<UserSeekResponse> findMutedUsersWithPagination(Long userId, String lastHappenedAt, Long lastEntityId) {
         return this.userRepository.findMutedUsersWithPagination(userId,
-                lastPage == null ? null : (Instant) lastPage.lastHappenedAt(), lastPage == null ? null : lastPage.lastEntityId());
+                lastHappenedAt == null? null : TemporalUtils.stringToInstant(lastHappenedAt), lastEntityId);
     }
 
     public void blockUser(Long userId, Long toBlock) {
@@ -138,9 +137,9 @@ public class UserUserInteractionService {
         }
     }
 
-    public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, SeekRequest lastPage) {
+    public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, String lastHappenedAt, Long lastEntityId) {
         return this.userRepository.findBlockedUsersWithPagination(userId,
-                lastPage == null ? null : lastPage.lastHappenedAt().atZone(UTC).toLocalDate(), lastPage == null ? null : lastPage.lastEntityId());
+                lastHappenedAt == null? null : TemporalUtils.stringToLocaldate(lastHappenedAt), lastEntityId);
     }
 
 

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -15,13 +16,10 @@ public class SecurityService {
     private final UserUserInteractionRepository userUserInteractionRepository;
 
     public boolean hasUserLongId(Authentication authentication, Long requestedId) {
-        try {
-            long accountId = extractUserIdFromAuthentication(authentication);
-            return accountId != -1 && accountId == requestedId;
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            return false;
+        if (authentication instanceof JwtAuthenticationToken jwtAuthenticationTokenT) {
+            return requestedId.equals(extractUserIdFromAuthentication(jwtAuthenticationTokenT.getToken()));
         }
+        return false;
     }
 
     public boolean canAccessProfileProtectedData(Jwt jwt, Long profileOwnerId) {
@@ -39,13 +37,6 @@ public class SecurityService {
             return true;
         }
         return profileStatus.isProfileFollowedByCurrentUser();
-    }
-
-    private long extractUserIdFromAuthentication(Authentication authentication) {
-        if (authentication == null) {
-            return -1;
-        }
-        return Long.parseLong(authentication.getName());
     }
 
     private long extractUserIdFromAuthentication(Jwt jwt) {
