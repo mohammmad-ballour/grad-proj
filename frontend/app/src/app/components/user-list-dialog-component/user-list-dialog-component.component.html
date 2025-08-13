@@ -1,38 +1,33 @@
 <h2 mat-dialog-title>{{ data.title }}</h2>
 
-<mat-dialog-content>
-  @if(data.userSeekResponse.length>0){
-    @for (user of data.userSeekResponse; track user.userId) {
+<mat-dialog-content class="user-list-content">
+
+  <!-- User items -->
+  @for (user of data.userSeekResponse; track user.userId) {
     <app-user-item [user]="user"
       [currentUserId]="currentUserId"
       [isLoading]="followSpinner"
     (onFollow)="follow(user)"
       (onUnFollow)="unFollow(user)">
     </app-user-item>
-      <hr>
-
-    }
- } @else {
-  <p>No users found.</p>
   }
+
+  <!-- Loading spinner -->
+  @if (isFollowersLoading) {
+    <div class="spinner-container">
+      <mat-spinner diameter="30"></mat-spinner>
+    </div>
+  }
+
+  <!-- Sentinel for IntersectionObserver -->
+  <div #sentinel class="scroll-sentinel"></div>
+
+  @if (isLoadingFailed) {
+    <p>Loading Failed, please check the connection then try again</p>
+  }
+
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button   color="primary" style="      color: white;
-    background-color: black;
-    border-width: 0px;
-    padding: 2px;
-    height: 28px;
-    width: 100px;
-    font-size: 18px;
-    border-radius: 38px;" (click)="close()">Close</button>
-
-    <button   color="primary" style="      color: white;
-    background-color: black;
-    border-width: 0px;
-    padding: 2px;
-    height: 28px;
-    width: 100px;
-    font-size: 18px;
-    border-radius: 38px;" (click)="seeMore()" [disabled]="!hasMore">more</button>
+  <button mat-button (click)="close()">Close</button>
 </mat-dialog-actions>

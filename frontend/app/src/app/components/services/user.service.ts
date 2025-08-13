@@ -1,20 +1,21 @@
-import {Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
-import {catchError, Observable, throwError} from 'rxjs';
-import {BaseService} from '../../core/services/base.service';
-import {UpdatePriority} from '../models/UpdatePriority';
-import {MuteDuration} from '../models/MuteDurationDto';
+import { HttpClient } from '@angular/common/http';
+import { catchError, Observable, throwError } from 'rxjs';
+import { BaseService } from '../../core/services/base.service';
+import { UpdatePriority } from '../models/UpdatePriority';
+import { MuteDuration } from '../models/MuteDurationDto';
+import { Injectable } from '@angular/core';
 
 // Matches backend UserSeekResponse.java
 export interface UserSeekResponse {
   userId: number;
   displayName: string;
-  userName: string;
+  username: string;
   profilePicture: string | null; // Base64 encoded
   actionHappenedAt: string;      // ISO string
   profileBio: string | null;
-  Verified: boolean
-  followedByCurrentUser: boolean
+  verified: boolean
+  isFollowedByCurrentUser: boolean
+  isFollowingCurrentUser: boolean
 }
 
 @Injectable({ providedIn: 'root' })
@@ -48,7 +49,7 @@ export class UserService extends BaseService {
   // ===== Action methods =====
   UpdatePriority(followedUserId: number, newPriority: string): Observable<void> {
     const url = `${this.baseUrl}${this.ENDPOINTS.UPDATE_PRIORITY}${followedUserId}`;
-    const newPriorityObj: UpdatePriority = {priority: newPriority};
+    const newPriorityObj: UpdatePriority = { priority: newPriority };
     return this.httpClient.patch<void>(url, newPriorityObj).pipe(
       catchError(error => {
         console.error('Error updating priority:', error);

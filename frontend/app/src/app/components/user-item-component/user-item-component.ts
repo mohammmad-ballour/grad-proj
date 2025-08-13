@@ -17,18 +17,24 @@ import { MatIconModule } from "@angular/material/icon";
           alt="{{ user.displayName }}"
           width="40" height="40" />
        
-           
         <div class="user-details">
-          <span class="user-name">{{ '@'+user.userName }}
-            @if(user.Verified){
-               <mat-icon class="verified" > verified</mat-icon>
+           <span class="user-handle">{{ '@' + user.username }}
+
+            @if(user.verified){
+               <mat-icon class="verified">verified</mat-icon>
             }
-             
-            </span>
-          <span class="user-name">{{ user.displayName }} </span>
+           </span>
+
+          <span class="user-name">{{ user.displayName }}</span>
+       
+          
         </div>
         
-
+        
+          <span class="profile-bio" [title]="user.profileBio">{{ user.profileBio }}System admin System admin System admin System admin System admin System admin System admin System ad
+          </span>
+      
+        
       </div>
 
       <button 
@@ -47,42 +53,36 @@ import { MatIconModule } from "@angular/material/icon";
             class="follow-spinner">
           </mat-progress-spinner>
         } @else {
-          <span>{{ user.followedByCurrentUser ? 'Unfollow' : 'Follow' }}</span>
+          {{ user.isFollowedByCurrentUser ? 'Unfollow' : user.isFollowingCurrentUser ? 'Follow back' : 'Follow' }}
         }
       </button>
     </div>
-    <span class="profile-bio" [title]="user.profileBio">{{ user.profileBio }}</span>
-
+    <hr>
   `,
   styles: [`
     .user-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .user-info { display: flex; align-items: center;  margin-top:5px;  }
-    .user-details { margin-left: 10px; display: flex; flex-direction: column;  }
-    .user-name { font-weight: bold;display: flex; }
-    .profile-bio { font-size: 0.85em; color: gray; }
-    .follow-btn {  width: 70px;height:25px }
-    .follow-spinner { display: inline-block; }
-    .img{    border-radius: 50px;}
-    .verified{
-          color: #4a7af9;
-              font-size: 20px;
-              
-
- 
-    }
+    .user-info { display: flex; align-items: center;  justify-content: space-between;margin-top: 5px;  position:relative;}
+    .user-details { margin-left: 10px; display: flex; flex-direction: column; }
+    .user-name { font-weight: bold; display: flex; align-items: center; }
+    .user-handle {  font-weight: bold; font-size: 0.85em;   }
     .profile-bio {
-  font-size: 0.85em;
-  color: gray;
-  max-width: 250px; /* limit width so it doesn't take over layout */
-  display: -webkit-box;
-  margin-left:20px;
-  -webkit-line-clamp: 2; /* number of lines to display */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal;
-}
-
+    font-size: 0.85em;
+    color: gray;
+    white-space: normal;
+    position: absolute;
+    left: 155px;
+    width: 250px;
+    height: fit-content;
+  
+    }
+    .follow-btn { width:FIT-CONTENT; height: 30px; }
+    .follow-spinner { display: inline-block; }
+    .img { border-radius: 50px; }
+    .verified {
+      color: #4a7af9;
+      font-size: 20px;
+      margin-left: 4px;
+    }
   `]
 })
 export class UserItemComponent {
@@ -99,7 +99,7 @@ export class UserItemComponent {
   }
 
   handleClick() {
-    if (this.user.followedByCurrentUser) {
+    if (this.user.isFollowedByCurrentUser) {
       this.onUnFollow.emit(this.user);
     } else {
       this.onFollow.emit(this.user);

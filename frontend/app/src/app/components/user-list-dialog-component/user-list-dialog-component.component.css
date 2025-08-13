@@ -87,3 +87,33 @@
 .follow-spinner {
     margin: 0 auto;
 }
+
+.user-list-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 70vh;
+    /* Limit height to cause scrolling inside dialog */
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+.scroll-sentinel {
+    height: 1px;
+}
+
+p {
+    color: #d32f2f;
+    /* Material Red 700 for error */
+    font-weight: 600;
+    text-align: center;
+    margin-top: 12px;
+    font-size: 14px;
+    font-family: "Roboto", "Helvetica Neue", sans-serif;
+}

@@ -52,14 +52,14 @@ export class SignupComponent {
   constructor(private formBuilder: FormBuilder, private signupService: SignupService, private router: Router) {
 
     this.signupForm = this.formBuilder.group({
-      email: ['', [Validators.required, this.stricterEmailValidator]],
-      username: ['', [Validators.required, this.unicodeUsernameValidator]],
-      password: ['', [Validators.required, this.passwordComplexity]],
-      confirmPassword: ['', Validators.required],
-      dob: ['', [Validators.required, CustomValidators.ageValidator(10, 100)]],
-      residence: ['', Validators.required],
-      gender: ['', Validators.required],
-      timezoneId: ['', [Validators.required, CustomValidators.validTimezoneValidator(this.allTimezonesFlat)]],
+      email: ['mshokor20@gmail.com', [Validators.required, this.stricterEmailValidator]],
+      username: ['mshokor20', [Validators.required, this.unicodeUsernameValidator]],
+      password: ['mshokor20@gmail.com', [Validators.required, this.passwordComplexity]],
+      confirmPassword: ['mshokor20@gmail.com', Validators.required],
+      dob: ['12-12-2003', [Validators.required, CustomValidators.ageValidator(10, 100)]],
+      residence: ['GAZA', Validators.required],
+      gender: ['MALE', Validators.required],
+      timezoneId: ['America/Los_Angeles', [Validators.required, CustomValidators.validTimezoneValidator(this.allTimezonesFlat)]],
 
     }, { validators: this.passwordMatchValidator });
 
