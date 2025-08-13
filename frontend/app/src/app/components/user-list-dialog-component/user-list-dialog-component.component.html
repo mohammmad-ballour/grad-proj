@@ -6,6 +6,7 @@
   @for (user of data.userSeekResponse; track user.userId) {
     <app-user-item [user]="user"
       [currentUserId]="currentUserId"
+      [isMutualFollowings]="data.title=='MutualFollowings'"
       [isLoading]="followSpinner"
     (onFollow)="follow(user)"
       (onUnFollow)="unFollow(user)"

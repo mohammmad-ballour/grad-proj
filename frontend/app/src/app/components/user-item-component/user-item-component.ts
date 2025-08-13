@@ -57,10 +57,17 @@ import { MatIconModule } from "@angular/material/icon";
         }
       </button>
     </div>
-    <hr>
+    
   `,
   styles: [`
-    .user-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .user-item {      display: flex
+;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    border-bottom: 2px solid;
+     padding-bottom: 20px;
+} 
     .user-info { display: flex; align-items: center;  justify-content: space-between;margin-top: 5px;  position:relative;}
     .user-details { margin-left: 10px; display: flex; flex-direction: column; }
     .user-name { font-weight: bold; display: flex; align-items: center; }
@@ -89,11 +96,16 @@ export class UserItemComponent {
 
   @Input() user!: UserSeekResponse;
   @Input() isLoading = false;
+  @Input() isMutualFollowings!: boolean;
   @Input() currentUserId?: number;
   @Output() onFollow = new EventEmitter<UserSeekResponse>();
   @Output() onUnFollow = new EventEmitter<UserSeekResponse>();
   @Output() GoTOProfile = new EventEmitter<string>();
-
+  ngOnInit() {
+    if (this.isMutualFollowings) {
+      this.user.isFollowedByCurrentUser = true;
+    }
+  }
   showImage(base64String: string | null): string {
     return base64String
       ? `data:image/jpeg;base64,${base64String}`

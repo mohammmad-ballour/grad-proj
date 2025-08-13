@@ -178,41 +178,41 @@
         <span> · <mat-icon inline>location_on</mat-icon> {{ profile.aboutUser.residence }}</span>
         }
       </div>
- <div class="stats">
-  <!-- Followers -->
-  <span
-    (click)="!isFollowersLoading && !profile.isBlocked && loadFollowers()"
-    [style.cursor]="profile.isBlocked ? 'not-allowed' : 'pointer'"
-    [style.opacity]="profile.isBlocked ? 0.5 : 1"
-    style="display: inline-flex; align-items: center; gap: 4px;"
-  >
-    @if (isFollowersLoading) {
-      <mat-spinner diameter="16"></mat-spinner>
-    } @else {
-      <b>{{ profile.followerNo ?? 0 }}</b> Followers
-    }
-  </span>
+      <div class="stats">
+        <!-- Followers -->
+        <span
+          (click)="!isFollowersLoading && !profile.isBlocked && loadFollowers()"
+          [style.cursor]="profile.isBlocked ? 'not-allowed' : 'pointer'"
+          [style.opacity]="profile.isBlocked ? 0.5 : 1"
+          style="display: inline-flex; align-items: center; gap: 4px;"
+        >
+          @if (isFollowersLoading) {
+            <mat-spinner diameter="16"></mat-spinner>
+          } @else {
+            <b>{{ profile.followerNo ?? 0 }}</b> Followers
+          }
+        </span>
 
-  <!-- Following -->
-  <span
-    (click)="!isFollowingLoading && !profile.isBlocked && loadFollowing()"
-    [style.cursor]="profile.isBlocked ? 'not-allowed' : 'pointer'"
-    [style.opacity]="profile.isBlocked ? 0.5 : 1"
-    style="display: inline-flex; align-items: center; gap: 4px;"
-  >
-    @if (isFollowingLoading) {
-      <mat-spinner diameter="16"></mat-spinner>
-    } @else {
-      <b>{{ profile.followingNo ?? 0 }}</b> Following
-    }
-  </span>
-</div>
-
-
-
-
-
-
+        <!-- Following -->
+        <span
+          (click)="!isFollowingLoading && !profile.isBlocked && loadFollowing()"
+          [style.cursor]="profile.isBlocked ? 'not-allowed' : 'pointer'"
+          [style.opacity]="profile.isBlocked ? 0.5 : 1"
+          style="display: inline-flex; align-items: center; gap: 4px;"
+        >
+          @if (isFollowingLoading) {
+            <mat-spinner diameter="16"></mat-spinner>
+          } @else {
+            <b>{{ profile.followingNo ?? 0 }}</b> Following
+          }
+        </span>
+      </div>
+      @if(!isPersonalProfile&& MutualFollowings&& !profile.isBlocked){
+        <div [style.cursor]="'pointer'"  (click)="loadMutualFollowings()" style="margin-top:20px; color: rgb(151, 195, 246);"> <span style="color: gray;">Followed by</span> {{MutualFollowings}}
+         
+        </div>
+      }
+    
     </div>
   </div>
 

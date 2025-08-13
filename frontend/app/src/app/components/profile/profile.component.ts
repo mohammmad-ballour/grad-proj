@@ -66,7 +66,10 @@ export class ProfileComponent implements OnInit {
       this.CurrentUserName = params.get('username') || '';
       this.isPersonalProfile = this.CurrentUserName === this.profileServices.userName;
       this.fetchProfileData(true);
+
     });
+
+
   }
 
   private fetchProfileData(isInitialCall: boolean): void {
@@ -78,10 +81,11 @@ export class ProfileComponent implements OnInit {
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
           this.isNotFound = false;
-          console.log(result)
+
         }
         this.initialSpinner = false;
-      }
+      },
+      complete: () => { if (!this.profile.isBlocked) this.getSomeMutualFollowings() }
     });
   }
 
@@ -341,17 +345,60 @@ export class ProfileComponent implements OnInit {
       });
   }
 
+  loadMutualFollowings() {
+    this.userService
+      .getMutualFollowings(this.profile.userAvatar.userId, 0)
+      .subscribe({
+        next: (mutualFollowings) => {
+          if (mutualFollowings) {
+            this.openUserList('MutualFollowings', mutualFollowings)
+          }
+        },
+        error: (err) => {
+          console.error('Error fetching mutual followings:', err);
+        }
+      });
+  }
 
   openUserList(title: string, userSeekResponse: UserSeekResponse[]): void {
-    console.log(userSeekResponse)
-    const dialog = this.dialog.open(UserListDialogComponent, {
-      width: '1000px', height: userSeekResponse.length == 0 ? "200px" : "400px",
-      data: { title, userSeekResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
-    });
-    dialog.afterClosed().subscribe(() => {
-      this.fetchProfileData(false);
-    });
+    if (userSeekResponse.length > 0) {
+      const dialog = this.dialog.open(UserListDialogComponent, {
+        width: '1000px', height: userSeekResponse.length < 4 ? `${userSeekResponse.length * 220}px` : "500px",
+        data: { title, userSeekResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
+      });
+      dialog.afterClosed().subscribe(() => {
+        this.fetchProfileData(false);
+      });
+    } else {
+      this.showSnackBar(`There is no ${title.toLocaleLowerCase()} to show `);
+    }
 
 
   }
+  MutualFollowings!: string;
+
+  getSomeMutualFollowings() {
+    this.userService
+      .getMutualFollowings(this.profile.userAvatar.userId, 0)
+      .subscribe({
+        next: (mutualFollowings) => {
+          if (mutualFollowings && mutualFollowings.length > 0) {
+            // Take first 3, map to usernames, and join with commas
+            this.MutualFollowings = mutualFollowings
+              .slice(0, 3)
+              .map(user => user.username) // assuming API returns { username: string, ... }
+              .join(', ') + `${mutualFollowings.length > 3 ? ` + ${mutualFollowings.length - 3} more` : ''} `;
+
+          } else {
+            this.MutualFollowings = '';
+          }
+        },
+        error: (err) => {
+          console.error('Error fetching mutual followings:', err);
+          this.MutualFollowings = '';
+        }
+      });
+  }
+
+
 }

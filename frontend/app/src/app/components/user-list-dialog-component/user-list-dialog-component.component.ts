@@ -6,9 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subject } from 'rxjs';
 import { UserSeekResponse, UserService } from '../services/user.service';
 import { UserItemComponent } from '../user-item-component/user-item-component';
-import { routes } from '../../app.routes';
-import { Route, Router } from '@angular/router';
-import { tick } from '@angular/core/testing';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-user-list-dialog',
@@ -62,11 +60,13 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
 
   private loadMoreUsers(): void {
     this.isFollowersLoading = true;
-
     const request$ =
-      this.data.title.toLowerCase().includes('following')
+      this.data.title == 'Following'
         ? this.userService.getFollowings(this.data.userId, this.page)
-        : this.userService.getFollowers(this.data.userId, this.page);
+        : this.data.title == 'Followers'
+          ? this.userService.getFollowers(this.data.userId, this.page)
+          : this.userService.getMutualFollowings(this.data.userId, this.page);
+
 
     request$.subscribe({
       next: (users) => {
