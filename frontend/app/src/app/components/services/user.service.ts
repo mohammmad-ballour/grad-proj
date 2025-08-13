@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { catchError, Observable, throwError } from 'rxjs';
 import { BaseService } from '../../core/services/base.service';
 import { UpdatePriority } from '../models/UpdatePriority';
@@ -31,6 +31,7 @@ export class UserService extends BaseService {
     UPDATE_PRIORITY: '/api/users/update-priority/',
     USERS: '/api/users/' // base for followings/followers/mutual
   };
+  http: any;
 
   constructor(private httpClient: HttpClient) {
     super();
@@ -102,4 +103,16 @@ export class UserService extends BaseService {
 
 
 
+  getMutualFollowings(userId: number, lastPage: number): Observable<UserSeekResponse[]> {
+
+    return this.httpClient.get<UserSeekResponse[]>(
+      ` ${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/mutual-followings`,
+
+      {
+        params: {
+          page: lastPage.toString()
+        }
+      }
+    );
+  }
 }

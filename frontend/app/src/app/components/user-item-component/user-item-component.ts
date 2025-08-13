@@ -18,7 +18,7 @@ import { MatIconModule } from "@angular/material/icon";
           width="40" height="40" />
        
         <div class="user-details">
-           <span class="user-handle">{{ '@' + user.username }}
+           <span  [style.cursor]='"pointer"' (click)="GoTOProfile.emit(user.username)"  class="user-handle">{{ '@' + user.username }}
 
             @if(user.verified){
                <mat-icon class="verified">verified</mat-icon>
@@ -64,7 +64,7 @@ import { MatIconModule } from "@angular/material/icon";
     .user-info { display: flex; align-items: center;  justify-content: space-between;margin-top: 5px;  position:relative;}
     .user-details { margin-left: 10px; display: flex; flex-direction: column; }
     .user-name { font-weight: bold; display: flex; align-items: center; }
-    .user-handle {  font-weight: bold; font-size: 0.85em;   }
+    .user-handle {  font-weight: bold; font-size: 0.85em; }
     .profile-bio {
     font-size: 0.85em;
     color: gray;
@@ -86,11 +86,13 @@ import { MatIconModule } from "@angular/material/icon";
   `]
 })
 export class UserItemComponent {
+
   @Input() user!: UserSeekResponse;
   @Input() isLoading = false;
   @Input() currentUserId?: number;
   @Output() onFollow = new EventEmitter<UserSeekResponse>();
   @Output() onUnFollow = new EventEmitter<UserSeekResponse>();
+  @Output() GoTOProfile = new EventEmitter<string>();
 
   showImage(base64String: string | null): string {
     return base64String

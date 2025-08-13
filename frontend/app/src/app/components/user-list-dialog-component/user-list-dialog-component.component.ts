@@ -6,6 +6,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subject } from 'rxjs';
 import { UserSeekResponse, UserService } from '../services/user.service';
 import { UserItemComponent } from '../user-item-component/user-item-component';
+import { routes } from '../../app.routes';
+import { Route, Router } from '@angular/router';
+import { tick } from '@angular/core/testing';
 
 @Component({
   selector: 'app-user-list-dialog',
@@ -38,7 +41,8 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: { title: string; userSeekResponse: UserSeekResponse[], userId: number },
     private dialogRef: MatDialogRef<UserListDialogComponent>,
-    private userService: UserService
+    private userService: UserService,
+    private router: Router
   ) { }
 
   ngAfterViewInit(): void {
@@ -55,35 +59,38 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+
   private loadMoreUsers(): void {
     this.isFollowersLoading = true;
 
-    this.userService.getFollowers(this.data.userId, this.page)
-      .subscribe({
-        next: (followers) => {
-          console.log(followers)
-          if (followers?.length) {
-            this.data.userSeekResponse.push(...followers);
-            this.page++;
-            if (followers.length < this.pageSize) {
-              this.hasMore = false;
-              this.disconnectObserver();
-            }
-          } else {
+    const request$ =
+      this.data.title.toLowerCase().includes('following')
+        ? this.userService.getFollowings(this.data.userId, this.page)
+        : this.userService.getFollowers(this.data.userId, this.page);
+
+    request$.subscribe({
+      next: (users) => {
+        if (users?.length) {
+          this.data.userSeekResponse.push(...users);
+          this.page++;
+          if (users.length < this.pageSize) {
             this.hasMore = false;
             this.disconnectObserver();
           }
-        },
-        error: () => {
-          this.isFollowersLoading = false
-
-          this.isLoadingFailed = true;
-        },
-        complete: () => {
-          this.isFollowersLoading = false
+        } else {
+          this.hasMore = false;
+          this.disconnectObserver();
         }
-      });
+      },
+      error: () => {
+        this.isLoadingFailed = true;
+      },
+      complete: () => {
+        this.isFollowersLoading = false;
+      }
+    });
   }
+
 
   private disconnectObserver() {
     if (this.observer) {
@@ -103,6 +110,11 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  GoTOProfile(username: string) {
+    this.close();
+    this.router.navigate([`${username}`]);
+
+  }
 
 
   follow(user: UserSeekResponse) {
@@ -136,18 +148,5 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
       }
     });
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }
