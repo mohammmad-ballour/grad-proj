@@ -120,7 +120,7 @@ public class UserRepository {
     }
 
     public Optional<UserBasicData> findById(Long userId) {
-        return dsl.select(u.DISPLAY_NAME, u.DOB, u.GENDER, u.RESIDENCE, u.TIMEZONE_ID, u.PROFILE_BIO, u.PROFILE_PICTURE, u.PROFILE_COVER_PHOTO)
+        return dsl.select(u.USERNAME, u.DISPLAY_NAME, u.DOB, u.GENDER, u.RESIDENCE, u.TIMEZONE_ID, u.PROFILE_BIO, u.PROFILE_PICTURE, u.PROFILE_COVER_PHOTO)
                 .from(u)
                 .where(u.ID.eq(userId))
                 .fetchOptional(mapping(UserBasicData::new));

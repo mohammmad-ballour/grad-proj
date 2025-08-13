@@ -3,8 +3,12 @@ package com.grad.social.common.security;
 import com.grad.grad_proj.generated.api.model.SignInRequestDto;
 import org.springframework.security.authentication.BadCredentialsException;
 
+import java.util.Map;
+
 public interface AuthService {
-    String createUserAccount(String userId, String email, String username, String password);
+    String createUserAccount(String userId, String email, String username, String password, Map<UserKey, Object> customFields);
+
+    void updateUserAccount(String username, Map<UserKey, Object> fieldsToUpdate);
 
     /**
      * Authenticates a user using their email and password credentials.
