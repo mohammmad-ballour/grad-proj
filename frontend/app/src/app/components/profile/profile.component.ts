@@ -363,14 +363,18 @@ export class ProfileComponent implements OnInit {
   openUserList(title: string, userSeekResponse: UserSeekResponse[]): void {
     if (userSeekResponse.length > 0) {
       const dialog = this.dialog.open(UserListDialogComponent, {
-        width: '1000px', height: userSeekResponse.length < 4 ? `${userSeekResponse.length * 220}px` : "500px",
+        width: '1000px', height: userSeekResponse.length < 4 ? `${userSeekResponse.length * 215}px` : "500px",
         data: { title, userSeekResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
       });
       dialog.afterClosed().subscribe(() => {
         this.fetchProfileData(false);
       });
     } else {
-      this.showSnackBar(`There is no ${title.toLocaleLowerCase()} to show `);
+      if (this.profile.followerNo == 1)
+
+        this.showSnackBar(`just you from  ${title} the @${this.profile.username}  `);
+      else
+        this.showSnackBar(`There is no ${title.toLocaleLowerCase()} to show `);
     }
 
 
