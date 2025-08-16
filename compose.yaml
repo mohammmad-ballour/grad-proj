@@ -14,6 +14,13 @@ services:
     volumes:
       - social_data:/var/lib/postgresql/data  # Volume to persist data
 
+  redis:
+    image: 'redis:latest'
+    container_name: 'social-redis'
+    ports:
+      - "16379:6379"
+    restart: unless-stopped
+
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:latest
