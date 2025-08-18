@@ -18,6 +18,7 @@ import { MuteDialogComponent } from '../mute-dialog-component/mute-dialog-compon
 import { MuteDuration } from '../models/MuteDurationDto';
 import { Observable, Subscription } from 'rxjs';
 import { UserListDialogComponent } from '../user-list-dialog-component/user-list-dialog-component.component';
+import { ChatService } from '../chatting/services/chat.service';
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
@@ -42,6 +43,7 @@ export interface UserSeek {
 })
 export class ProfileComponent implements OnInit {
 
+
   profile!: ProfileResponseDto;
   initialSpinner = false;
   isNotFound = true;
@@ -59,6 +61,7 @@ export class ProfileComponent implements OnInit {
     private userService: UserService,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
+    private chatService: ChatService
   ) { }
 
   ngOnInit(): void {
@@ -403,6 +406,15 @@ export class ProfileComponent implements OnInit {
         }
       });
   }
+  openChat() {
+    this.chatService.createOneOnOneChat(this.profile.userAvatar.userId).subscribe(
 
+      {
+        next: (chatId) => {
+          console.log(chatId);
+        }
+      }
+    );
+  }
 
 }

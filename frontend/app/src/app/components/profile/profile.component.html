@@ -75,6 +75,15 @@
         <div class="controls">
           <!-- Block and Category Actions -->
           <div class="block-category-group">
+            <!-- messenger-button.component.html -->
+             @if(!profile.isBlocked){
+               <button class="messenger-btn" (click)="openChat()" >
+             <i class="bi bi-messenger text-primary fs-3"></i>
+
+            </button>
+             }
+           
+
             <!-- Category Menu -->
             <button mat-icon-button [matMenuTriggerFor]="menu" #menuTrigger="matMenuTrigger">
 
@@ -89,23 +98,26 @@
             </button>
 
             <mat-menu #menu="matMenu">
-            @if(!menuSpinner){
+              @if(!menuSpinner){
               <!-- Block User -->
               <button mat-menu-item class="mat-button" (click)="toggleBlock()">
                 <mat-icon style="color: red;">block</mat-icon>
                 block <span>{{'@'+profile.username}}</span>
               </button>
-              @if (  !profile.isBlocked) {
+              @if ( !profile.isBlocked) {
 
-              <button mat-menu-item class="mat-button" class="mute" (click)="profile.isMuted ? unmute(true): openMuteDialog()">
+              <button mat-menu-item class="mat-button" class="mute"
+                (click)="profile.isMuted ? unmute(true): openMuteDialog()">
                 <mat-icon style="color: rgb(26, 167, 214);">{{ profile.isMuted ? 'notifications_off' :
                   'notifications_on' }}</mat-icon>
                 {{profile.isMuted? 'unMute' : 'mute'}}
               </button>
 
+
               }
-            }
+              }
             </mat-menu>
+
 
             <mat-menu #Priority="matMenu">
               <!-- Restricted -->
@@ -180,39 +192,35 @@
       </div>
       <div class="stats">
         <!-- Followers -->
-        <span
-          (click)="!isFollowersLoading && !profile.isBlocked && loadFollowers()"
-          [style.cursor]="profile.isBlocked ? 'not-allowed' : 'pointer'"
-          [style.opacity]="profile.isBlocked ? 0.5 : 1"
-          style="display: inline-flex; align-items: center; gap: 4px;"
-        >
+        <span (click)="!isFollowersLoading && !profile.isBlocked && loadFollowers()"
+          [style.cursor]="profile.isBlocked ? 'not-allowed' : 'pointer'" [style.opacity]="profile.isBlocked ? 0.5 : 1"
+          style="display: inline-flex; align-items: center; gap: 4px;">
           @if (isFollowersLoading) {
-            <mat-spinner diameter="16"></mat-spinner>
+          <mat-spinner diameter="16"></mat-spinner>
           } @else {
-            <b>{{ profile.followerNo ?? 0 }}</b> Followers
+          <b>{{ profile.followerNo ?? 0 }}</b> Followers
           }
         </span>
 
         <!-- Following -->
-        <span
-          (click)="!isFollowingLoading && !profile.isBlocked && loadFollowing()"
-          [style.cursor]="profile.isBlocked ? 'not-allowed' : 'pointer'"
-          [style.opacity]="profile.isBlocked ? 0.5 : 1"
-          style="display: inline-flex; align-items: center; gap: 4px;"
-        >
+        <span (click)="!isFollowingLoading && !profile.isBlocked && loadFollowing()"
+          [style.cursor]="profile.isBlocked ? 'not-allowed' : 'pointer'" [style.opacity]="profile.isBlocked ? 0.5 : 1"
+          style="display: inline-flex; align-items: center; gap: 4px;">
           @if (isFollowingLoading) {
-            <mat-spinner diameter="16"></mat-spinner>
+          <mat-spinner diameter="16"></mat-spinner>
           } @else {
-            <b>{{ profile.followingNo ?? 0 }}</b> Following
+          <b>{{ profile.followingNo ?? 0 }}</b> Following
           }
         </span>
       </div>
       @if(!isPersonalProfile&& MutualFollowings&& !profile.isBlocked){
-        <div [style.cursor]="'pointer'"  (click)="loadMutualFollowings()" style="margin-top:20px; color: rgb(151, 195, 246);"> <span style="color: gray;">Followed by</span> {{MutualFollowings}}
-         
-        </div>
+      <div [style.cursor]="'pointer'" (click)="loadMutualFollowings()"
+        style="margin-top:20px; color: rgb(151, 195, 246);"> <span style="color: gray;">Followed by</span>
+        {{MutualFollowings}}
+
+      </div>
       }
-    
+
     </div>
   </div>
 
