@@ -2,6 +2,7 @@ package com.grad.social.common.security;
 
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.repository.user.UserUserInteractionRepository;
+import com.grad.social.service.chat.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class SecurityService {
     private final UserUserInteractionRepository userUserInteractionRepository;
+    private final ChatService chatService;
 
     public boolean hasUserLongId(Authentication authentication, Long requestedId) {
         if (authentication instanceof JwtAuthenticationToken jwtAuthenticationTokenT) {
@@ -37,6 +39,11 @@ public class SecurityService {
             return true;
         }
         return profileStatus.isProfileFollowedByCurrentUser();
+    }
+
+    public boolean isParticipantInChat(Jwt jwt, Long chatId) {
+        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return this.chatService.isParticipant(chatId, userId);
     }
 
     private long extractUserIdFromAuthentication(Jwt jwt) {

@@ -4,6 +4,7 @@ import com.grad.social.model.chat.ChatDto;
 import com.grad.social.model.tables.*;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
@@ -35,11 +36,12 @@ public class ChatRepository {
         if (recipient == null) {
             throw new IllegalArgumentException("Recipient user not found");
         }
+        Field<String> field = recipient.field(u.DISPLAY_NAME);
+        System.out.println(field);
 
         // Create chat
-        Long chatId = dsl.insertInto(c)
-                .set(c.NAME, recipient.field(u.DISPLAY_NAME))       // Default to recipient's display_name
-                .set(c.PICTURE, recipient.field(u.PROFILE_PICTURE)) // Default to recipient's profile_picture
+        Long chatId = dsl.insertInto(c, c.NAME, c.PICTURE)
+                .values(recipient.get(u.DISPLAY_NAME), recipient.get(u.PROFILE_PICTURE))  // Default to recipient's display_name and profile_picture
                 .returning(c.CHAT_ID)
                 .fetchOne()
                 .getChatId();
@@ -54,7 +56,7 @@ public class ChatRepository {
     }
 
     public Long createGroupChat(Long creatorId, String groupName, byte[] groupPicture, Set<Long> participantIds) {
-         // Create group chat
+        // Create group chat
         Long chatId = dsl.insertInto(c)
                 .set(c.NAME, groupName)         // custom group name
                 .set(c.PICTURE, groupPicture)   // Custom group picture
@@ -107,6 +109,7 @@ public class ChatRepository {
                 .groupBy(m.CHAT_ID)
                 .asTable("unread_count");
 
+        // FIXME (chat name and picture) does not work for now and that is ok!
         // Main query
         return dsl.select(c.CHAT_ID, c.NAME, c.PICTURE, userAvatarSubquery.field(u.DISPLAY_NAME), userAvatarSubquery.field(u.PROFILE_PICTURE),
                         lastMessageSubquery.field(m.CONTENT).as("last_message"), lastMessageSubquery.field(m.SENT_AT).as("last_message_time"),
