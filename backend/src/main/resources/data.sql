@@ -1,21 +1,22 @@
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
-DELETE
-FROM users;
+ALTER SEQUENCE chats_chat_id_seq RESTART WITH 1;
+ALTER SEQUENCE messages_message_id_seq RESTART WITH 1;
+DELETE FROM messages;
+DELETE FROM chats;
+DELETE FROM users;
 
 -- users
 INSERT INTO public.users (email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
 VALUES ('test@gmail.com', 'testusername', 'USER 1', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin')
-ON CONFLICT DO NOTHING;
+        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
 VALUES ('test2@gmail.com', 'testusername2', 'USER 2', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin',
         false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin')
-ON CONFLICT DO NOTHING;
+        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
 INSERT INTO public.users (email, username, display_name, dob, gender, residence, timezone_id, is_protected,
                           is_verified, account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
@@ -206,5 +207,24 @@ VALUES (2, 1, '2025-08-09 09:15:49.513348 +00:00', '2025-08-10 09:15:49.513348 +
 
 INSERT INTO public.user_blocks(user_id, blocked_user_id, blocked_at)
 VALUES (2, 3, '2025-08-09');
+
+-- chats
+INSERT INTO public.chats(is_group_chat, name)
+VALUES (false, 'Bestie');
+
+-- chat_participants
+INSERT INTO public.chat_participants(chat_id, user_id)
+VALUES (1, 1), (1, 2);
+
+-- messages
+INSERT INTO public.messages(chat_id, sender_id, content, sent_at)
+VALUES (1, 1, 'Hello, 2', '2025-08-09 09:15:49.513348 +00:00'),
+(1, 1, 'How are you', '2025-08-09 09:20:05.513348 +00:00');
+
+-- message_status
+INSERT INTO public.message_status(message_id, user_id, delivered_at, read_at)
+VALUES (1, 2, '2025-08-09 09:16:05.513348 +00:00', '2025-08-09 09:15:49.513348 +00:00'),
+(2, 2, '2025-08-09 09:20:49.513348 +00:00', null);
+
 
 

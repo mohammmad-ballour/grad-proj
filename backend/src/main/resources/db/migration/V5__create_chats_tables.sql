@@ -8,7 +8,7 @@ CREATE TABLE chats
 CREATE TABLE chat_participants
 (
     chat_id   BIGINT REFERENCES chats (chat_id) ON DELETE CASCADE,
-    user_id   BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    user_id   BIGINT REFERENCES users(id),
     joined_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 --     role VARCHAR(50) DEFAULT 'member', -- e.g., 'admin', 'member'
     PRIMARY KEY (chat_id, user_id)
@@ -17,14 +17,14 @@ CREATE TABLE messages
 (
     message_id BIGSERIAL PRIMARY KEY,
     chat_id    BIGINT REFERENCES chats (chat_id) ON DELETE CASCADE,
-    sender_id  BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    sender_id  BIGINT REFERENCES users(id),
     content    TEXT NOT NULL,
     sent_at    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE message_status
 (
     message_id   BIGINT REFERENCES messages (message_id) ON DELETE CASCADE,
-    user_id      BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    user_id      BIGINT REFERENCES users(id),
     delivered_at TIMESTAMPTZ DEFAULT NULL,
     read_at      TIMESTAMPTZ DEFAULT NULL,
     PRIMARY KEY (message_id, user_id)

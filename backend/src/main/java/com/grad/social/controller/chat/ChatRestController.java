@@ -61,8 +61,9 @@ public class ChatRestController {
     }
 
     @PostMapping("/chats/one-to-one")
-    @PreAuthorize("@SecurityService.hasUserLongId(authentication, #senderId)")
-    public Long createOneOnOneChat(@RequestParam Long senderId, @RequestParam Long recipientId) {
+    // TODO: Later, handle the use case when the current user does not follow the recipient and the latter does not allow messages from NON_FOLLOWERS
+    public Long createOneOnOneChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long recipientId) {
+        long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
         return this.chatService.createOneOnOneChat(senderId, recipientId);
     }
 }
