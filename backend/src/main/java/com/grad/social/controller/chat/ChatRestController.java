@@ -33,13 +33,6 @@ public class ChatRestController {
         return this.chatService.getChatListForUserByUserId(userId);
     }
 
-    @PostMapping("/chats/one-to-one")
-    @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
-    public Long createOneOnOneChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long recipientId) {
-        long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return this.chatService.getExistingOrCreateNewOneOnOneChat(senderId, recipientId);
-    }
-
     @PostMapping("/chats/group")
     @SneakyThrows
     public Long createGroupChat(@RequestParam Long creatorId, @RequestParam String groupName, @RequestBody Set<Long> participantIds,
@@ -71,16 +64,19 @@ public class ChatRestController {
         return messageService.updateReadStatus(confirmMessageRequest.messageId(), userId);
     }
 
-    @GetMapping("/chats/{chatId}")
+    // when the user/group avatar in the chat list is clicked, this method is called
+    @GetMapping("/chats/{chatId}/chat-messages")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public List<MessageResponse> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
         return this.chatService.getChatMessagesByChatId(chatId);
     }
 
-    @GetMapping("/chats/{recipientId}")
-    @PreAuthorize("isAuthenticated()")
+    // when the 'message' button or user avatar on the search-bar list is clicked on recipientId's profile by currentUserId, this method is called
+    @GetMapping("/chats/{recipientId}/user-messages")
+    @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
     public List<MessageResponse> getChatMessagesByRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
-        return this.chatService.getChatMessagesByChatId(recipientId);
+        long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return this.chatService.getChatMessagesByRecipientId(senderId, recipientId);
     }
 
 }
