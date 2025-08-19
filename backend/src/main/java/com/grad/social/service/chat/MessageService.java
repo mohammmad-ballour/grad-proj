@@ -1,26 +1,25 @@
 package com.grad.social.service.chat;
 
-import com.grad.social.model.chat.MessageDto;
-import com.grad.social.model.chat.MessageStatusUpdate;
+import com.grad.social.model.chat.request.CreateMessageRequest;
+import com.grad.social.model.chat.response.MessageStatusUpdate;
 import com.grad.social.repository.chat.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class MessageService {
     private final MessageRepository messageRepository;
 
-    public MessageDto saveMessage(MessageDto messageDto) {
+    public Long saveMessage(CreateMessageRequest createMessageRequest, Long chatId, Long senderId) {
         // Save message to message table
-        Long savedMessageId = this.messageRepository.saveMessage(messageDto);
+        Long savedMessageId = this.messageRepository.saveMessage(createMessageRequest, chatId, senderId);
 
         // Initialize message_status for all participants except sender
-        this.messageRepository.initializeMessageStatusForParticipantsExcludingTheSender(savedMessageId, messageDto.getChatId(), messageDto.getSenderId());
-        return messageDto;
+        this.messageRepository.initializeMessageStatusForParticipantsExcludingTheSender(savedMessageId, chatId, senderId);
+        return savedMessageId;
     }
 
     public MessageStatusUpdate updateDeliveryStatus(Long messageId, Long userId) {

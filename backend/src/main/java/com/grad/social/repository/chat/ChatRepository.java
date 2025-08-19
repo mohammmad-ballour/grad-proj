@@ -1,8 +1,8 @@
 package com.grad.social.repository.chat;
 
 import com.grad.social.common.messaging.redis.RedisConstants;
-import com.grad.social.model.chat.ChatDto;
-import com.grad.social.model.chat.MessageDto;
+import com.grad.social.model.chat.response.ChatResponse;
+import com.grad.social.model.chat.response.MessageResponse;
 import com.grad.social.model.tables.*;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -33,17 +33,17 @@ public class ChatRepository {
     private final ChatParticipants cp2 = ChatParticipants.CHAT_PARTICIPANTS.as("cp2");
     private final Users u = Users.USERS;
 
-    public List<MessageDto> getChatMessagesByChatId(Long chatId) {
+    public List<MessageResponse> getChatMessagesByChatId(Long chatId) {
         return dsl.select(m.CHAT_ID, m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT, ms.DELIVERED_AT, ms.READ_AT)
                 .from(m)
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
                 .where(m.CHAT_ID.eq(chatId))
                 .orderBy(m.SENT_AT.asc())
-                .fetch(mapping(MessageDto::new));
+                .fetch(mapping(MessageResponse::new));
     }
 
     // for 1-1 chats only
-    public List<MessageDto> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
+    public List<MessageResponse> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
         return dsl.select(m.CHAT_ID, m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT, ms.DELIVERED_AT, ms.READ_AT)
                 .from(c)
                 .join(cp).on(c.CHAT_ID.eq(cp.CHAT_ID))
@@ -58,7 +58,7 @@ public class ChatRepository {
                                 )
                 )
                 .orderBy(m.SENT_AT)
-                .fetch(mapping(MessageDto::new));
+                .fetch(mapping(MessageResponse::new));
     }
 
     public Long createOneToOneChat(Long senderId, Long recipientId) {
@@ -93,8 +93,7 @@ public class ChatRepository {
                 .from(c)
                 .join(cp).on(c.CHAT_ID.eq(cp.CHAT_ID))
                 .join(cp2).on(c.CHAT_ID.eq(cp2.CHAT_ID))
-                .where(c.IS_GROUP_CHAT.isFalse().and(cp.USER_ID.eq(userA).and(cp2.USER_ID.eq(userB)))
-                )
+                .where(c.IS_GROUP_CHAT.isFalse().and(cp.USER_ID.eq(userA).and(cp2.USER_ID.eq(userB))))
                 .fetchOneInto(Long.class);
     }
 
@@ -130,7 +129,7 @@ public class ChatRepository {
         );
     }
 
-    public List<ChatDto> getChatListForUserByUserId(Long currentUserId) {
+    public List<ChatResponse> getChatListForUserByUserId(Long currentUserId) {
         // LATERAL: last message per chat
         var lm = dsl.select(m.CONTENT, m.SENT_AT)
                 .from(m)
@@ -176,7 +175,7 @@ public class ChatRepository {
                 .where(cp.USER_ID.ne(currentUserId))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
                 .fetch(mapping((chatId, chatName, chatPicture, lastMessage, lastMessageSentAt, unreadCount, participants) -> {
-                    ChatDto res = new ChatDto();
+                    ChatResponse res = new ChatResponse();
                     res.setChatId(chatId);
                     res.setName(chatName);
                     res.setChatPicture(chatPicture);

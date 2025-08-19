@@ -1,6 +1,8 @@
 package com.grad.social.common.security;
 
+import com.grad.social.model.enums.WhoCanMessage;
 import com.grad.social.model.shared.ProfileStatus;
+import com.grad.social.repository.user.UserRepository;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import com.grad.social.service.chat.ChatService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 public class SecurityService {
     private final UserUserInteractionRepository userUserInteractionRepository;
     private final ChatService chatService;
+    private final UserRepository userRepository;
 
     public boolean hasUserLongId(Authentication authentication, Long requestedId) {
         if (authentication instanceof JwtAuthenticationToken jwtAuthenticationTokenT) {
@@ -42,8 +45,27 @@ public class SecurityService {
     }
 
     public boolean isParticipantInChat(Jwt jwt, Long chatId) {
-        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return this.chatService.isParticipant(chatId, userId);
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        if (currentUserId == -1) {
+            return false;       // anonymouse user
+        }
+        return this.chatService.isParticipant(chatId, currentUserId);
+    }
+
+    public boolean isPermittedToMessage(Jwt jwt, Long recipientId) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        if (currentUserId == -1) {
+            return false;       // anonymouse user
+        }
+        WhoCanMessage whoCanMessage = this.userRepository.getWhoCanMessage(currentUserId);
+        return switch (whoCanMessage) {
+            case EVERYONE -> true;
+            case FOLLOWERS -> {
+                ProfileStatus profileStatus = this.userUserInteractionRepository.getProfileStatus(recipientId, currentUserId);
+                yield profileStatus.isProfileFollowedByCurrentUser();
+            }
+            case NONE -> false;
+        };
     }
 
     private long extractUserIdFromAuthentication(Jwt jwt) {

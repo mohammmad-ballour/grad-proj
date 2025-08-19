@@ -4,6 +4,7 @@ import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
+import com.grad.social.model.enums.WhoCanMessage;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
 import com.grad.social.model.tables.UserFollowers;
@@ -147,5 +148,12 @@ public class UserRepository {
     public boolean isAccountProtected(String nameToSearch) {
         Boolean isAccountProtected = dsl.select(u.IS_PROTECTED).where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch))).fetchOneInto(Boolean.class);
         return isAccountProtected != null && isAccountProtected;
+    }
+
+    public WhoCanMessage getWhoCanMessage(Long userId) {
+        return dsl.select(u.WHO_CAN_MESSAGE)
+                .from(u)
+                .where(u.ID.eq(userId))
+                .fetchOneInto(WhoCanMessage.class);
     }
 }

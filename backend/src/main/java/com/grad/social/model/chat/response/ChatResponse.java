@@ -1,11 +1,11 @@
-package com.grad.social.model.chat;
+package com.grad.social.model.chat.response;
 
 import lombok.Data;
 
 import java.time.Instant;
 
 @Data
-public class ChatDto {
+public class ChatResponse {
     private Long chatId;
     private String name;
     private byte[] chatPicture;

@@ -1,7 +1,8 @@
 package com.grad.social.repository.chat;
 
 import com.grad.social.common.messaging.redis.RedisConstants;
-import com.grad.social.model.chat.MessageDto;
+import com.grad.social.model.chat.request.CreateMessageRequest;
+import com.grad.social.model.chat.response.MessageResponse;
 import com.grad.social.model.tables.ChatParticipants;
 import com.grad.social.model.tables.MessageStatus;
 import com.grad.social.model.tables.Messages;
@@ -27,9 +28,9 @@ public class MessageRepository {
     private final Users u = Users.USERS;
     private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
 
-    public Long saveMessage(MessageDto messageDto) {
+    public Long saveMessage(CreateMessageRequest messageRequest, Long chatId, Long senderId) {
         return Objects.requireNonNull(dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.CONTENT)
-                        .values(messageDto.getChatId(), messageDto.getSenderId(), messageDto.getContent())
+                        .values(chatId, senderId, messageRequest.content())
                         .returning(m.MESSAGE_ID)
                         .fetchOne())
                 .getMessageId();
