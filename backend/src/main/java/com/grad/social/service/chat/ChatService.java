@@ -16,7 +16,11 @@ public class ChatService {
     private final ChatRepository chatRepository;
 
     public Long createOneOnOneChat(Long senderId, Long recipientId) {
-      return this.chatRepository.createOneOnOneChat(senderId, recipientId);
+        Long existentChatID = this.chatRepository.isOneToOneChatAlreadyExists(senderId, recipientId);
+        if(existentChatID == null) {
+            existentChatID = this.chatRepository.createOneToOneChat(senderId, recipientId);
+        }
+        return existentChatID;
     }
 
     public Long createGroupChat(Long creatorId, String groupName, byte[] groupPicture, Set<Long> participantIds) {

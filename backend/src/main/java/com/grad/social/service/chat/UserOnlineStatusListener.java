@@ -44,19 +44,19 @@ public class UserOnlineStatusListener {
 //        }
 //    }
 
-    @EventListener
-    public void onLogout(LogoutSuccessEvent event) {
-        System.out.println("in logout success");
-        String userId = extractUserId(event.getAuthentication());
-        if (userId != null) {
-            String sessionId = RequestContextHolder.getRequestAttributes().getSessionId();
-            System.out.println("Session id after logout = " + sessionId);
-            redisTemplate.opsForSet().remove(userSessionsKey(userId), sessionId);
-            if (!isUserOnline(userId)) {
-                redisTemplate.delete(userSessionsKey(userId)); // cleanup
-            }
-        }
-    }
+//    @EventListener
+//    public void onLogout(LogoutSuccessEvent event) {
+//        System.out.println("in logout success");
+//        String userId = extractUserId(event.getAuthentication());
+//        if (userId != null) {
+//            String sessionId = RequestContextHolder.getRequestAttributes().getSessionId();
+//            System.out.println("Session id after logout = " + sessionId);
+//            redisTemplate.opsForSet().remove(userSessionsKey(userId), sessionId);
+//            if (!isUserOnline(userId)) {
+//                redisTemplate.delete(userSessionsKey(userId)); // cleanup
+//            }
+//        }
+//    }
 
     @EventListener
     public void handleWebSocketConnect(SessionConnectEvent event) {
@@ -120,11 +120,6 @@ public class UserOnlineStatusListener {
 
             System.out.println("Disconnected: userId=" + userId + ", sessionId=" + sessionId);
         }
-    }
-
-    private boolean isUserOnline(String userId) {
-        Long size = redisTemplate.opsForSet().size(userSessionsKey(userId));
-        return size != null && size > 0;
     }
 
     private String userSessionsKey(String userId) {

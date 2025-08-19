@@ -4,29 +4,34 @@ import com.grad.social.model.chat.ChatDto;
 import com.grad.social.model.tables.*;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.impl.DSL;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.grad.social.model.tables.ChatParticipants.CHAT_PARTICIPANTS;
+import static org.jooq.Records.mapping;
+import static org.jooq.impl.DSL.lateral;
 import static org.jooq.impl.DSL.row;
 
 @Repository
 @RequiredArgsConstructor
 public class ChatRepository {
 
+    private final RedisTemplate<String, String> redisTemplate;
     private final DSLContext dsl;
     // Aliases for subqueries
     private final Messages m = Messages.MESSAGES;
     private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
     private final Chats c = Chats.CHATS;
-    private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
+    private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS.as("cp");
+    private final ChatParticipants cp2 = ChatParticipants.CHAT_PARTICIPANTS.as("cp2");
     private final Users u = Users.USERS;
 
-    public Long createOneOnOneChat(Long senderId, Long recipientId) {
+    public Long createOneToOneChat(Long senderId, Long recipientId) {
         // Fetch recipient's display_name and profile_picture
         var recipient = dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE)
                 .from(u)
@@ -36,12 +41,10 @@ public class ChatRepository {
         if (recipient == null) {
             throw new IllegalArgumentException("Recipient user not found");
         }
-        Field<String> field = recipient.field(u.DISPLAY_NAME);
-        System.out.println(field);
 
         // Create chat
-        Long chatId = dsl.insertInto(c, c.NAME, c.PICTURE)
-                .values(recipient.get(u.DISPLAY_NAME), recipient.get(u.PROFILE_PICTURE))  // Default to recipient's display_name and profile_picture
+        Long chatId = dsl.insertInto(c, c.NAME, c.PICTURE, c.IS_GROUP_CHAT)
+                .values(recipient.get(u.DISPLAY_NAME), recipient.get(u.PROFILE_PICTURE), false)  // Default to recipient's display_name and profile_picture
                 .returning(c.CHAT_ID)
                 .fetchOne()
                 .getChatId();
@@ -53,6 +56,16 @@ public class ChatRepository {
                 .execute();
 
         return chatId;
+    }
+
+    public Long isOneToOneChatAlreadyExists(Long userA, Long userB) {
+        return dsl.select(c.CHAT_ID)
+                .from(c)
+                .join(cp).on(c.CHAT_ID.eq(cp.CHAT_ID))
+                .join(cp2).on(c.CHAT_ID.eq(cp2.CHAT_ID))
+                .where(c.IS_GROUP_CHAT.isFalse().and(cp.USER_ID.eq(userA).and(cp2.USER_ID.eq(userB)))
+                )
+                .fetchOneInto(Long.class);
     }
 
     public Long createGroupChat(Long creatorId, String groupName, byte[] groupPicture, Set<Long> participantIds) {
@@ -87,42 +100,72 @@ public class ChatRepository {
         );
     }
 
-    public List<ChatDto> getChatListForUserByUserId(Long userId) {
-        var userAvatarSubquery = dsl.select(u.DISPLAY_NAME, u.PROFILE_PICTURE)
-                .from(u)
-                .where(u.ID.eq(userId))
-                .asTable("avatar_user");
-
-        // Subquery for the most recent message (LATERAL)
-        var lastMessageSubquery = dsl.select(m.MESSAGE_ID, m.CONTENT, m.SENT_AT)
+    public List<ChatDto> getChatListForUserByUserId(Long currentUserId) {
+        // LATERAL: last message per chat
+        var lm = dsl.select(m.CONTENT, m.SENT_AT)
                 .from(m)
-                .join(c).on(m.CHAT_ID.eq(c.CHAT_ID))
+                .where(m.CHAT_ID.eq(c.CHAT_ID))
                 .orderBy(m.SENT_AT.desc())
                 .limit(1)
-                .asTable("last_message");
+                .asTable("lm");
 
-        // Subquery for unread message count
-        var unreadSubquery = dsl.select(m.CHAT_ID, DSL.count().as("count"))
-                .from(ms)
-                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
-                .where(ms.USER_ID.eq(userId).and(ms.READ_AT.isNull()))
+        // unread count per chat
+        var uc = dsl.select(m.CHAT_ID, DSL.count().as("unread_count"))
+                .from(m)
+                .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .where(ms.USER_ID.eq(currentUserId).and(ms.READ_AT.isNull()))
                 .groupBy(m.CHAT_ID)
-                .asTable("unread_count");
+                .asTable("uc");
 
-        // FIXME (chat name and picture) does not work for now and that is ok!
-        // Main query
-        return dsl.select(c.CHAT_ID, c.NAME, c.PICTURE, userAvatarSubquery.field(u.DISPLAY_NAME), userAvatarSubquery.field(u.PROFILE_PICTURE),
-                        lastMessageSubquery.field(m.CONTENT).as("last_message"), lastMessageSubquery.field(m.SENT_AT).as("last_message_time"),
-                        DSL.coalesce(unreadSubquery.field("count", Long.class), 0L).as("unread_count"), DSL.val(true).as("recipientOnline"))
+        return dsl.selectDistinct(
+                        c.CHAT_ID,
+                        DSL.case_()
+                                .when(c.IS_GROUP_CHAT.isTrue(), c.NAME)
+                                .otherwise(u.DISPLAY_NAME).as("chat_name"),
+                        DSL.case_()
+                                .when(c.IS_GROUP_CHAT.isTrue(), c.PICTURE)
+                                .otherwise(u.PROFILE_PICTURE).as("chat_picture"),
+                        lm.field(m.CONTENT).as("last_message"),
+                        lm.field(m.SENT_AT).as("last_message_time"),
+                        DSL.coalesce(uc.field("unread_count", Long.class), DSL.inline(0L)).as("unread_count"),
+                        // MULTISET participants (excluding current user)
+                        DSL.multiset(
+                                DSL.select(cp.USER_ID)
+                                        .from(cp)
+                                        .where(cp.CHAT_ID.eq(c.CHAT_ID))
+                                        .and(cp.USER_ID.ne(currentUserId))
+                        ).as("participants").convertFrom(r ->
+                                r.into(Long.class) // map directly into a list of longs
+                        )
+                )
                 .from(c)
                 .join(cp).on(c.CHAT_ID.eq(cp.CHAT_ID))
-                .join(userAvatarSubquery).on(DSL.trueCondition())
-                .leftJoin(lastMessageSubquery).on(DSL.trueCondition())
-                .leftJoin(unreadSubquery).on(unreadSubquery.field(m.CHAT_ID).eq(c.CHAT_ID))
-                .where(cp.USER_ID.eq(userId))
-                .orderBy(lastMessageSubquery.field(m.SENT_AT).desc().nullsLast())
-                .fetchInto(ChatDto.class);
+                .join(u).on(u.ID.eq(cp.USER_ID))
+                .leftJoin(lateral(lm)).on(DSL.trueCondition())
+                .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
+                .where(cp.USER_ID.ne(currentUserId))
+                .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
+                .fetch(mapping((chatId, chatName, chatPicture, lastMessage, lastMessageSentAt, unreadCount, participants) -> {
+                    ChatDto res = new ChatDto();
+                    res.setChatId(chatId);
+                    res.setName(chatName);
+                    res.setChatPicture(chatPicture);
+                    res.setLastMessage(lastMessage);
+                    res.setLastMessageTime(lastMessageSentAt);
+                    res.setUnreadCount(unreadCount);
+                    AtomicInteger onlineUsersCount = new AtomicInteger();
+                    participants.forEach(participant -> {
+                        boolean userOnline = isUserOnline(participant);
+                        if (userOnline) onlineUsersCount.getAndIncrement();
+                    });
+                    res.setOnlineRecipientsNumber(onlineUsersCount.get());
+                    return res;
+                }));
     }
 
+    private boolean isUserOnline(Long userId) {
+        Long size = redisTemplate.opsForSet().size("user:sessions:" + userId);
+        return size != null && size > 0;
+    }
 
 }
