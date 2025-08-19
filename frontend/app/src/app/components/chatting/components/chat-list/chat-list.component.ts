@@ -6,6 +6,7 @@ import { UserResponse } from '../../models/user-response';
 import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from "@angular/material/icon";
 import { FormsModule } from "@angular/forms";
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-chat-list',
@@ -32,9 +33,10 @@ export class ChatListComponent {
   ngOnInit() {
     // Load existing chats
     this.chatService.getAllUsers().subscribe({
-      next: (chats) => {
-        console.log('Chats:', chats);
-        this.chats.set(chats);
+      next: (res) => console.log(res),
+      error: (err: HttpErrorResponse) => {
+        console.error('Backend returned code:', err.status);
+        console.error('Error body:', err.error);
       }
     });
 

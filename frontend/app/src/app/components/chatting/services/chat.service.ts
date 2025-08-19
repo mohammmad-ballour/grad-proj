@@ -33,14 +33,14 @@ export class ChatService extends BaseService {
   }
 
 
-  getChatMessages(chatId: string): Observable<MessageResponse> {
+  getChatMessages(chatId: number): Observable<MessageResponse> {
     console.log(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/messages`)
 
     return this.httpClient.get<MessageResponse>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/messages`)
 
   }
 
-  sendMessage(chatId: string, content: string): Observable<MessageResponse> {
+  sendMessage(chatId: number, content: string): Observable<MessageResponse> {
     const body = { content }; // matches your CreateMessage DTO
     return this.httpClient.post<MessageResponse>(
       `${this.baseUrl}/api/chats/${chatId}/sendMessage`,
