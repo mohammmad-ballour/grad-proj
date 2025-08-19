@@ -8,7 +8,7 @@ import { UserSeekResponse, UserService } from '../services/user.service';
 import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatMenuModule } from "@angular/material/menu";
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatInputModule } from "@angular/material/input";
@@ -19,6 +19,7 @@ import { MuteDuration } from '../models/MuteDurationDto';
 import { Observable, Subscription } from 'rxjs';
 import { UserListDialogComponent } from '../user-list-dialog-component/user-list-dialog-component.component';
 import { ChatService } from '../chatting/services/chat.service';
+import { AppRoutes } from '../../config/app-routes.enum';
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
@@ -61,7 +62,8 @@ export class ProfileComponent implements OnInit {
     private userService: UserService,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
-    private chatService: ChatService
+    private chatService: ChatService,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -412,6 +414,7 @@ export class ProfileComponent implements OnInit {
       {
         next: (chatId) => {
           console.log(chatId);
+          this.router.navigate([AppRoutes.MESSAGES], { queryParams: { chatId } });
         }
       }
     );

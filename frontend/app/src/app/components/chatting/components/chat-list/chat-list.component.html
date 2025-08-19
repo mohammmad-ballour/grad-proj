@@ -1,81 +1,77 @@
-<div class="sticky-top bg-white w-100 h-100 rounded ">
+<div class="container-fluid  bg-white rounded shadow-sm" style="height: 100%;">
+  <div class="row h-100 rounded">
+    
+    <!-- Chat List -->
+    <div class="col-3 border-end d-flex flex-column h-100">
+      <!-- Header -->
+      <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="m-0">Chats</h5>
+        <i class="fas fa-comment-medical cursor-pointer"></i>
+      </div>
 
-<div class="sticky-top  ">
-  <div class="d-flex justify-content-between align-items-center gap-2 p-2">
-    <h4 (click)="searchContact()">Chat</h4>
-    @if (!searchNewContact) {
-      <i class="fas fa-comment-medical cursor-pointer" (click)="searchContact()"></i>
-    } @else {
-      <i class="fas fa-times-circle cursor-pointer" (click)="searchNewContact = false"></i>
-    }
+      <!-- Search -->
+      <div class="p-2 border-bottom">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" class="form-control" placeholder="Search chats">
+        </div>
+      </div>
 
-  </div>
-  <div class="d-flex flex-column gap-1 p-2">
-    <div class="input-group">
-          <span class="input-group-text">
-            <i class="fas fa-search"></i>
-          </span>
-      <input type="text" class="form-control-sm" placeholder="Search in the chat" aria-label="Search">
-    </div>
-    <div class="d-flex gap-2">
-      <span class="badge rounded-pill text-bg-light cursor-pointer">All</span>
-      <span class="badge rounded-pill text-bg-light cursor-pointer">Unread</span>
-      <span class="badge rounded-pill text-bg-light cursor-pointer">Favorites</span>
-    </div>
-  </div>
-
-</div>
-<div class="chat-list mt-3">
-  @if (chats().length && !searchNewContact) {
-    @for (chat of chats(); track chat) {
-      <div class="d-flex align-items-center justify-content-between border-bottom-gray p-2"
-      (click)="chatClicked(chat)"
-      >
-        <div class="d-flex gap-2">
-          <div class="user-img">
-            <img src="user.png" alt="">
-          </div>
-          <div class="d-flex flex-column">
-            <span>{{ "s" }}</span>
-            <small class="text-secondary">
-              @if (chat.lastMessage === 'Attachment') {
-                <i class="fas fa-image"></i>
+      <!-- Chat List (scrollable) -->
+      <div class="flex-grow-1 overflow-auto">
+        @for (chat of chats(); track chat.chatId) {
+          <div 
+            class="d-flex align-items-center justify-content-between border-bottom p-2 cursor-pointer"
+            (click)="chatClicked(chat)"
+          >
+            <div class="d-flex gap-2">
+              <img [src]="processImage(chat.chatPicture)" (error)="onImageError($event,'assets/ProfileAvatar.png')" class="rounded-circle" width="40" height="40" alt="">
+              <div class="d-flex flex-column">
+                <span>{{ chat.chatName }}fff</span>
+                <small class="text-muted">{{ chat.lastMessage }}</small>
+              </div>
+            </div>
+            <div class="d-flex flex-column align-items-end">
+              <small>{{ chat.lastMessageTime | date:'HH:mm' }}</small>
+              @if (chat.unreadCount) {
+                <span class="badge bg-success rounded-pill">
+                  {{ chat.unreadCount }}
+                </span>
               }
-              {{ wrapMessage(chat.lastMessage) }}
-            </small>
+            </div>
           </div>
-        </div>
-        <div class="d-flex flex-column align-items-end">
-          <span class="msg-date" [class.unread]="chat.unreadCount && chat.unreadCount > 0">{{ chat.lastMessageTime | date:'dd.MM.yy HH:mm' }}</span>
-          @if (chat.unreadCount && chat.unreadCount > 0) {
-            <small class="unread-msg-badge">{{ chat.unreadCount }}</small>
-          }
-        </div>
+        }
       </div>
-    }
-  } @else if (searchNewContact) {
-    <!-- @for (contact of contacts; track contact) {
-      <div class="d-flex align-items-center justify-content-between border-bottom-gray p-2"
-           (click)="selectContact(contact)">
-        <div class="d-flex gap-2">
-          <div class="user-img">
-            <img src="user.png" alt="">
-          </div>
-          <div class="d-flex flex-column">
-            <span>{{ contact.firstName + ' ' + contact.lastName }}</span>
-            @if (contact.online) {
-              <small class="text-secondary">Online</small>
-            } @else {
-              <small class="text-secondary">Last seen&nbsp;{{ contact.lastSeen | date:'dd.mm.yyyy HH:mm' }}</small>
-            }
+    </div>
 
-          </div>
-        </div>
+    <!-- Chat Content -->
+    <div class="col-9 d-flex flex-column h-100">
+      <!-- Chat Header (sticky) -->
+      <div class="p-2 border-bottom d-flex align-items-center bg-white sticky-top">
+        <img [src]="processImage(chatSelected().chatPicture)"   (error)="onImageError($event,'assets/ProfileAvatar.png')" class="rounded-circle me-2" width="40" height="40" alt="">
+        <strong>Chat with User</strong>
       </div>
-    } -->
-  } @else {
-    <span>Not chat yet..</span>
-  }
 
-</div>
+      <!-- Messages (scrollable) -->
+      <div class="flex-grow-1 overflow-auto p-3 bg-light">
+        <!-- @for (message of messages; track message.id) {
+          <div class="mb-2" [class.text-end]="message.fromMe">
+            <span 
+              class="p-2 rounded shadow-sm d-inline-block"
+              [ngClass]="message.fromMe ? 'bg-success text-white' : 'bg-white'"
+            >
+              {{ message.text }}
+            </span>
+          </div>
+        } -->
+      </div>
+
+      <!-- Input -->
+      <div class="p-2 border-top d-flex bg-white">
+        <input type="text" class="form-control me-2" [(ngModel)]="message" placeholder="Type a message">
+        <button class="btn btn-success"(click)="sendMessage()" ><mat-icon>send</mat-icon></button>
+      </div>
+    </div>
+
+  </div>
 </div>

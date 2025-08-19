@@ -4,11 +4,8 @@
 
 export interface MessageResponse {
   content?: string;
-  createdAt?: string;
-  id?: number;
-  media?: Array<string>;
-  receiverId?: string;
-  senderId?: string;
-  state?: 'SENT' | 'SEEN';
-  type?: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO';
+  sentAt?: string;
+  chatId?: number;
+  senderId?: number;
+  messageId: number
 }

@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ChatResponse } from '../models/chat-response';
 import { AuthService } from '../../../core/services/auth.service';
 import { Observable } from 'rxjs';
+import { MessageResponse } from '../models/message-response';
 
 
 @Injectable({ providedIn: 'root' })
@@ -12,7 +13,7 @@ export class ChatService extends BaseService {
 
   private readonly ENDPOINTS = {
     chats: '/api/chats/',
-    OneOnOneChat: '/api/chats/one-to-one?'
+    OneOnOneChat: '/api/chats/one-to-one?recipientId=',
   };
   http: any;
 
@@ -20,22 +21,30 @@ export class ChatService extends BaseService {
     super();
   }
 
-
-
   getAllUsers() {
     return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}`);
   }
 
-
-
-
-  private apiUrl = 'http://localhost:8080/api'; // adjust to your backend URL
-
-
   createOneOnOneChat(recipientId: number): Observable<number> {
     return this.httpClient.post<number>(
-      `${this.apiUrl}/chats/one-to-one?recipientId=${recipientId}`,
+      `${this.baseUrl}${this.ENDPOINTS.OneOnOneChat}${recipientId}`,
       {} // empty body
+    );
+  }
+
+
+  getChatMessages(chatId: string): Observable<MessageResponse> {
+    console.log(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/messages`)
+
+    return this.httpClient.get<MessageResponse>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/messages`)
+
+  }
+
+  sendMessage(chatId: string, content: string): Observable<MessageResponse> {
+    const body = { content }; // matches your CreateMessage DTO
+    return this.httpClient.post<MessageResponse>(
+      `${this.baseUrl}/api/chats/${chatId}/sendMessage`,
+      body
     );
   }
 
