@@ -61,20 +61,10 @@ public class ChatRepository {
                 .fetch(mapping(MessageResponse::new));
     }
 
-    public Long createOneToOneChat(Long senderId, Long recipientId) {
-        // Fetch recipient's display_name and profile_picture
-        var recipient = dsl.select(u.ID, u.DISPLAY_NAME, u.PROFILE_PICTURE)
-                .from(u)
-                .where(u.ID.eq(recipientId))
-                .fetchOne();
-
-        if (recipient == null) {
-            throw new IllegalArgumentException("Recipient user not found");
-        }
-
+    public void createOneToOneChat(Long senderId, Long recipientId) {
         // Create chat
-        Long chatId = dsl.insertInto(c, c.NAME, c.PICTURE, c.IS_GROUP_CHAT)
-                .values(recipient.get(u.DISPLAY_NAME), recipient.get(u.PROFILE_PICTURE), false)  // Default to recipient's display_name and profile_picture
+        Long chatId = dsl.insertInto(c, c.IS_GROUP_CHAT)
+                .values(false)
                 .returning(c.CHAT_ID)
                 .fetchOne()
                 .getChatId();
@@ -84,8 +74,6 @@ public class ChatRepository {
                 .values(chatId, senderId)
                 .values(chatId, recipientId)
                 .execute();
-
-        return chatId;
     }
 
     public Long isOneToOneChatAlreadyExists(Long userA, Long userB) {

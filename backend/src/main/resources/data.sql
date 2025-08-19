@@ -212,20 +212,20 @@ INSERT INTO public.user_blocks(user_id, blocked_user_id, blocked_at)
 VALUES (2, 3, '2025-08-09');
 
 -- chats
-INSERT INTO public.chats(chat_id, is_group_chat, name)
-VALUES (1, true, 'Besties'),
-       (2, false, 'User 3'),
-       (3, true, 'Backend Team');   -- no messages yet
+INSERT INTO public.chats(chat_id, is_group_chat, name, created_at)
+VALUES (1, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
+       (2, false, 'User 3', '2025-08-05 22:05:05.513348 +00:00'),
+       (3, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00');   -- no messages yet
 
 -- chat_participants
-INSERT INTO public.chat_participants(chat_id, user_id, joined_at)
-VALUES (1, 1, '2025-08-09 09:15:49.513348 +00:00'),
-       (1, 2, '2025-08-09 09:18:05.513348 +00:00'),
-       (1, 3, '2025-08-09 09:18:49.513348 +00:00'),
-       (2, 2, '2025-08-05 22:05:05.513348 +00:00'),
-       (2, 3, '2025-08-05 22:05:55.513348 +00:00'),
-       (3, 2, '2025-08-05 22:05:05.513348 +00:00'),
-       (3, 3, '2025-08-05 22:05:05.513348 +00:00');
+INSERT INTO public.chat_participants(chat_id, user_id)
+VALUES (1, 1),
+       (1, 2),
+       (1, 3),
+       (2, 2),
+       (2, 3),
+       (3, 2),
+       (3, 3);
 
 -- messages
 INSERT INTO public.messages(message_id, chat_id, sender_id, content, sent_at)

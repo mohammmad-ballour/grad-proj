@@ -16,15 +16,6 @@ import java.util.Set;
 public class ChatService {
     private final ChatRepository chatRepository;
 
-    public Long getExistingOrCreateNewOneOnOneChat(Long senderId, Long recipientId) {
-        Long existentChatID = this.chatRepository.isOneToOneChatAlreadyExists(senderId, recipientId);
-        if (existentChatID == null) {
-            // create new chat and add participants
-            existentChatID = this.chatRepository.createOneToOneChat(senderId, recipientId);
-        }
-        return existentChatID;
-    }
-
     public Long createGroupChat(Long creatorId, String groupName, MultipartFile groupPicture, Set<Long> participantIds) throws IOException {
         byte[] pictureBytes = null;
         if (groupPicture != null && !groupPicture.isEmpty()) {
@@ -37,16 +28,28 @@ public class ChatService {
         return this.chatRepository.isParticipant(chatId, userId);
     }
 
+    public List<ChatResponse> getChatListForUserByUserId(Long userId) {
+        return this.chatRepository.getChatListForUserByUserId(userId);
+    }
+
+
     public List<MessageResponse> getChatMessagesByChatId(Long chatId) {
         return this.chatRepository.getChatMessagesByChatId(chatId);
     }
 
-    // when the 'message' button or user avatar list on the search bar is clicked on recipientId's profile by currentUserId, this method is called
     public List<MessageResponse> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
-        return this.chatRepository.getChatMessagesByRecipientId(currentUserId, recipientId);
+        var messages = this.chatRepository.getChatMessagesByRecipientId(currentUserId, recipientId);
+        if(messages.isEmpty()) {
+            this.getExistingOrCreateNewOneToOneChat(currentUserId, recipientId);
+        }
+        return messages;
     }
 
-    public List<ChatResponse> getChatListForUserByUserId(Long userId) {
-        return this.chatRepository.getChatListForUserByUserId(userId);
+    private void getExistingOrCreateNewOneToOneChat(Long senderId, Long recipientId) {
+        Long existentChatID = this.chatRepository.isOneToOneChatAlreadyExists(senderId, recipientId);
+        if (existentChatID == null) {
+            // create new chat and add participants
+            this.chatRepository.createOneToOneChat(senderId, recipientId);
+        }
     }
 }
