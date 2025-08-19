@@ -34,8 +34,4 @@ public class ChatService {
     public List<ChatDto> getChatListForUserByUserId(Long userId) {
         return this.chatRepository.getChatListForUserByUserId(userId);
     }
-
-    public List<MessageDto> getChatMessages(Long chatId) {
-        return Collections.emptyList();
-    }
 }

@@ -1,4 +1,4 @@
-package com.grad.social.common.messaging;
+package com.grad.social.common.messaging.redis;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

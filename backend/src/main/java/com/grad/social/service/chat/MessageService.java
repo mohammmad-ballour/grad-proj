@@ -2,20 +2,17 @@ package com.grad.social.service.chat;
 
 import com.grad.social.model.chat.MessageDto;
 import com.grad.social.model.chat.MessageStatusUpdate;
-import com.grad.social.repository.chat.ChatRepository;
 import com.grad.social.repository.chat.MessageRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class MessageService {
     private final MessageRepository messageRepository;
-    private final ChatRepository chatRepository;
-    private final RedisTemplate<String, String> redisTemplate;
 
     public MessageDto saveMessage(MessageDto messageDto) {
         // Save message to message table
@@ -56,11 +53,13 @@ public class MessageService {
         return statusUpdate;
     }
 
+    // used in FeedService to update unread message count badge in frontend
     public Integer getNumberOfUnreadMessagesSinceLastOnline(Long userId) {
-        Object lastOnlineObj = this.redisTemplate.opsForHash().get("user:meta:" + userId, "last_online_at");
-        assert lastOnlineObj != null;
-        Instant lastOnline = Instant.parse(lastOnlineObj.toString());
-        return this.messageRepository.getNumberOfUnreadMessagesSinceLastOnline(userId, lastOnline);
+        return this.messageRepository.getNumberOfUnreadMessagesSinceLastOnline(userId);
+    }
+
+    public List<MessageDto> getChatMessages(Long chatId) {
+        return this.messageRepository.getChatMessages(chatId);
     }
 
 }

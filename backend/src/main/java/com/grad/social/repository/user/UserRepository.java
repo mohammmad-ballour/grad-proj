@@ -1,12 +1,10 @@
 package com.grad.social.repository.user;
 
 import com.grad.grad_proj.generated.api.model.CreateUserDto;
-import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
-import com.grad.grad_proj.generated.api.model.UserAboutDto;
-import com.grad.grad_proj.generated.api.model.UserAvatarDto;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
+import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
 import com.grad.social.model.tables.UserFollowers;
 import com.grad.social.model.tables.UserMutes;
@@ -14,6 +12,8 @@ import com.grad.social.model.tables.Users;
 import com.grad.social.model.tables.records.UsersRecord;
 import com.grad.social.model.user.UserBasicData;
 import com.grad.social.model.user.UsernameTimezoneId;
+import com.grad.social.model.user.response.ProfileResponse;
+import com.grad.social.model.user.response.UserAbout;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -31,14 +31,14 @@ import static org.jooq.Records.mapping;
 @Repository
 @RequiredArgsConstructor
 public class UserRepository {
-
     private final DSLContext dsl;
+
     private final Users u = Users.USERS.as("u");
     private final UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
     private final UserMutes um = UserMutes.USER_MUTES.as("UM");
     private final UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
 
-    public ProfileResponseDto fetchUserProfileByName(Long currentUserId, String nameToSearch) {
+    public ProfileResponse fetchUserProfileByName(Long currentUserId, String nameToSearch) {
         Long profileOwnerId = dsl.select(u.ID)
                 .from(u)
                 .where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch)))
@@ -49,7 +49,7 @@ public class UserRepository {
         return fetchUserProfileById(currentUserId, profileOwnerId);
     }
 
-    public ProfileResponseDto fetchUserProfileById(Long currentUserId, Long profileOwnerId) {
+    public ProfileResponse fetchUserProfileById(Long currentUserId, Long profileOwnerId) {
         // number of followers of the profile owner
         Field<Integer> followerNumberField = DSL.selectCount()
                 .from(uf)
@@ -96,14 +96,14 @@ public class UserRepository {
                 .where(u.ID.eq(profileOwnerId))
                 .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender,
                                    timezoneId, followingNumber, followerNumber, isBeingFollowed, followingPriority, isBlocked, isMuted) -> {
-                    var profile = new ProfileResponseDto(username, new UserAvatarDto(userId, displayName, profilePicture), profileCover, bio, joinedAt,
-                            new UserAboutDto(gender.name(), dob, residence, timezoneId));
+                    var profile = new ProfileResponse(username, new UserAvatar(userId, displayName, profilePicture), profileCover, bio, joinedAt,
+                            new UserAbout(gender, dob, residence, timezoneId));
                     profile.setFollowerNo(followerNumber);
                     profile.setFollowingNo(followingNumber);
-                    profile.isBeingFollowed(isBeingFollowed);
+                    profile.setIsBeingFollowed(isBeingFollowed);
                     profile.setFollowingPriority(followingPriority == null ? null : followingPriority.name());
-                    profile.isBlocked(isBlocked);
-                    profile.isMuted(isMuted);
+                    profile.setIsBlocked(isBlocked);
+                    profile.setIsMuted(isMuted);
                     return profile;
                 }));
     }

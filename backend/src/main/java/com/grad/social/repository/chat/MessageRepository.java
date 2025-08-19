@@ -1,64 +1,82 @@
 package com.grad.social.repository.chat;
 
+import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.chat.MessageDto;
+import com.grad.social.model.tables.ChatParticipants;
+import com.grad.social.model.tables.MessageStatus;
+import com.grad.social.model.tables.Messages;
+import com.grad.social.model.tables.Users;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
-import static com.grad.social.model.tables.Messages.MESSAGES;
-import static com.grad.social.model.tables.MessageStatus.MESSAGE_STATUS;
-import static com.grad.social.model.tables.ChatParticipants.CHAT_PARTICIPANTS;
-import static com.grad.social.model.tables.Users.USERS;
+import static org.jooq.Records.mapping;
 
 @Repository
 @RequiredArgsConstructor
 public class MessageRepository {
 
     private final DSLContext dsl;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private final Messages m = Messages.MESSAGES;
+    private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
+    private final Users u = Users.USERS;
+    private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
+
+    public List<MessageDto> getChatMessages(Long chatId) {
+        return dsl.select(m.CHAT_ID, m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT)
+                .from(m)
+                .where(m.CHAT_ID.eq(chatId))
+                .orderBy(m.SENT_AT.asc())
+                .fetch(mapping(MessageDto::new));
+    }
 
     public Long saveMessage(MessageDto messageDto) {
-        return Objects.requireNonNull(dsl.insertInto(MESSAGES, MESSAGES.CHAT_ID, MESSAGES.SENDER_ID, MESSAGES.CONTENT)
+        return Objects.requireNonNull(dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.CONTENT)
                         .values(messageDto.getChatId(), messageDto.getSenderId(), messageDto.getContent())
-                        .returning(MESSAGES.MESSAGE_ID)
+                        .returning(m.MESSAGE_ID)
                         .fetchOne())
                 .getMessageId();
     }
 
     public void initializeMessageStatusForParticipantsExcludingTheSender(Long messageId, Long chatId, Long senderId) {
-        dsl.insertInto(MESSAGE_STATUS, MESSAGE_STATUS.MESSAGE_ID, MESSAGE_STATUS.USER_ID)
+        dsl.insertInto(ms, ms.MESSAGE_ID, ms.USER_ID)
                 .select(
-                        dsl.select(DSL.val(messageId), CHAT_PARTICIPANTS.USER_ID)
-                                .from(CHAT_PARTICIPANTS)
-                                .where(CHAT_PARTICIPANTS.CHAT_ID.eq(chatId)).and(CHAT_PARTICIPANTS.USER_ID.ne(senderId))
+                        dsl.select(DSL.val(messageId), cp.USER_ID)
+                                .from(cp)
+                                .where(cp.CHAT_ID.eq(chatId)).and(cp.USER_ID.ne(senderId))
                 )
                 .execute();
     }
 
     public void updateReadStatus(Long messageId, Long userId) {
-        dsl.update(MESSAGE_STATUS)
-                .set(MESSAGE_STATUS.READ_AT, Instant.now())
-                .where(MESSAGE_STATUS.MESSAGE_ID.eq(messageId))
-                .and(MESSAGE_STATUS.USER_ID.eq(userId))
+        dsl.update(ms)
+                .set(ms.READ_AT, Instant.now())
+                .where(ms.MESSAGE_ID.eq(messageId))
+                .and(ms.USER_ID.eq(userId))
                 .execute();
     }
 
     public void updateDeliveryStatus(Long messageId, Long userId) {
-        dsl.update(MESSAGE_STATUS)
-                .set(MESSAGE_STATUS.DELIVERED_AT, Instant.now())
-                .where(MESSAGE_STATUS.MESSAGE_ID.eq(messageId))
-                .and(MESSAGE_STATUS.USER_ID.eq(userId))
+        dsl.update(ms)
+                .set(ms.DELIVERED_AT, Instant.now())
+                .where(ms.MESSAGE_ID.eq(messageId))
+                .and(ms.USER_ID.eq(userId))
                 .execute();
     }
 
     public boolean isAllDelivered(Long messageId) {
         Integer undeliveredCount = dsl.selectCount()
-                .from(MESSAGE_STATUS)
-                .where(MESSAGE_STATUS.MESSAGE_ID.eq(messageId))
-                .and(MESSAGE_STATUS.DELIVERED_AT.isNotNull())
+                .from(ms)
+                .where(ms.MESSAGE_ID.eq(messageId))
+                .and(ms.DELIVERED_AT.isNotNull())
                 .fetchOne(0, int.class);     // Fetch first column (COUNT(*)) as int
 
         return undeliveredCount != null && undeliveredCount == 0;
@@ -66,21 +84,32 @@ public class MessageRepository {
 
     public boolean isAllRead(Long messageId) {
         Integer unreadCount = dsl.selectCount()
-                .from(MESSAGE_STATUS)
-                .where(MESSAGE_STATUS.MESSAGE_ID.eq(messageId))
-                .and(MESSAGE_STATUS.READ_AT.isNotNull())
+                .from(ms)
+                .where(ms.MESSAGE_ID.eq(messageId))
+                .and(ms.READ_AT.isNotNull())
                 .fetchOne(0, int.class);
 
         return unreadCount != null && unreadCount == 0;
     }
 
-    public Integer getNumberOfUnreadMessagesSinceLastOnline(Long userId, Instant lastOnline) {
+    public Integer getNumberOfUnreadMessagesSinceLastOnline(Long userId) {
+        Instant lastOnline = getLastOnline(userId);
         return dsl.selectCount()
-                .from(MESSAGE_STATUS)
-                .join(MESSAGES).on(MESSAGE_STATUS.MESSAGE_ID.eq(MESSAGES.MESSAGE_ID))
-                .join(USERS).on(MESSAGE_STATUS.USER_ID.eq(USERS.ID))
-                .where(MESSAGE_STATUS.USER_ID.eq(userId).and(MESSAGE_STATUS.READ_AT.isNull().or(MESSAGES.SENT_AT.greaterThan(lastOnline))))
+                .from(ms)
+                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .join(u).on(ms.USER_ID.eq(u.ID))
+                .where(ms.USER_ID.eq(userId).and(ms.READ_AT.isNull()
+                                .and(m.SENT_AT.greaterThan(lastOnline))
+                        )
+                )
                 .fetchOneInto(Integer.class);
     }
 
+    private Instant getLastOnline(Long userId) {
+        Object lastOnlineObj = this.redisTemplate.opsForHash().get(RedisConstants.USERS_SESSION_META_PREFIX.concat(userId.toString()), RedisConstants.LAST_ONLINE_HASH_KEY);
+        if (lastOnlineObj == null) {
+            return Instant.MAX;
+        }
+        return Instant.parse(lastOnlineObj.toString());
+    }
 }

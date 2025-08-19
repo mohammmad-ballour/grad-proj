@@ -1,5 +1,6 @@
 package com.grad.social.repository.chat;
 
+import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.chat.ChatDto;
 import com.grad.social.model.tables.*;
 import lombok.RequiredArgsConstructor;
@@ -164,7 +165,7 @@ public class ChatRepository {
     }
 
     private boolean isUserOnline(Long userId) {
-        Long size = redisTemplate.opsForSet().size("user:sessions:" + userId);
+        Long size = redisTemplate.opsForSet().size(RedisConstants.USERS_SESSION_KEY_PREFIX + userId);
         return size != null && size > 0;
     }
 
