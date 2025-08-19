@@ -9,7 +9,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -41,9 +40,8 @@ public class ChatRestController {
 
     @PostMapping("/chats/{chatId}/confirmRead")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public MessageStatusUpdate confirmRead(
-            @PathVariable Long chatId, @RequestBody ConfirmMessageRequest confirmMessageRequest,
-            @AuthenticationPrincipal Jwt jwt) {
+    public MessageStatusUpdate confirmRead(@PathVariable Long chatId, @RequestBody ConfirmMessageRequest confirmMessageRequest,
+                                           @AuthenticationPrincipal Jwt jwt) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
         return messageService.updateReadStatus(confirmMessageRequest.messageId(), userId);
     }
@@ -54,10 +52,17 @@ public class ChatRestController {
         return this.chatService.getChatListForUserByUserId(userId);
     }
 
-    @GetMapping("/chats/{chatId}/messages")
+    @GetMapping("/chats/{chatId}")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public List<MessageDto> getChatMessages(@PathVariable Long chatId, @AuthenticationPrincipal Jwt jwt) {
-        return Collections.emptyList();
+    public List<MessageDto> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
+        return this.chatService.getChatMessagesByChatId(chatId);
+    }
+
+    @GetMapping("/chats/{recipientId}")
+    @PreAuthorize("isAuthenticated()")
+    public List<MessageDto> getChatMessagesByRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
+        long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return this.chatService.getChatMessagesByRecipientId(currentUserId, recipientId);
     }
 
     @PostMapping("/chats/one-to-one")
@@ -66,4 +71,5 @@ public class ChatRestController {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
         return this.chatService.createOneOnOneChat(senderId, recipientId);
     }
+
 }

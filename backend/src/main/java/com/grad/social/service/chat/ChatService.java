@@ -6,7 +6,6 @@ import com.grad.social.repository.chat.ChatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -29,6 +28,15 @@ public class ChatService {
 
     public boolean isParticipant(Long chatId, Long userId) {
         return this.chatRepository.isParticipant(chatId, userId);
+    }
+
+    public List<MessageDto> getChatMessagesByChatId(Long chatId) {
+        return this.chatRepository.getChatMessagesByChatId(chatId);
+    }
+
+    // when 'message' button clicked on recipientId's profile by currentUserId, this method is called
+    public List<MessageDto> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
+        return this.chatRepository.getChatMessagesByRecipientId(currentUserId, recipientId);
     }
 
     public List<ChatDto> getChatListForUserByUserId(Long userId) {

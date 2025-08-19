@@ -13,10 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
-
-import static org.jooq.Records.mapping;
 
 @Repository
 @RequiredArgsConstructor
@@ -29,14 +26,6 @@ public class MessageRepository {
     private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
     private final Users u = Users.USERS;
     private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
-
-    public List<MessageDto> getChatMessages(Long chatId) {
-        return dsl.select(m.CHAT_ID, m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT)
-                .from(m)
-                .where(m.CHAT_ID.eq(chatId))
-                .orderBy(m.SENT_AT.asc())
-                .fetch(mapping(MessageDto::new));
-    }
 
     public Long saveMessage(MessageDto messageDto) {
         return Objects.requireNonNull(dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.CONTENT)

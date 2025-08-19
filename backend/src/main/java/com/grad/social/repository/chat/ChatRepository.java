@@ -2,6 +2,7 @@ package com.grad.social.repository.chat;
 
 import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.chat.ChatDto;
+import com.grad.social.model.chat.MessageDto;
 import com.grad.social.model.tables.*;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -31,6 +32,34 @@ public class ChatRepository {
     private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS.as("cp");
     private final ChatParticipants cp2 = ChatParticipants.CHAT_PARTICIPANTS.as("cp2");
     private final Users u = Users.USERS;
+
+    public List<MessageDto> getChatMessagesByChatId(Long chatId) {
+        return dsl.select(m.CHAT_ID, m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT, ms.DELIVERED_AT, ms.READ_AT)
+                .from(m)
+                .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .where(m.CHAT_ID.eq(chatId))
+                .orderBy(m.SENT_AT.asc())
+                .fetch(mapping(MessageDto::new));
+    }
+
+    // for 1-1 chats only
+    public List<MessageDto> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
+        return dsl.select(m.CHAT_ID, m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT, ms.DELIVERED_AT, ms.READ_AT)
+                .from(c)
+                .join(cp).on(c.CHAT_ID.eq(cp.CHAT_ID))
+                .join(cp2).on(c.CHAT_ID.eq(cp2.CHAT_ID))
+                .join(m).on(m.CHAT_ID.eq(c.CHAT_ID).and(m.SENDER_ID.eq(cp.USER_ID)))
+                .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .where(
+                        c.IS_GROUP_CHAT.isFalse()
+                                .and(
+                                        (cp.USER_ID.eq(currentUserId).and(cp2.USER_ID.eq(recipientId)))
+                                                .or(cp.USER_ID.eq(recipientId).and(cp2.USER_ID.eq(currentUserId)))
+                                )
+                )
+                .orderBy(m.SENT_AT)
+                .fetch(mapping(MessageDto::new));
+    }
 
     public Long createOneToOneChat(Long senderId, Long recipientId) {
         // Fetch recipient's display_name and profile_picture

@@ -58,8 +58,4 @@ public class MessageService {
         return this.messageRepository.getNumberOfUnreadMessagesSinceLastOnline(userId);
     }
 
-    public List<MessageDto> getChatMessages(Long chatId) {
-        return this.messageRepository.getChatMessages(chatId);
-    }
-
 }

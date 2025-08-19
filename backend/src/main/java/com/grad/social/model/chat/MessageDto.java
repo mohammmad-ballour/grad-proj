@@ -15,4 +15,6 @@ public final class MessageDto {
     private Long senderId;
     private String content;
     private Instant sentAt;
+    private Instant deliveredAt;
+    private Instant readAt;
 }
