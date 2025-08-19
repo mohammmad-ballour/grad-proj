@@ -1,4 +1,4 @@
-package com.grad.social.common.messaging;
+package com.grad.social.common.messaging.ws;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;

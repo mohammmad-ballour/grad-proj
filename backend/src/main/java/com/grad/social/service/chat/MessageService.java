@@ -1,11 +1,9 @@
 package com.grad.social.service.chat;
 
-import com.grad.social.model.chat.MessageDto;
-import com.grad.social.model.chat.MessageStatusUpdate;
-import com.grad.social.repository.chat.ChatRepository;
+import com.grad.social.model.chat.request.CreateMessageRequest;
+import com.grad.social.model.chat.response.MessageStatusUpdate;
 import com.grad.social.repository.chat.MessageRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -14,16 +12,14 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class MessageService {
     private final MessageRepository messageRepository;
-    private final ChatRepository chatRepository;
-    private final RedisTemplate<String, String> redisTemplate;
 
-    public MessageDto saveMessage(MessageDto messageDto) {
+    public Long saveMessage(CreateMessageRequest createMessageRequest, Long chatId, Long senderId) {
         // Save message to message table
-        Long savedMessageId = this.messageRepository.saveMessage(messageDto);
+        Long savedMessageId = this.messageRepository.saveMessage(createMessageRequest, chatId, senderId);
 
         // Initialize message_status for all participants except sender
-        this.messageRepository.initializeMessageStatusForParticipantsExcludingTheSender(savedMessageId, messageDto.getChatId(), messageDto.getSenderId());
-        return messageDto;
+        this.messageRepository.initializeMessageStatusForParticipantsExcludingTheSender(savedMessageId, chatId, senderId);
+        return savedMessageId;
     }
 
     public MessageStatusUpdate updateDeliveryStatus(Long messageId, Long userId) {
@@ -56,11 +52,9 @@ public class MessageService {
         return statusUpdate;
     }
 
+    // used in FeedService to update unread message count badge in frontend
     public Integer getNumberOfUnreadMessagesSinceLastOnline(Long userId) {
-        Object lastOnlineObj = this.redisTemplate.opsForHash().get("user:meta:" + userId, "last_online_at");
-        assert lastOnlineObj != null;
-        Instant lastOnline = Instant.parse(lastOnlineObj.toString());
-        return this.messageRepository.getNumberOfUnreadMessagesSinceLastOnline(userId, lastOnline);
+        return this.messageRepository.getNumberOfUnreadMessagesSinceLastOnline(userId);
     }
 
 }

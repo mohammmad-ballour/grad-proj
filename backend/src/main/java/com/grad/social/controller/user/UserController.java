@@ -4,6 +4,7 @@ import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
 import com.grad.social.model.enums.Gender;
 import com.grad.social.model.user.UserBasicData;
+import com.grad.social.model.user.response.ProfileResponse;
 import com.grad.social.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +59,7 @@ public class UserController {
 
     @GetMapping("/users/public/{nameToSearch}")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<ProfileResponseDto> fetchUserAccountByName(@PathVariable("nameToSearch") String nameToSearch) {
+    public ResponseEntity<ProfileResponse> fetchUserAccountByName(@PathVariable("nameToSearch") String nameToSearch) {
         JwtAuthenticationToken authentication = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         Long currentUserId = Long.parseLong(authentication.getToken().getClaimAsString("uid"));
         return ResponseEntity.ok(this.userService.fetchUserAccountByName(currentUserId, nameToSearch));

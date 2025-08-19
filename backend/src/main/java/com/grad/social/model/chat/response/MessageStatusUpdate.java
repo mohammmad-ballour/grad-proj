@@ -1,5 +1,4 @@
-
-package com.grad.social.model.chat;
+package com.grad.social.model.chat.response;
 
 import lombok.Data;
 

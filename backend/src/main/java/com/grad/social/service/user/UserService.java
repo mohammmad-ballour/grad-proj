@@ -11,6 +11,7 @@ import com.grad.social.common.validation.ErrorCode;
 import com.grad.social.exception.user.UserErrorCode;
 import com.grad.social.model.user.UserBasicData;
 import com.grad.social.model.tables.records.UsersRecord;
+import com.grad.social.model.user.response.ProfileResponse;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.service.user.validator.UserInfoValidator;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class UserService {
     private final UserInfoValidator userValidator;
     private final AuthService authService;
 
-    public ProfileResponseDto fetchUserAccountByName(Long currentUserId, String nameToSearch) {
+    public ProfileResponse fetchUserAccountByName(Long currentUserId, String nameToSearch) {
         // Todo: hide post list if account is protected
 //        boolean isAccountProtected = this.userRepository.isAccountProtected(nameToSearch);
 //        boolean currentUserAccount = this.userRepository.isAccountOwner(currentUserId, nameToSearch);

@@ -1,5 +1,6 @@
 package com.grad.social.service.chat;
 
+import com.grad.social.common.messaging.redis.RedisConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -44,19 +45,19 @@ public class UserOnlineStatusListener {
 //        }
 //    }
 
-    @EventListener
-    public void onLogout(LogoutSuccessEvent event) {
-        System.out.println("in logout success");
-        String userId = extractUserId(event.getAuthentication());
-        if (userId != null) {
-            String sessionId = RequestContextHolder.getRequestAttributes().getSessionId();
-            System.out.println("Session id after logout = " + sessionId);
-            redisTemplate.opsForSet().remove(userSessionsKey(userId), sessionId);
-            if (!isUserOnline(userId)) {
-                redisTemplate.delete(userSessionsKey(userId)); // cleanup
-            }
-        }
-    }
+//    @EventListener
+//    public void onLogout(LogoutSuccessEvent event) {
+//        System.out.println("in logout success");
+//        String userId = extractUserId(event.getAuthentication());
+//        if (userId != null) {
+//            String sessionId = RequestContextHolder.getRequestAttributes().getSessionId();
+//            System.out.println("Session id after logout = " + sessionId);
+//            redisTemplate.opsForSet().remove(userSessionsKey(userId), sessionId);
+//            if (!isUserOnline(userId)) {
+//                redisTemplate.delete(userSessionsKey(userId)); // cleanup
+//            }
+//        }
+//    }
 
     @EventListener
     public void handleWebSocketConnect(SessionConnectEvent event) {
@@ -78,7 +79,7 @@ public class UserOnlineStatusListener {
                 boolean shouldUpdateLogin = true;
 
                 // Check last_online_at from Redis
-                Object lastOnlineObj = redisTemplate.opsForHash().get(userMetaKey(userId), "last_online_at");
+                Object lastOnlineObj = redisTemplate.opsForHash().get(userMetaKey(userId), RedisConstants.LAST_ONLINE_HASH_KEY);
                 if (lastOnlineObj != null) {
                     Instant lastOnline = Instant.parse(lastOnlineObj.toString());
                     long secondsSinceLastOnline = Duration.between(lastOnline, Instant.now()).toSeconds();
@@ -89,7 +90,7 @@ public class UserOnlineStatusListener {
 
                 // If this is the *first* session, store login time
                 if (shouldUpdateLogin) {
-                    redisTemplate.opsForHash().put(userMetaKey(userId), "last_login_at", Instant.now().toString());
+                    redisTemplate.opsForHash().put(userMetaKey(userId), RedisConstants.LAST_LOGIN_HASH_KEY, Instant.now().toString());
                 }
             }
 
@@ -110,7 +111,7 @@ public class UserOnlineStatusListener {
             if (remainingSessions != null && remainingSessions == 0) {
                 // Schedule delayed offline update
                 ScheduledFuture<?> task = scheduler.schedule(() -> {
-                    redisTemplate.opsForHash().put(userMetaKey(userId), "last_online_at", Instant.now().toString());
+                    redisTemplate.opsForHash().put(userMetaKey(userId), RedisConstants.LAST_ONLINE_HASH_KEY, Instant.now().toString());
                     offlineTasks.remove(userId);
                     System.out.println("Marked offline: userId=" + userId);
                 }, OFFLINE_DELAY_SECONDS, TimeUnit.SECONDS);
@@ -122,17 +123,12 @@ public class UserOnlineStatusListener {
         }
     }
 
-    private boolean isUserOnline(String userId) {
-        Long size = redisTemplate.opsForSet().size(userSessionsKey(userId));
-        return size != null && size > 0;
-    }
-
     private String userSessionsKey(String userId) {
-        return "user:sessions:" + userId;
+        return RedisConstants.USERS_SESSION_KEY_PREFIX.concat(userId);
     }
 
     private String userMetaKey(String userId) {
-        return "user:meta:" + userId;
+        return RedisConstants.USERS_SESSION_META_PREFIX.concat(userId);
     }
 
     private String extractUserId(Authentication authentication) {
