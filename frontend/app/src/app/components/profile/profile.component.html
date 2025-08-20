@@ -93,7 +93,7 @@
               <!-- Block User -->
               <button mat-menu-item class="mat-button" (click)="toggleBlock()">
                 <mat-icon style="color: red;">block</mat-icon>
-                block <span>{{'@'+profile.username}}</span>
+                block <span>{{'@'+profile.userAvatar.username}}</span>
               </button>
               @if (  !profile.isBlocked) {
 
@@ -168,7 +168,7 @@
         }
       </h1>
 
-      <span class="handle">{{ '@' + profile.username }}</span>
+      <span class="handle">{{ '@' + profile.userAvatar.username }}</span>
       <p class="bio">{{ profile.profileBio }}</p>
 
       <div class="field-joined">
@@ -209,10 +209,10 @@
       </div>
       @if(!isPersonalProfile&& MutualFollowings&& !profile.isBlocked){
         <div [style.cursor]="'pointer'"  (click)="loadMutualFollowings()" style="margin-top:20px; color: rgb(151, 195, 246);"> <span style="color: gray;">Followed by</span> {{MutualFollowings}}
-         
+
         </div>
       }
-    
+
     </div>
   </div>
 

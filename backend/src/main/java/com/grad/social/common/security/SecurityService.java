@@ -1,6 +1,6 @@
 package com.grad.social.common.security;
 
-import com.grad.social.model.enums.WhoCanMessage;
+import com.grad.social.model.enums.PrivacySettings;
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.repository.user.UserUserInteractionRepository;
@@ -11,6 +11,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @Service("SecurityService")
@@ -29,9 +32,7 @@ public class SecurityService {
 
     public boolean canAccessProfileProtectedData(Jwt jwt, Long profileOwnerId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (currentUserId == -1) {
-            return false;       // anonymouse user
-        }
+        if (isAnonymous(currentUserId)) return false;
         ProfileStatus profileStatus = this.userUserInteractionRepository.getProfileStatus(profileOwnerId, currentUserId);
         boolean isTargetProfileBlockedByCurrentUser = profileStatus.isProfileBlockedByCurrentUser();
         if (isTargetProfileBlockedByCurrentUser) {
@@ -46,26 +47,37 @@ public class SecurityService {
 
     public boolean isParticipantInChat(Jwt jwt, Long chatId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (currentUserId == -1) {
-            return false;       // anonymouse user
-        }
+        if (isAnonymous(currentUserId)) return false;
         return this.chattingService.isParticipant(chatId, currentUserId);
     }
 
     public boolean isPermittedToMessage(Jwt jwt, Long recipientId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (currentUserId == -1) {
-            return false;       // anonymouse user
-        }
-        WhoCanMessage whoCanMessage = this.userRepository.getWhoCanMessage(currentUserId);
+        if (isAnonymous(currentUserId)) return false;
+        PrivacySettings whoCanMessage = this.userRepository.getWhoCanMessage(currentUserId);
+        return switch (whoCanMessage) {
+            case EVERYONE -> true;
+            case FOLLOWERS -> this.userUserInteractionRepository.isFollowedByCurrentUser(recipientId, currentUserId);
+            case NONE -> false;
+        };
+    }
+
+    public boolean isPermittedToAddToGroup(Jwt jwt, Set<Long> recipientIds) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        if (isAnonymous(currentUserId)) return false;
+        PrivacySettings whoCanMessage = this.userRepository.getWhoCanAddToGroup(currentUserId);
         return switch (whoCanMessage) {
             case EVERYONE -> true;
             case FOLLOWERS -> {
-                ProfileStatus profileStatus = this.userUserInteractionRepository.getProfileStatus(recipientId, currentUserId);
-                yield profileStatus.isProfileFollowedByCurrentUser();
+                Map<Long, Boolean> followedByCurrentUser = this.userUserInteractionRepository.isFollowedByCurrentUser(recipientIds, currentUserId);
+                yield followedByCurrentUser.values().stream().allMatch(b -> b);
             }
             case NONE -> false;
         };
+    }
+
+    private boolean isAnonymous(long currentUserId) {
+        return currentUserId == -1;
     }
 
     private long extractUserIdFromAuthentication(Jwt jwt) {

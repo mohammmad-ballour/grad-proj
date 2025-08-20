@@ -7,6 +7,7 @@ import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.enums.ChatStatus;
 import com.grad.social.model.tables.*;
+import com.grad.social.model.user.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -14,6 +15,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,6 +40,9 @@ public class ChattingRepository {
     private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS.as("cp");
     private final ChatParticipants cp2 = ChatParticipants.CHAT_PARTICIPANTS.as("cp2");
     private final Users u = Users.USERS;
+    private final UserFollowers uf1 = UserFollowers.USER_FOLLOWERS.as("uf1");
+    private final UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
+    private final UserFollowers uf3 = UserFollowers.USER_FOLLOWERS.as("uf3");
 
     // chats
     public void createOneToOneChat(Long senderId, Long recipientId) {
@@ -76,6 +81,10 @@ public class ChattingRepository {
                 .execute();
 
         return chatId;
+    }
+
+    public List<UserResponse> getCandidateGroupMembers(Long currentUserId) {
+       return Collections.emptyList();
     }
 
     public List<ChatResponse> getChatListForUserByUserId(Long currentUserId) {

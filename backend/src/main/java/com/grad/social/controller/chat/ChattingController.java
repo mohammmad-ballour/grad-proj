@@ -3,6 +3,7 @@ package com.grad.social.controller.chat;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
+import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.service.chat.ChattingService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -20,7 +21,7 @@ import java.util.Set;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
-public class ChatRestController {
+public class ChattingController {
     private final ChattingService chattingService;
 
     // chats
@@ -31,11 +32,19 @@ public class ChatRestController {
     }
 
     @PostMapping("/chats/group")
+    @PreAuthorize("@SecurityService.isPermittedToAddToGroup(#jwt, #participantIds)")
     @ResponseStatus(code = HttpStatus.CREATED)
     @SneakyThrows
-    public Long createGroupChat(@RequestParam Long creatorId, @RequestParam String groupName, @RequestBody Set<Long> participantIds,
-                                @RequestParam(required = false) MultipartFile groupPicture) {
+    public Long createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long creatorId, @RequestParam String groupName,
+                                @RequestBody Set<Long> participantIds, @RequestParam(required = false) MultipartFile groupPicture) {
         return this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds);
+    }
+
+    @GetMapping("/chats/candidate-group-members")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<UserResponse>> getGroupCandidates(@AuthenticationPrincipal Jwt jwt) {
+        long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.chattingService.searchUsersToAddToGroup(currentUserId));
     }
 
     // when the user/group avatar in the chat list is clicked, this method is called

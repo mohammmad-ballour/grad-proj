@@ -4,12 +4,10 @@ import com.grad.social.model.enums.ChatStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static com.grad.social.model.tables.ChatParticipants.CHAT_PARTICIPANTS;
@@ -23,12 +21,9 @@ import static org.jooq.impl.DSL.count;
 public class ChatsCleanerJob {
     private final DSLContext dsl;
 
-    // Runs every 30 minutes
-    @Scheduled(cron = "0 */30 * * * *")
+    // Runs every 5 minutes
+    @Scheduled(cron = "0 */5 * * * *")
     public void cleanStaleOneToOneChats() {
-        int days = 2; // configurable
-        Instant cutoff = Instant.now().minus(days, ChronoUnit.DAYS);
-
         int deleted = dsl.deleteFrom(CHATS)
                 .where(CHATS.IS_GROUP_CHAT.isFalse())
                 .andNotExists(
@@ -36,7 +31,6 @@ public class ChatsCleanerJob {
                                 .from(MESSAGES)
                                 .where(MESSAGES.CHAT_ID.eq(CHATS.CHAT_ID))
                 )
-                .and(CHATS.CREATED_AT.lessOrEqual(cutoff))
                 .execute();
 
         if (deleted > 0) {

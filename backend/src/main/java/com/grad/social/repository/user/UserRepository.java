@@ -4,7 +4,7 @@ import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
-import com.grad.social.model.enums.WhoCanMessage;
+import com.grad.social.model.enums.PrivacySettings;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
 import com.grad.social.model.tables.UserFollowers;
@@ -97,7 +97,7 @@ public class UserRepository {
                 .where(u.ID.eq(profileOwnerId))
                 .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender,
                                    timezoneId, followingNumber, followerNumber, isBeingFollowed, followingPriority, isBlocked, isMuted) -> {
-                    var profile = new ProfileResponse(username, new UserAvatar(userId, displayName, profilePicture), profileCover, bio, joinedAt,
+                    var profile = new ProfileResponse(new UserAvatar(userId, username, displayName, profilePicture), profileCover, bio, joinedAt,
                             new UserAbout(gender, dob, residence, timezoneId));
                     profile.setFollowerNo(followerNumber);
                     profile.setFollowingNo(followingNumber);
@@ -150,10 +150,17 @@ public class UserRepository {
         return isAccountProtected != null && isAccountProtected;
     }
 
-    public WhoCanMessage getWhoCanMessage(Long userId) {
+    public PrivacySettings getWhoCanMessage(Long toBeMessaged) {
         return dsl.select(u.WHO_CAN_MESSAGE)
                 .from(u)
-                .where(u.ID.eq(userId))
-                .fetchOneInto(WhoCanMessage.class);
+                .where(u.ID.eq(toBeMessaged))
+                .fetchOneInto(PrivacySettings.class);
+    }
+
+    public PrivacySettings getWhoCanAddToGroup(Long toBeAdded) {
+        return dsl.select(u.WHO_CAN_ADD_TO_GROUPS)
+                .from(u)
+                .where(u.ID.eq(toBeAdded))
+                .fetchOneInto(PrivacySettings.class);
     }
 }

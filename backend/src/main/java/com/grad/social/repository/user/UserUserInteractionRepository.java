@@ -2,14 +2,14 @@ package com.grad.social.repository.user;
 
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.JooqUtils;
-import com.grad.social.common.utils.TemporalUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.shared.ProfileStatus;
+import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
 import com.grad.social.model.tables.UserFollowers;
 import com.grad.social.model.tables.UserMutes;
 import com.grad.social.model.tables.Users;
-import com.grad.social.model.user.response.UserSeekResponse;
+import com.grad.social.model.user.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -18,13 +18,12 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.jooq.Records.mapping;
-import static org.jooq.impl.DSL.row;
-import static org.jooq.impl.DSL.when;
+import static org.jooq.impl.DSL.*;
 
 @Repository
 @RequiredArgsConstructor
@@ -56,7 +55,7 @@ public class UserUserInteractionRepository {
     }
 
     // currentUserId is -1 if anonymous
-    public List<UserSeekResponse> findFollowersWithPagination(Long userId, Long currentUserId, int offset) {
+    public List<UserResponse> findFollowersWithPagination(Long userId, Long currentUserId, int offset) {
         Field<Boolean> isFollowedByCurrentUserField = when(uf2.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
                 .otherwise(DSL.falseCondition())
                 .as("is_followed_by_current_user");
@@ -92,12 +91,8 @@ public class UserUserInteractionRepository {
                 .offset(offset * pageSize)
                 .limit(pageSize)
                 .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
-                    var res = new UserSeekResponse();
-                    res.setUserId(uid);
-                    res.setUsername(username);
-                    res.setDisplayName(displayName);
-                    res.setProfilePicture(profilePicture);
-                    res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
+                    var res = new UserResponse();
+                    res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     res.setProfileBio(profileBio);
                     res.setVerified(isVerified);
                     res.setIsFollowedByCurrentUser(isFollowedByCurrentUser);
@@ -106,7 +101,7 @@ public class UserUserInteractionRepository {
                 }));
     }
 
-    public List<UserSeekResponse> findFollowingsWithPagination(Long userId, Long currentUserId, int offset) {
+    public List<UserResponse> findFollowingsWithPagination(Long userId, Long currentUserId, int offset) {
         Field<Boolean> isFollowedByCurrentUserField = when(uf2.FOLLOWER_ID.isNotNull(), DSL.trueCondition())
                 .otherwise(DSL.falseCondition())
                 .as("is_followed_by_current_user");
@@ -140,12 +135,8 @@ public class UserUserInteractionRepository {
                 .offset(offset * pageSize)
                 .limit(pageSize)
                 .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
-                    var res = new UserSeekResponse();
-                    res.setUserId(uid);
-                    res.setUsername(username);
-                    res.setDisplayName(displayName);
-                    res.setProfilePicture(profilePicture);
-                    res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
+                    var res = new UserResponse();
+                    res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     res.setProfileBio(profileBio);
                     res.setVerified(isVerified);
                     res.setIsFollowedByCurrentUser(isFollowedByCurrentUser);
@@ -155,7 +146,7 @@ public class UserUserInteractionRepository {
     }
 
     // followings of userId (profile owner) that the current user (you) is following
-    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, int offset) {
+    public List<UserResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, int offset) {
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
         return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED)
                 .from(u)
@@ -175,12 +166,8 @@ public class UserUserInteractionRepository {
                 .offset(offset * pageSize)
                 .limit(pageSize)
                 .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified) -> {
-                    var res = new UserSeekResponse();
-                    res.setUserId(uid);
-                    res.setUsername(username);
-                    res.setDisplayName(displayName);
-                    res.setProfilePicture(profilePicture);
-                    res.setActionHappenedAt(TemporalUtils.localDateToInstant(actionHappenedAt));
+                    var res = new UserResponse();
+                    res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     res.setProfileBio(profileBio);
                     res.setVerified(isVerified);
                     return res;
@@ -200,7 +187,7 @@ public class UserUserInteractionRepository {
         return JooqUtils.delete(dsl, um, row(um.USER_ID, um.MUTED_USER_ID).eq(row(userId, toUnmute)));
     }
 
-    public List<UserSeekResponse> findMutedUsersWithPagination(Long userId, int offset) {
+    public List<UserResponse> findMutedUsersWithPagination(Long userId, int offset) {
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
         return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, um.MUTED_AT)
                 .from(um)
@@ -211,12 +198,8 @@ public class UserUserInteractionRepository {
                 .offset(offset)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
                 .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt) -> {
-                    var res = new UserSeekResponse();
-                    res.setUserId(uid);
-                    res.setUsername(username);
-                    res.setDisplayName(displayName);
-                    res.setProfilePicture(profilePicture);
-                    res.setActionHappenedAt(actionHappenedAt);
+                    var res = new UserResponse();
+                    res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     return res;
                 }));
     }
@@ -233,7 +216,7 @@ public class UserUserInteractionRepository {
         return JooqUtils.delete(dsl, ub, row(ub.USER_ID, ub.BLOCKED_USER_ID).eq(row(userId, toUnblock)));
     }
 
-    public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, int offset) {
+    public List<UserResponse> findBlockedUsersWithPagination(Long userId, int offset) {
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
         return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, ub.BLOCKED_AT, u.IS_VERIFIED)
                 .from(ub)
@@ -244,15 +227,32 @@ public class UserUserInteractionRepository {
                 .offset(offset)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
                 .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, isVerified) -> {
-                    var res = new UserSeekResponse();
-                    res.setUserId(uid);
-                    res.setUsername(username);
-                    res.setDisplayName(displayName);
-                    res.setProfilePicture(profilePicture);
-                    res.setActionHappenedAt(actionHappenedAt.atStartOfDay().toInstant(ZoneOffset.UTC));
+                    var res = new UserResponse();
+                    res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     res.setVerified(isVerified);
                     return res;
                 }));
+    }
+
+    // search users by username for a given userId, ORDERED BY favourite friends -> default friends -> verified non friends -> restricted friends -> others
+    public List<UserAvatar> searchOtherUsers(Long userId, String usernameToFind) {
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE)
+                .from(u)
+                .leftJoin(uf1)
+                .on(uf1.FOLLOWER_ID.eq(u.ID).and(uf1.FOLLOWED_USER_ID.eq(userId)))
+                .where(u.USERNAME.likeIgnoreCase(usernameToFind + "%"))
+                .orderBy(case_()
+                        .when(uf1.FOLLOWED_USER_ID.isNotNull(),                                                     // Priority 1: Friends
+                                case_().when(uf1.FOLLOWING_PRIORITY.eq(FollowingPriority.FAVOURITE), 0)      // Priority  1-1: Favourite friends
+                                        .when(uf1.FOLLOWING_PRIORITY.eq(FollowingPriority.DEFAULT), 1)      // Priority 1-2: Default friends
+                                        .when(uf1.FOLLOWING_PRIORITY.eq(FollowingPriority.RESTRICTED), 3)   // Priority 3: // Restricted friends
+                                        .otherwise(4)                                                       // Priority 4: not necessary, but added for potential new following priorities
+                        )
+                        .when(u.IS_VERIFIED.isTrue(), 2)                                                    // Priority 2: Verified non-friends
+                        .otherwise(5)                                                                       // Priority 5: All other non-friends
+                )
+                .limit(AppConstants.DEFAULT_PAGE_SIZE)
+                .fetch(mapping(UserAvatar::new));
     }
 
     // Utils
@@ -279,6 +279,30 @@ public class UserUserInteractionRepository {
                 .from(u)
                 .where(u.ID.eq(profileOwnerId))
                 .fetchOneInto(ProfileStatus.class);
+    }
+
+    public boolean isFollowedByCurrentUser(Long otherUserId, Long currentUserId) {
+        Boolean res = dsl.select(DSL.exists(
+                                dsl.selectOne()
+                                        .from(uf1)
+                                        .where(uf1.FOLLOWER_ID.eq(currentUserId)
+                                                .and(uf1.FOLLOWED_USER_ID.eq(otherUserId)))
+                        ).as("is_followed_by_current_user")
+                )
+                .fetchOneInto(Boolean.class);
+        return res != null && res;
+    }
+
+    public Map<Long, Boolean> isFollowedByCurrentUser(Set<Long> otherUserIds, Long currentUserId) {
+        return dsl.select(u.ID, DSL.when(uf1.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_followed"))
+                .from(u.as("u"))
+                .leftJoin(uf1).on(uf1.FOLLOWED_USER_ID.eq(field("u.id", Long.class))
+                        .and(uf1.FOLLOWER_ID.eq(currentUserId)))
+                .where(field("u.id", Long.class).in(otherUserIds))
+                .fetchMap(
+                        r -> r.get("id", Long.class),
+                        r -> r.get("is_followed", Boolean.class)
+                );
     }
 
 }
