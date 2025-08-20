@@ -7,7 +7,7 @@ import java.time.Instant;
 @Data
 public class MessageStatusUpdate {
     private Long messageId;
-    private Long userId;
+    private Long senderId;
     private boolean delivered;
     private boolean read;
     private Instant deliveredAt;

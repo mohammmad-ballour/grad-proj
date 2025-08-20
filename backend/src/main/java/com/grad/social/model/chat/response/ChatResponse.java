@@ -13,4 +13,7 @@ public class ChatResponse {
     private Instant lastMessageTime;
     private Long unreadCount;
     private int onlineRecipientsNumber;
+    private boolean isPinned;
+    private boolean isMuted;
+    private boolean isDeleted;
 }
