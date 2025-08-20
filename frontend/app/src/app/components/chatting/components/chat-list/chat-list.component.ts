@@ -37,11 +37,18 @@ export class ChatListComponent {
     // Load existing chats
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
-        console.log(res)
-        this.chats.set(res)
-        if (this.activatedRoute.snapshot.queryParamMap.get('chatid'))
-          //retrive the chat from chats() the pass it to the next  method
-          this.chatClicked(-----)
+        console.log(res);
+        this.chats.set(res);
+
+        // get chatId from route params (not query params)
+        const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
+        if (chatId) {
+          // find the chat object by id
+          const chat = this.chats().find(c => c.chatId === +chatId);
+          if (chat) {
+            this.chatClicked(chat);
+          }
+        }
       },
       error: (err: HttpErrorResponse) => {
         console.error('Backend returned code:', err.status);
@@ -50,11 +57,8 @@ export class ChatListComponent {
     });
 
     this.activeUserId = this.chatService.ActiveUserId;
-
-
-
-
   }
+
 
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;

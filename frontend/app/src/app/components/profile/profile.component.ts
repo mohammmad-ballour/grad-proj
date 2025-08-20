@@ -341,6 +341,7 @@ export class ProfileComponent implements OnInit {
       .subscribe({
         next: (following) => {
           if (following) {
+
             this.openUserList('Following', following);
           }
         },
@@ -368,9 +369,10 @@ export class ProfileComponent implements OnInit {
 
   openUserList(title: string, UserResponse: UserResponse[]): void {
     if (UserResponse.length > 0) {
+
       const dialog = this.dialog.open(UserListDialogComponent, {
         width: '1000px', height: UserResponse.length < 4 ? `${UserResponse.length * 215}px` : "500px",
-        data: { title, UserResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
+        data: { title, UserResponse, userId: this.profile.userAvatar.userId }
       });
       dialog.afterClosed().subscribe(() => {
         this.fetchProfileData(false);
@@ -378,7 +380,7 @@ export class ProfileComponent implements OnInit {
     } else {
       if (this.profile.followerNo == 1)
 
-        this.showSnackBar(`just you from  ${title} the @${this.profile.userAvatar.username}  `);
+        this.showSnackBar(`just you from  ${title} the @${this.profile.username}  `);
       else
         this.showSnackBar(`There is no ${title.toLocaleLowerCase()} to show `);
     }
@@ -412,20 +414,19 @@ export class ProfileComponent implements OnInit {
   openChat() {
     this.chatService.createOneOnOneChat(this.profile.userAvatar.userId).subscribe({
       next: (chatId) => {
-        this.router.navigate([`/${AppRoutes.MESSAGES}`], {
-          queryParams: { fromProfile: true, }
-        });
+        this.router.navigate([`/${AppRoutes.MESSAGES}`, chatId]);
+        // --> http://localhost:4200/messages/{chatId}
       },
       error: (err) => {
         if (err.status === 403) {
-
           this.showSnackBar('You are not allowed to message this user.');
         } else {
-          this.showSnackBar('Failed to open chat. Please try again later.')
+          this.showSnackBar('Failed to open chat. Please try again later.');
         }
       }
     });
   }
+
 
 
 }

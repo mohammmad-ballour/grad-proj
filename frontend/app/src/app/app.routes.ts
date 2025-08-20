@@ -24,6 +24,7 @@ export const routes: Routes = [
             { path: 'explore', component: FeedComponent },
             { path: AppRoutes.NOTIFICATIONS, component: NotificationsComponent },
             { path: AppRoutes.MESSAGES, component: ChatListComponent },
+            { path: `${AppRoutes.MESSAGES}:chatId`, component: ChatListComponent },
             { path: AppRoutes.MORE, component: MoreComponent },
             // ⚠️ This must be **last** so it doesn't catch other static routes!
             { path: ':username', component: ProfileComponent },

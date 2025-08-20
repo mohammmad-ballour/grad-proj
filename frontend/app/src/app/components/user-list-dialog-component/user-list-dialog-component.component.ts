@@ -37,7 +37,7 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
   private observer?: IntersectionObserver;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { title: string; userResponse: UserResponse[], userId: number },
+    @Inject(MAT_DIALOG_DATA) public data: { title: string; UserResponse: UserResponse[], userId: number },
     private dialogRef: MatDialogRef<UserListDialogComponent>,
     private userService: UserService,
     private router: Router
@@ -71,7 +71,7 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
     request$.subscribe({
       next: (users) => {
         if (users?.length) {
-          this.data.userResponse.push(...users);
+          this.data.UserResponse.push(...users);
           this.page++;
           if (users.length < this.pageSize) {
             this.hasMore = false;

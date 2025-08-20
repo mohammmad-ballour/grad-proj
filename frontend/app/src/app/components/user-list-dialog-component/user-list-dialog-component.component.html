@@ -3,7 +3,7 @@
 <mat-dialog-content class="user-list-content">
 
   <!-- User items -->
-  @for (user of data.userResponse; track user.userAvatar.userId) {
+  @for (user of data.UserResponse; track user.userAvatar.userId) {
     <app-user-item [user]="user"
       [currentUserId]="currentUserId"
       [isMutualFollowings]="data.title=='MutualFollowings'"

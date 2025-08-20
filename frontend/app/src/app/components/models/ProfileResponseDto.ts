@@ -1,10 +1,11 @@
 export interface ProfileResponseDto {
     userAvatar: {
         userId: number;
-        username: string;
         displayName: string;
         profilePicture: string; // (byte) → base64 or URL on backend
     };
+    username: string;
+
     profileCoverPhoto: string;
     profileBio: string;
     joinedAt: string;
@@ -27,3 +28,7 @@ export interface PostCard {
     postedAt: string;
     isPinned: boolean;
 }
+
+
+
+

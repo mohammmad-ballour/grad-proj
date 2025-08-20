@@ -7,7 +7,7 @@
 
         <div class="user-details">
            <span  [style.cursor]='"pointer"' (click)="GoTOProfile.emit(user.userAvatar.username)"  class="user-handle">{{ '@' + user.userAvatar.username }}
-            @if(user.verified){
+            @if(user.isVerified){
                <mat-icon class="verified">verified</mat-icon>
             }
            </span>
