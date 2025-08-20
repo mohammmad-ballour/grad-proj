@@ -55,11 +55,11 @@ public class ChattingController {
     }
 
     // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
-    @GetMapping("/chats/{recipientId}/user-messages")
+    @GetMapping("/chats/{recipientId}")
     @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
-    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
+    public Long getChatIdRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.chattingService.getChatMessagesByRecipientId(senderId, recipientId));
+        return this.chattingService.getExistingOrCreateNewOneToOneChat(senderId, recipientId);
     }
 
 

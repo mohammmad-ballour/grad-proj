@@ -45,7 +45,7 @@ public class ChattingRepository {
     private final UserFollowers uf3 = UserFollowers.USER_FOLLOWERS.as("uf3");
 
     // chats
-    public void createOneToOneChat(Long senderId, Long recipientId) {
+    public Long createOneToOneChat(Long senderId, Long recipientId) {
         // Create chat
         Long chatId = dsl.insertInto(c, c.IS_GROUP_CHAT)
                 .values(false)
@@ -58,6 +58,8 @@ public class ChattingRepository {
                 .values(chatId, senderId)
                 .values(chatId, recipientId)
                 .execute();
+
+        return chatId;
     }
 
     public Long createGroupChat(Long creatorId, String groupName, byte[] groupPicture, Set<Long> participantIds) {

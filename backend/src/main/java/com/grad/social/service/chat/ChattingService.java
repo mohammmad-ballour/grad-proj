@@ -36,12 +36,13 @@ public class ChattingService {
         return this.chattingRepository.getCandidateGroupMembers(currentUserId);
     }
 
-    public List<ChatMessageResponse> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
-        var messages = this.chattingRepository.getChatMessagesByRecipientId(currentUserId, recipientId);
-        if (messages.isEmpty()) {
-            this.getExistingOrCreateNewOneToOneChat(currentUserId, recipientId);
+    public Long getExistingOrCreateNewOneToOneChat(Long senderId, Long recipientId) {
+        Long chatId = this.chattingRepository.isOneToOneChatAlreadyExists(senderId, recipientId);
+        if (chatId == null) {
+            // create new chat and add participants
+            chatId = this.chattingRepository.createOneToOneChat(senderId, recipientId);
         }
-        return messages;
+        return chatId;
     }
 
     public List<ChatMessageResponse> getChatMessagesByChatId(Long chatId) {
@@ -94,14 +95,6 @@ public class ChattingService {
 
     public void updateReadStatusForMessagesInChat(Long chatId, Long userId) {
         this.chattingRepository.updateReadStatusForMessagesInChat(chatId, userId);
-    }
-
-    private void getExistingOrCreateNewOneToOneChat(Long senderId, Long recipientId) {
-        Long existentChatID = this.chattingRepository.isOneToOneChatAlreadyExists(senderId, recipientId);
-        if (existentChatID == null) {
-            // create new chat and add participants
-            this.chattingRepository.createOneToOneChat(senderId, recipientId);
-        }
     }
 
 }
