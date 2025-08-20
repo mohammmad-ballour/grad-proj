@@ -28,10 +28,21 @@ public class ChatService {
         return this.chatRepository.isParticipant(chatId, userId);
     }
 
+    public void deleteConversation(Long chatId, Long currentUserId) {
+        this.chatRepository.deleteConversation(chatId, currentUserId);
+    }
+
+    public void pinConversation(Long chatId, Long currentUserId) {
+        this.chatRepository.pinConversation(chatId, currentUserId);
+    }
+
+    public void muteConversation(Long chatId, Long currentUserId) {
+        this.chatRepository.muteConversation(chatId, currentUserId);
+    }
+
     public List<ChatResponse> getChatListForUserByUserId(Long userId) {
         return this.chatRepository.getChatListForUserByUserId(userId);
     }
-
 
     public List<MessageResponse> getChatMessagesByChatId(Long chatId) {
         return this.chatRepository.getChatMessagesByChatId(chatId);
@@ -39,7 +50,7 @@ public class ChatService {
 
     public List<MessageResponse> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
         var messages = this.chatRepository.getChatMessagesByRecipientId(currentUserId, recipientId);
-        if(messages.isEmpty()) {
+        if (messages.isEmpty()) {
             this.getExistingOrCreateNewOneToOneChat(currentUserId, recipientId);
         }
         return messages;

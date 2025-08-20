@@ -3,6 +3,7 @@ package com.grad.social.repository.chat;
 import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageResponse;
+import com.grad.social.model.enums.ChatStatus;
 import com.grad.social.model.tables.*;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -40,6 +41,27 @@ public class ChatRepository {
                 .where(m.CHAT_ID.eq(chatId))
                 .orderBy(m.SENT_AT.asc())
                 .fetch(mapping(MessageResponse::new));
+    }
+
+    public void deleteConversation(Long chatId, Long userId) {
+        dsl.update(cp)
+                .set(cp.CHAT_STATUS, ChatStatus.DELETED)
+                .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.eq(userId)))
+                .execute();
+    }
+
+    public void pinConversation(Long chatId, Long userId) {
+        dsl.update(cp)
+                .set(cp.IS_PINNED, true)
+                .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.eq(userId)))
+                .execute();
+    }
+
+    public void muteConversation(Long chatId, Long userId) {
+        dsl.update(cp)
+                .set(cp.CHAT_STATUS, ChatStatus.MUTED)
+                .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.eq(userId)))
+                .execute();
     }
 
     // for 1-1 chats only
@@ -142,6 +164,8 @@ public class ChatRepository {
                         DSL.case_()
                                 .when(c.IS_GROUP_CHAT.isTrue(), c.PICTURE)
                                 .otherwise(u.PROFILE_PICTURE).as("chat_picture"),
+                        cp.CHAT_STATUS,
+                        cp.IS_PINNED,
                         lm.field(m.CONTENT).as("last_message"),
                         lm.field(m.SENT_AT).as("last_message_time"),
                         DSL.coalesce(uc.field("unread_count", Long.class), DSL.inline(0L)).as("unread_count"),
@@ -162,14 +186,21 @@ public class ChatRepository {
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
                 .where(cp.USER_ID.ne(currentUserId))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
-                .fetch(mapping((chatId, chatName, chatPicture, lastMessage, lastMessageSentAt, unreadCount, participants) -> {
+                .fetch(mapping((chatId, chatName, chatPicture, chatStatus, isPinned, lastMessage, lastMessageSentAt, unreadCount, participants) -> {
                     ChatResponse res = new ChatResponse();
+                    switch (chatStatus) {
+                        case ChatStatus.DELETED -> res.setDeleted(true);
+                        case ChatStatus.MUTED -> res.setMuted(true);
+                        case null, default -> {
+                        }
+                    }
                     res.setChatId(chatId);
                     res.setName(chatName);
                     res.setChatPicture(chatPicture);
                     res.setLastMessage(lastMessage);
                     res.setLastMessageTime(lastMessageSentAt);
                     res.setUnreadCount(unreadCount);
+                    res.setPinned(isPinned);
                     AtomicInteger onlineUsersCount = new AtomicInteger();
                     participants.forEach(participant -> {
                         boolean userOnline = isUserOnline(participant);
