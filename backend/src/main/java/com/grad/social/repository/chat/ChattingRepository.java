@@ -134,7 +134,7 @@ public class ChattingRepository {
                 .join(u).on(u.ID.eq(cp.USER_ID))
                 .leftJoin(lateral(lm)).on(DSL.trueCondition())
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
-                .where(cp.USER_ID.ne(currentUserId))
+                .where(cp.USER_ID.eq(currentUserId))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
                 .fetch(mapping((chatId, chatName, chatPicture, chatStatus, isPinned, lastMessage, lastMessageSentAt, unreadCount, participants) -> {
                     ChatResponse res = new ChatResponse();
