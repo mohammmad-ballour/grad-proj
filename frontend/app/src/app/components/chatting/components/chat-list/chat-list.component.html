@@ -49,38 +49,43 @@
 
 
       <!-- Chat Header (sticky) -->
-<div class="p-2 border-bottom d-flex align-items-center bg-white sticky-top">
-  <img [src]="processImage(chatSelected().chatPicture)"
-       (error)="onImageError($event,'assets/ProfileAvatar.png')"
-       class="rounded-circle me-2" width="40" height="40" alt="">
-  <strong>{{ chatSelected().name }}</strong>
-</div>
+      <div class="p-2 border-bottom d-flex align-items-center bg-white sticky-top">
+        <img [src]="processImage(chatSelected().chatPicture)" (error)="onImageError($event,'assets/ProfileAvatar.png')"
+          class="rounded-circle me-2" width="40" height="40" alt="">
+        <strong>{{ chatSelected().name }}</strong>
+      </div>
 
-<!-- Messages (scrollable) -->
-   <!-- Messages (scrollable) -->
-    // edit if   this.chatSelected().unreadCount just not scroll to end just to first unred Messages
- <div #scrollContainer class="flex-grow-1 overflow-auto p-3 bg-light chat-scrollbar">
-  @for (m of messagesToSelectedChatt(); track m.messageId; let i = $index) {
-    <div #messageElement
-         class="d-flex mb-2"
-         [class.justify-content-end]="m.senderId == activeUserId"
-         [class.justify-content-start]="m.senderId != activeUserId">
-      
-      <span class="p-2 rounded-3 shadow-sm"
-            style="max-width: 75%; white-space: pre-wrap;"
-            [class.bg-success]="m.senderId == activeUserId"
-            [class.text-white]="m.senderId == activeUserId"
+      <!-- Messages (scrollable) -->
+      <div #scrollContainer class="flex-grow-1 overflow-auto p-3 bg-light chat-scrollbar">
+        @for (m of messagesToSelectedChatt(); track m.messageId) {
+        <div #messageElement class="d-flex mb-2" [class.justify-content-end]="m.senderId == activeUserId"
+          [class.justify-content-start]="m.senderId != activeUserId">
+
+          <!-- Chat bubble -->
+          <div class="chat-bubble p-2 shadow-sm"  
             [class.bg-white]="m.senderId != activeUserId">
-        {{ m.content }}
-      </span>
-    </div>
-  }
-</div>
 
+            <!-- Message content -->
+            <div>{{ m.content }}</div>
 
+            <!-- Time + Status -->
+            <div class="chat-meta">
+              <span class="me-1">{{ m.sentAt | date:'shortTime' }}</span>
+              @if(activeUserId  == m.senderId){
+              <i class="bi" [ngClass]="{
+                'bi-check-lg': m.messageStatus === MessageStatus.SENT,
+                'bi-check-all': m.messageStatus === MessageStatus.DELIVERED || m.messageStatus === MessageStatus.READ,
+                'text-primary': m.messageStatus === MessageStatus.READ,   
+              }">
+              </i>
+            }
 
+            </div>
+          </div>
+        </div>
+        }
+      </div>
 
- 
 
       <!-- Input -->
       <div class="p-2 border-top d-flex bg-white">

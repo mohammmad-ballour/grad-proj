@@ -50,5 +50,10 @@ export class ChatService extends BaseService {
     );
   }
 
+  confirmRead(chatId: number) {
+    return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});
+  }
+
+
 
 }

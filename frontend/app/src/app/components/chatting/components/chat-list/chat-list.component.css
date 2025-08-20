@@ -71,3 +71,33 @@
   background-color: rgba(0, 0, 0, 0.35);
   /* slightly darker on hover */
 }
+
+.chat-bubble {
+  max-width: 75%;
+  border-radius: 1rem;
+  position: relative;
+  white-space: pre-wrap;
+}
+
+.chat-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.chat-status {
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+/* Optional: mimic WhatsApp corners */
+.justify-content-end .chat-bubble {
+  border-bottom-right-radius: 0.3rem;
+}
+
+.justify-content-start .chat-bubble {
+  border-bottom-left-radius: 0.3rem;
+}

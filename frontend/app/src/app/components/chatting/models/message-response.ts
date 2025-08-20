@@ -5,7 +5,12 @@
 export interface MessageResponse {
   content?: string;
   sentAt?: string;
-  chatId?: number;
+  messageId?: number;
   senderId?: string;
-  messageId: number
+  messageStatus: MessageStatus
 }
+export enum MessageStatus {
+  SENT = 'SENT', DELIVERED = 'DELIVERED', READ = 'READ'
+}
+
+

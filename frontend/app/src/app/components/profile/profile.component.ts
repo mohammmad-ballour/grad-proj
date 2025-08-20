@@ -410,15 +410,22 @@ export class ProfileComponent implements OnInit {
       });
   }
   openChat() {
-    this.chatService.createOneOnOneChat(this.profile.userAvatar.userId).subscribe(
+    this.chatService.createOneOnOneChat(this.profile.userAvatar.userId).subscribe({
+      next: (chatId) => {
+        this.router.navigate([`/${AppRoutes.MESSAGES}`], {
+          queryParams: { fromProfile: true, }
+        });
+      },
+      error: (err) => {
+        if (err.status === 403) {
 
-      {
-        next: (chatId) => {
-          console.log(chatId);
-          this.router.navigate([`/${AppRoutes.MESSAGES}`], { queryParams: { chatId: chatId, userId: this.profileServices.userId } });
+          this.showSnackBar('You are not allowed to message this user.');
+        } else {
+          this.showSnackBar('Failed to open chat. Please try again later.')
         }
       }
-    );
+    });
   }
+
 
 }

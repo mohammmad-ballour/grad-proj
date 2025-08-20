@@ -1,19 +1,18 @@
 import { Component, ElementRef, output, QueryList, signal, ViewChildren } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { ChatResponse } from '../../models/chat-response';
-import { DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { UserResponse } from '../../models/user-response';
 import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from "@angular/material/icon";
 import { FormsModule } from "@angular/forms";
 import { HttpErrorResponse } from '@angular/common/http';
-import { MessageResponse } from '../../models/message-response';
-import { ViewChild } from '@angular/core';
+import { MessageResponse, MessageStatus } from '../../models/message-response';
 
 @Component({
   selector: 'app-chat-list',
   templateUrl: 'chat-list.component.html',
-  imports: [DatePipe, MatIconModule, FormsModule],
+  imports: [DatePipe, MatIconModule, FormsModule, CommonModule],
   styleUrl: 'chat-list.component.css'
 })
 export class ChatListComponent {
@@ -31,15 +30,18 @@ export class ChatListComponent {
 
   constructor(
     private chatService: ChatService,
+    private activatedRoute: ActivatedRoute
   ) { }
 
   ngOnInit() {
-    this.chatSelected().unreadCount
     // Load existing chats
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
         console.log(res)
         this.chats.set(res)
+        if (this.activatedRoute.snapshot.queryParamMap.get('chatid'))
+          //retrive the chat from chats() the pass it to the next  method
+          this.chatClicked(-----)
       },
       error: (err: HttpErrorResponse) => {
         console.error('Backend returned code:', err.status);
@@ -48,6 +50,9 @@ export class ChatListComponent {
     });
 
     this.activeUserId = this.chatService.ActiveUserId;
+
+
+
 
   }
 
@@ -60,8 +65,19 @@ export class ChatListComponent {
   // Select existing chat
   chatClicked(chat: ChatResponse) {
     this.chatSelected.set(chat)
-    console.log(chat)
     this.getMessagesToSelectedChatt()
+    if (chat.unreadCount > 0)
+      this.onOpenChat(chat.chatId)
+
+  }
+  onOpenChat(chatId: number) {
+    this.chatService.confirmRead(chatId).subscribe({
+      next: () => {
+        console.log(`Read status updated for chat ${chatId}`)
+        this.chatSelected().unreadCount = 0
+      },
+      error: (err) => console.error('Failed to confirm read', err)
+    });
   }
 
   isChatSelected(): boolean {
@@ -75,6 +91,7 @@ export class ChatListComponent {
       {
         next: (messages) => {
           this.messagesToSelectedChatt.set(messages)
+          console.log(messages)
         }
       }
     )
@@ -123,11 +140,15 @@ export class ChatListComponent {
 
 
 
-
   @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
 
   ngAfterViewInit() {
     this.scrollToUnreadOrBottom();
+
+    // React if messages change
+    this.messageElements.changes.subscribe(() => {
+      this.scrollToUnreadOrBottom();
+    });
   }
 
   private scrollToUnreadOrBottom() {
@@ -137,16 +158,22 @@ export class ChatListComponent {
     if (!messages.length) return;
 
     if (unreadCount > 0) {
-      // Find the first unread index
-      const firstUnreadIndex = messages.length - unreadCount;
+      // Clamp index so it won’t go below 0
+      const firstUnreadIndex = Math.max(messages.length - unreadCount, 0);
       const firstUnreadElement = messages[firstUnreadIndex]?.nativeElement;
 
       if (firstUnreadElement) {
         firstUnreadElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     } else {
-      // No unread → scroll to bottom
+      // Scroll to last message
       messages[messages.length - 1].nativeElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }
+
+  MessageStatus = MessageStatus; // expose enum to template
+
+
+
+
 }
