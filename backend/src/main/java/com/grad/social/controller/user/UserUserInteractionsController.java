@@ -2,7 +2,7 @@ package com.grad.social.controller.user;
 
 import com.grad.social.model.user.MuteDuration;
 import com.grad.social.model.user.UpdatePriority;
-import com.grad.social.model.user.response.UserSeekResponse;
+import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.service.user.UserUserInteractionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,8 +22,8 @@ public class UserUserInteractionsController {
     // Find followers
     @GetMapping("/{userId}/followers")
     @PreAuthorize("@SecurityService.canAccessProfileProtectedData(#jwt, #userId)")
-    public ResponseEntity<List<UserSeekResponse>> retrieveFollowerList(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId,
-                                                                       @RequestParam(defaultValue = "0") int page) {
+    public ResponseEntity<List<UserResponse>> retrieveFollowerList(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId,
+                                                                   @RequestParam(defaultValue = "0") int page) {
         Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userInteractionService.retrieveFollowerList(userId, uid, page));
     }
@@ -31,8 +31,8 @@ public class UserUserInteractionsController {
     // Find followings
     @GetMapping("/{userId}/followings")
     @PreAuthorize("@SecurityService.canAccessProfileProtectedData(#jwt, #userId)")
-    public ResponseEntity<List<UserSeekResponse>> retrieveFollowingList(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId,
-                                                                        @RequestParam(defaultValue = "0") int page) {
+    public ResponseEntity<List<UserResponse>> retrieveFollowingList(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId,
+                                                                    @RequestParam(defaultValue = "0") int page) {
         Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userInteractionService.retrieveFollowingList(userId, uid, page));
     }
@@ -40,8 +40,8 @@ public class UserUserInteractionsController {
     // Find followings
     @GetMapping("/{userId}/mutual-followings")
     @PreAuthorize("@SecurityService.canAccessProfileProtectedData(#jwt, #userId)")
-    public ResponseEntity<List<UserSeekResponse>> retrieveMutualFollowings(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId,
-                                                                           @RequestParam(defaultValue = "0") int page) {
+    public ResponseEntity<List<UserResponse>> retrieveMutualFollowings(@AuthenticationPrincipal Jwt jwt, @PathVariable Long userId,
+                                                                       @RequestParam(defaultValue = "0") int page) {
         Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userInteractionService.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, uid, page));
     }
@@ -76,8 +76,8 @@ public class UserUserInteractionsController {
     // Retrieve the current user blocklist
     @GetMapping("/block-list")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<UserSeekResponse>> retrieveBlockList(@AuthenticationPrincipal Jwt jwt,
-                                                                    @RequestParam(defaultValue = "0") int page) {
+    public ResponseEntity<List<UserResponse>> retrieveBlockList(@AuthenticationPrincipal Jwt jwt,
+                                                                @RequestParam(defaultValue = "0") int page) {
         Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userInteractionService.findBlockedUsersWithPagination(uid, page));
     }
@@ -103,8 +103,8 @@ public class UserUserInteractionsController {
     // Retrieve the current user mute list
     @GetMapping("/mute-list")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<UserSeekResponse>> retrieveMuteList(@AuthenticationPrincipal Jwt jwt,
-                                                                   @RequestParam(defaultValue = "0") int page) {
+    public ResponseEntity<List<UserResponse>> retrieveMuteList(@AuthenticationPrincipal Jwt jwt,
+                                                               @RequestParam(defaultValue = "0") int page) {
         Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userInteractionService.findMutedUsersWithPagination(uid, page));
     }

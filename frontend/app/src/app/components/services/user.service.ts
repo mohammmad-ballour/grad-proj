@@ -1,24 +1,24 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { catchError, Observable, throwError } from 'rxjs';
-import { BaseService } from '../../core/services/base.service';
-import { UpdatePriority } from '../models/UpdatePriority';
-import { MuteDuration } from '../models/MuteDurationDto';
-import { Injectable } from '@angular/core';
+import {HttpClient, HttpHeaders} from '@angular/common/http';
+import {catchError, Observable, throwError} from 'rxjs';
+import {BaseService} from '../../core/services/base.service';
+import {UpdatePriority} from '../models/UpdatePriority';
+import {MuteDuration} from '../models/MuteDurationDto';
+import {Injectable} from '@angular/core';
 
 // Matches backend UserSeekResponse.java
-export interface UserSeekResponse {
-  userId: number;
-  displayName: string;
-  username: string;
-  profilePicture: string | null; // Base64 encoded
-  actionHappenedAt: string;      // ISO string
+export interface UserResponse {
+  userAvatar: {
+    userId: number; username: string; displayName: string; profilePicture: string | null;
+  }
   profileBio: string | null;
-  verified: boolean
-  isFollowedByCurrentUser: boolean
-  isFollowingCurrentUser: boolean
+  verified: boolean;
+  isFollowedByCurrentUser: boolean | null;
+  isFollowingCurrentUser: boolean | null;
+  canBeMessagedByCurrentUser: boolean | null;
+  canBeAddedToGroupByCurrentUser: boolean | null;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({providedIn: 'root'})
 export class UserService extends BaseService {
 
   private readonly ENDPOINTS = {
@@ -50,7 +50,7 @@ export class UserService extends BaseService {
   // ===== Action methods =====
   UpdatePriority(followedUserId: number, newPriority: string): Observable<void> {
     const url = `${this.baseUrl}${this.ENDPOINTS.UPDATE_PRIORITY}${followedUserId}`;
-    const newPriorityObj: UpdatePriority = { priority: newPriority };
+    const newPriorityObj: UpdatePriority = {priority: newPriority};
     return this.httpClient.patch<void>(url, newPriorityObj).pipe(
       catchError(error => {
         console.error('Error updating priority:', error);
@@ -85,16 +85,16 @@ export class UserService extends BaseService {
 
 
   /** Get followings for a user */
-  getFollowings(userId: number, lastPage: number): Observable<UserSeekResponse[]> {
-    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, {
+  getFollowings(userId: number, lastPage: number): Observable<UserResponse[]> {
+    return this.httpClient.get<UserResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followings`, {
       params: {
         page: lastPage.toString()
       }
     });
   }
 
-  getFollowers(userId: number, lastPage: number): Observable<UserSeekResponse[]> {
-    return this.httpClient.get<UserSeekResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, {
+  getFollowers(userId: number, lastPage: number): Observable<UserResponse[]> {
+    return this.httpClient.get<UserResponse[]>(`${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/followers`, {
       params: {
         page: lastPage.toString()
       }
@@ -102,10 +102,9 @@ export class UserService extends BaseService {
   }
 
 
+  getMutualFollowings(userId: number, lastPage: number): Observable<UserResponse[]> {
 
-  getMutualFollowings(userId: number, lastPage: number): Observable<UserSeekResponse[]> {
-
-    return this.httpClient.get<UserSeekResponse[]>(
+    return this.httpClient.get<UserResponse[]>(
       ` ${this.baseUrl}${this.ENDPOINTS.USERS}${userId}/mutual-followings`,
 
       {

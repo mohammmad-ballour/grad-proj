@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
@@ -15,7 +16,11 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
@@ -23,6 +28,7 @@ public class UserOnlineStatusListener {
 
     private final ChattingService chattingService;
     private final RedisTemplate<String, String> redisTemplate;
+    private final JwtDecoder jwtDecoder;
 
     // We’ll use this scheduler to wait a few seconds before updating last_online_at, and cancel that offline marking if they reconnect within the delay.
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -34,7 +40,7 @@ public class UserOnlineStatusListener {
     @EventListener
     public void onLogin(LoginSuccessEvent event) {
         // confirm messages delivery
-        Jwt jwt = Jwt.withTokenValue(event.token()).build();
+        Jwt jwt = this.jwtDecoder.decode(event.token());
         JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt);
         Long userId = Long.parseLong(extractUserId(authentication));
         chattingService.confirmDelivery(userId);

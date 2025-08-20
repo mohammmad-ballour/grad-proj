@@ -12,7 +12,6 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 public class ProfileResponse {
-    private String username;
     private UserAvatar userAvatar;
     private byte[] profileCoverPhoto;
     private String profileBio;
@@ -29,8 +28,7 @@ public class ProfileResponse {
     private long unreadMessagesCount;
     private long unreadNotificationsCount;
 
-    public ProfileResponse(String username, UserAvatar userAvatar, byte[] profileCoverPhoto, String profileBio, LocalDate joinedAt, UserAbout aboutUser) {
-        this.username = username;
+    public ProfileResponse(UserAvatar userAvatar, byte[] profileCoverPhoto, String profileBio, LocalDate joinedAt, UserAbout aboutUser) {
         this.userAvatar = userAvatar;
         this.profileCoverPhoto = profileCoverPhoto;
         this.profileBio = profileBio;

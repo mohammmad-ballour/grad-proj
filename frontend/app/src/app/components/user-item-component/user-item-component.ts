@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
-import { UserSeekResponse } from '../services/user.service';
+import { UserResponse } from '../services/user.service';
 import { MatIconModule } from "@angular/material/icon";
 
 @Component({
@@ -14,12 +14,12 @@ import { MatIconModule } from "@angular/material/icon";
 })
 export class UserItemComponent {
 
-  @Input() user!: UserSeekResponse;
+  @Input() user!: UserResponse;
   @Input() isLoading = false;
   @Input() isMutualFollowings!: boolean;
   @Input() currentUserId?: number;
-  @Output() onFollow = new EventEmitter<UserSeekResponse>();
-  @Output() onUnFollow = new EventEmitter<UserSeekResponse>();
+  @Output() onFollow = new EventEmitter<UserResponse>();
+  @Output() onUnFollow = new EventEmitter<UserResponse>();
   @Output() GoTOProfile = new EventEmitter<string>();
   ngOnInit() {
     if (this.isMutualFollowings) {

@@ -4,6 +4,7 @@ import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
+import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.chat.ChattingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,12 +28,21 @@ public class ChattingService {
         return this.chattingRepository.createGroupChat(creatorId, groupName, pictureBytes, participantIds);
     }
 
-    public List<ChatMessageResponse> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
-        var messages = this.chattingRepository.getChatMessagesByRecipientId(currentUserId, recipientId);
-        if (messages.isEmpty()) {
-            this.getExistingOrCreateNewOneToOneChat(currentUserId, recipientId);
+    public List<UserResponse> searchUsersToAddToGroup(Long currentUserId) {
+        return this.chattingRepository.getCandidateGroupMembers(currentUserId);
+    }
+
+    public List<UserResponse> searchUsersToAddToMessage(Long currentUserId) {
+        return this.chattingRepository.getCandidateGroupMembers(currentUserId);
+    }
+
+    public Long getExistingOrCreateNewOneToOneChat(Long senderId, Long recipientId) {
+        Long chatId = this.chattingRepository.isOneToOneChatAlreadyExists(senderId, recipientId);
+        if (chatId == null) {
+            // create new chat and add participants
+            chatId = this.chattingRepository.createOneToOneChat(senderId, recipientId);
         }
-        return messages;
+        return chatId;
     }
 
     public List<ChatMessageResponse> getChatMessagesByChatId(Long chatId) {
@@ -85,14 +95,6 @@ public class ChattingService {
 
     public void updateReadStatusForMessagesInChat(Long chatId, Long userId) {
         this.chattingRepository.updateReadStatusForMessagesInChat(chatId, userId);
-    }
-
-    private void getExistingOrCreateNewOneToOneChat(Long senderId, Long recipientId) {
-        Long existentChatID = this.chattingRepository.isOneToOneChatAlreadyExists(senderId, recipientId);
-        if (existentChatID == null) {
-            // create new chat and add participants
-            this.chattingRepository.createOneToOneChat(senderId, recipientId);
-        }
     }
 
 }

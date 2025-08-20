@@ -4,7 +4,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
 import { EditProfileDialogComponent } from '../edit-profile-dialog/edit-profile-dialog.component';
 import { ProfileServices } from '../services/profile.services';
-import { UserSeekResponse, UserService } from '../services/user.service';
+import { UserResponse, UserService } from '../services/user.service';
 import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
@@ -366,11 +366,11 @@ export class ProfileComponent implements OnInit {
       });
   }
 
-  openUserList(title: string, userSeekResponse: UserSeekResponse[]): void {
-    if (userSeekResponse.length > 0) {
+  openUserList(title: string, UserResponse: UserResponse[]): void {
+    if (UserResponse.length > 0) {
       const dialog = this.dialog.open(UserListDialogComponent, {
-        width: '1000px', height: userSeekResponse.length < 4 ? `${userSeekResponse.length * 215}px` : "500px",
-        data: { title, userSeekResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
+        width: '1000px', height: UserResponse.length < 4 ? `${UserResponse.length * 215}px` : "500px",
+        data: { title, UserResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
       });
       dialog.afterClosed().subscribe(() => {
         this.fetchProfileData(false);
@@ -378,7 +378,7 @@ export class ProfileComponent implements OnInit {
     } else {
       if (this.profile.followerNo == 1)
 
-        this.showSnackBar(`just you from  ${title} the @${this.profile.username}  `);
+        this.showSnackBar(`just you from  ${title} the @${this.profile.userAvatar.username}  `);
       else
         this.showSnackBar(`There is no ${title.toLocaleLowerCase()} to show `);
     }
@@ -396,7 +396,7 @@ export class ProfileComponent implements OnInit {
             // Take first 3, map to usernames, and join with commas
             this.MutualFollowings = mutualFollowings
               .slice(0, 3)
-              .map(user => user.username) // assuming API returns { username: string, ... }
+              .map(user => user.userAvatar.username) // assuming API returns { username: string, ... }
               .join(', ') + `${mutualFollowings.length > 3 ? ` + ${mutualFollowings.length - 3} more` : ''} `;
 
           } else {

@@ -1,7 +1,7 @@
 export interface ProfileResponseDto {
-    username: string;
     userAvatar: {
         userId: number;
+        username: string;
         displayName: string;
         profilePicture: string; // (byte) → base64 or URL on backend
     };
