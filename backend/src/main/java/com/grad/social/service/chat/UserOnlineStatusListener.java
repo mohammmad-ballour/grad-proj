@@ -1,19 +1,18 @@
 package com.grad.social.service.chat;
 
 import com.grad.social.common.messaging.redis.RedisConstants;
+import com.grad.social.common.security.event.LoginSuccessEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.security.authentication.event.LogoutSuccessEvent;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -22,42 +21,25 @@ import java.util.concurrent.*;
 @RequiredArgsConstructor
 public class UserOnlineStatusListener {
 
+    private final ChattingService chattingService;
     private final RedisTemplate<String, String> redisTemplate;
 
     // We’ll use this scheduler to wait a few seconds before updating last_online_at, and cancel that offline marking if they reconnect within the delay.
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     // Map to keep track of scheduled offline tasks
     private final Map<String, ScheduledFuture<?>> offlineTasks = new ConcurrentHashMap<>();
-
-    // Offline threshold in seconds before considering it a "new login"
-    private static final long LOGIN_THRESHOLD_SECONDS = 300; // 5 minutes
     // Delay before marking offline to avoid false positives
     private static final long OFFLINE_DELAY_SECONDS = 10; // 10 seconds
 
-//    @EventListener
-//    public void onLogin(AuthenticationSuccessEvent event) {
-//        System.out.println("in login success");
-//        String userId = extractUserId(event.getAuthentication());
-//        if (userId != null) {
-//            String sessionId = RequestContextHolder.getRequestAttributes().getSessionId();
-//            System.out.println("Session id after login = " + sessionId);
-//            redisTemplate.opsForSet().add(userKey(userId), sessionId);
-//        }
-//    }
+    @EventListener
+    public void onLogin(LoginSuccessEvent event) {
+        // confirm messages delivery
+        Jwt jwt = Jwt.withTokenValue(event.token()).build();
+        JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt);
+        Long userId = Long.parseLong(extractUserId(authentication));
+        chattingService.confirmDelivery(userId);
 
-//    @EventListener
-//    public void onLogout(LogoutSuccessEvent event) {
-//        System.out.println("in logout success");
-//        String userId = extractUserId(event.getAuthentication());
-//        if (userId != null) {
-//            String sessionId = RequestContextHolder.getRequestAttributes().getSessionId();
-//            System.out.println("Session id after logout = " + sessionId);
-//            redisTemplate.opsForSet().remove(userSessionsKey(userId), sessionId);
-//            if (!isUserOnline(userId)) {
-//                redisTemplate.delete(userSessionsKey(userId)); // cleanup
-//            }
-//        }
-//    }
+    }
 
     @EventListener
     public void handleWebSocketConnect(SessionConnectEvent event) {
@@ -71,29 +53,7 @@ public class UserOnlineStatusListener {
             if (pendingTask != null) {
                 pendingTask.cancel(false);
             }
-
             redisTemplate.opsForSet().add(userSessionsKey(userId), sessionId);
-
-            Long sessionCount = redisTemplate.opsForSet().size(userSessionsKey(userId));
-            if (sessionCount != null && sessionCount == 1) {
-                boolean shouldUpdateLogin = true;
-
-                // Check last_online_at from Redis
-                Object lastOnlineObj = redisTemplate.opsForHash().get(userMetaKey(userId), RedisConstants.LAST_ONLINE_HASH_KEY);
-                if (lastOnlineObj != null) {
-                    Instant lastOnline = Instant.parse(lastOnlineObj.toString());
-                    long secondsSinceLastOnline = Duration.between(lastOnline, Instant.now()).toSeconds();
-                    if (secondsSinceLastOnline < LOGIN_THRESHOLD_SECONDS) {
-                        shouldUpdateLogin = false;
-                    }
-                }
-
-                // If this is the *first* session, store login time
-                if (shouldUpdateLogin) {
-                    redisTemplate.opsForHash().put(userMetaKey(userId), RedisConstants.LAST_LOGIN_HASH_KEY, Instant.now().toString());
-                }
-            }
-
             System.out.println("Connected: userId=" + userId + ", sessionId=" + sessionId);
         }
     }

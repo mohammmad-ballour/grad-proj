@@ -3,6 +3,7 @@ package com.grad.social.common.security.keycloak;
 import com.grad.grad_proj.generated.api.model.SignInRequestDto;
 import com.grad.social.common.security.AuthService;
 import com.grad.social.common.security.UserKey;
+import com.grad.social.common.security.event.LoginSuccessEvent;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -30,6 +32,7 @@ import java.util.Map;
 @Primary
 public class KeycloakUserService implements AuthService {
     private final Keycloak keycloak;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -96,7 +99,11 @@ public class KeycloakUserService implements AuthService {
 
     @Override
     public String loginWithPassword(SignInRequestDto request) throws BadCredentialsException {
-        return loginWithPassword(request.getEmail(), request.getPassword());
+        var token = loginWithPassword(request.getEmail(), request.getPassword());
+        if (token != null) {
+            this.eventPublisher.publishEvent(new LoginSuccessEvent(token));
+        }
+        return token;
     }
 
     public String loginWithPassword(String username, String password) {

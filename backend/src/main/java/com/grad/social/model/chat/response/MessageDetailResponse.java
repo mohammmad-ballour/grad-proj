@@ -5,16 +5,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public final class MessageResponse {
-    private Long chatId;
+public final class MessageDetailResponse {
     private Long messageId;
     private Long senderId;
     private String content;
     private Instant sentAt;
-    private Instant deliveredAt;
-    private Instant readAt;
+    private boolean delivered;
+    private boolean read;
+    private Map<Long, Instant> deliveredByAt;
+    private Map<Long, Instant> readByAt;
 }

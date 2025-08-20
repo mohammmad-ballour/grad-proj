@@ -4,7 +4,7 @@ import com.grad.social.model.enums.WhoCanMessage;
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.repository.user.UserUserInteractionRepository;
-import com.grad.social.service.chat.ChatService;
+import com.grad.social.service.chat.ChattingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class SecurityService {
     private final UserUserInteractionRepository userUserInteractionRepository;
-    private final ChatService chatService;
+    private final ChattingService chattingService;
     private final UserRepository userRepository;
 
     public boolean hasUserLongId(Authentication authentication, Long requestedId) {
@@ -49,7 +49,7 @@ public class SecurityService {
         if (currentUserId == -1) {
             return false;       // anonymouse user
         }
-        return this.chatService.isParticipant(chatId, currentUserId);
+        return this.chattingService.isParticipant(chatId, currentUserId);
     }
 
     public boolean isPermittedToMessage(Jwt jwt, Long recipientId) {

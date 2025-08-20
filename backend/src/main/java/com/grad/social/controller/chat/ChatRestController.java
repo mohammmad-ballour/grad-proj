@@ -1,12 +1,9 @@
 package com.grad.social.controller.chat;
 
-import com.grad.social.model.chat.request.ConfirmMessageRequest;
 import com.grad.social.model.chat.request.CreateMessageRequest;
+import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
-import com.grad.social.model.chat.response.MessageResponse;
-import com.grad.social.model.chat.response.MessageStatusUpdate;
-import com.grad.social.service.chat.ChatService;
-import com.grad.social.service.chat.MessageService;
+import com.grad.social.service.chat.ChattingService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
@@ -24,15 +21,13 @@ import java.util.Set;
 @RequiredArgsConstructor
 @RequestMapping("/api")
 public class ChatRestController {
-
-    private final MessageService messageService;
-    private final ChatService chatService;
+    private final ChattingService chattingService;
 
     // chats
     @GetMapping("/chats/{userId}")
     @PreAuthorize("@SecurityService.hasUserLongId(authentication, #userId)")
     public ResponseEntity<List<ChatResponse>> getChatListForUserByUserId(@PathVariable Long userId) {
-        return ResponseEntity.ok(this.chatService.getChatListForUserByUserId(userId));
+        return ResponseEntity.ok(this.chattingService.getChatListForUserByUserId(userId));
     }
 
     @PostMapping("/chats/group")
@@ -40,15 +35,31 @@ public class ChatRestController {
     @SneakyThrows
     public Long createGroupChat(@RequestParam Long creatorId, @RequestParam String groupName, @RequestBody Set<Long> participantIds,
                                 @RequestParam(required = false) MultipartFile groupPicture) {
-        return this.chatService.createGroupChat(creatorId, groupName, groupPicture, participantIds);
+        return this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds);
     }
+
+    // when the user/group avatar in the chat list is clicked, this method is called
+    @GetMapping("/chats/{chatId}/chat-messages")
+    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
+    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
+        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(chatId));
+    }
+
+    // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
+    @GetMapping("/chats/{recipientId}/user-messages")
+    @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
+    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
+        long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.chattingService.getChatMessagesByRecipientId(senderId, recipientId));
+    }
+
 
     @DeleteMapping("/chats/{chatId}")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public void deleteConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chatService.deleteConversation(chatId, userId);
+        this.chattingService.deleteConversation(chatId, userId);
     }
 
     @PatchMapping("/chats/{chatId}/pin")
@@ -56,7 +67,7 @@ public class ChatRestController {
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public void pinConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chatService.pinConversation(chatId, userId);
+        this.chattingService.pinConversation(chatId, userId);
     }
 
     @PatchMapping("/chats/{chatId}/mute")
@@ -64,47 +75,23 @@ public class ChatRestController {
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public void muteConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chatService.muteConversation(chatId, userId);
+        this.chattingService.muteConversation(chatId, userId);
     }
 
-    // messages
+    @PostMapping("/chats/{chatId}/confirmRead")
+    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
+    public void updateReadStatusForMessagesInChat(@PathVariable Long chatId, @AuthenticationPrincipal Jwt jwt) {
+        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.chattingService.updateReadStatusForMessagesInChat(chatId, userId);
+    }
+
+    // send message
     @PostMapping("/chats/{chatId}/sendMessage")
     @ResponseStatus(code = HttpStatus.CREATED)
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public Long sendMessage(@PathVariable Long chatId, @RequestBody CreateMessageRequest createMessage, @AuthenticationPrincipal Jwt jwt) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));    // User ID from JWT
-        return messageService.saveMessage(createMessage, chatId, senderId); // Save and return persisted message
-    }
-
-    @PostMapping("/chats/{chatId}/confirmDelivery")
-    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public MessageStatusUpdate confirmDelivery(@PathVariable Long chatId, @RequestBody ConfirmMessageRequest confirmMessageRequest,
-                                               @AuthenticationPrincipal Jwt jwt) {
-        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return this.messageService.updateDeliveryStatus(confirmMessageRequest.messageId(), userId);
-    }
-
-    @PostMapping("/chats/{chatId}/confirmRead")
-    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public MessageStatusUpdate confirmRead(@PathVariable Long chatId, @RequestBody ConfirmMessageRequest confirmMessageRequest,
-                                           @AuthenticationPrincipal Jwt jwt) {
-        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return messageService.updateReadStatus(confirmMessageRequest.messageId(), userId);
-    }
-
-    // when the user/group avatar in the chat list is clicked, this method is called
-    @GetMapping("/chats/{chatId}/chat-messages")
-    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public ResponseEntity<List<MessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
-        return ResponseEntity.ok(this.chatService.getChatMessagesByChatId(chatId));
-    }
-
-    // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
-    @GetMapping("/chats/{recipientId}/user-messages")
-    @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
-    public ResponseEntity<List<MessageResponse>> getChatMessagesByRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
-        long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.chatService.getChatMessagesByRecipientId(senderId, recipientId));
+        return chattingService.saveMessage(createMessage, chatId, senderId); // Save and return persisted message
     }
 
 }
