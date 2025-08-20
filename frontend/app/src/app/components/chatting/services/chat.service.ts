@@ -13,7 +13,7 @@ export class ChatService extends BaseService {
 
   private readonly ENDPOINTS = {
     chats: '/api/chats/',
-    OneOnOneChat: '/api/chats/one-to-one?recipientId=',
+
   };
   http: any;
 
@@ -24,19 +24,21 @@ export class ChatService extends BaseService {
   getAllUsers() {
     return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}`);
   }
-
   createOneOnOneChat(recipientId: number): Observable<number> {
-    return this.httpClient.post<number>(
-      `${this.baseUrl}${this.ENDPOINTS.OneOnOneChat}${recipientId}`,
+    return this.httpClient.get<number>(
+      `${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}/user-messages`,
       {} // empty body
     );
   }
 
+  get ActiveUserId() {
+    return this.authServices.UserId;
+  }
 
-  getChatMessages(chatId: number): Observable<MessageResponse> {
-    console.log(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/messages`)
+  getChatMessages(chatId: number): Observable<MessageResponse[]> {
 
-    return this.httpClient.get<MessageResponse>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/messages`)
+
+    return this.httpClient.get<MessageResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`,)
 
   }
 

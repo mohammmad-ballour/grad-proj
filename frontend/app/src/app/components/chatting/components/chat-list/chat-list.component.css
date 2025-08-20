@@ -1,5 +1,5 @@
 .chat-list {
-  > div {
+  >div {
     cursor: pointer;
 
     &:hover {
@@ -36,4 +36,38 @@
 
 .border-bottom-gray {
   border-bottom: solid 1px #ccc;
+}
+
+/* WhatsApp-style very small scrollbar */
+.chat-scrollbar {
+  scrollbar-width: thin;
+  /* Firefox */
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  /* Firefox */
+}
+
+/* WebKit browsers (Chrome, Edge, Safari) */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 3px;
+  /* super thin scrollbar */
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  /* invisible track */
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  /* subtle thumb */
+  border-radius: 10px;
+  /* very rounded */
+  min-height: 20px;
+  /* keep thumb very small */
+  transition: background-color 0.3s;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.35);
+  /* slightly darker on hover */
 }

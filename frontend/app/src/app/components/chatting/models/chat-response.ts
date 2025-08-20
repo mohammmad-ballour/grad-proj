@@ -8,5 +8,5 @@ export interface ChatResponse {
   lastMessage?: string;
   lastMessageTime?: string;
   onlineRecipientsNumber?: number; // fix here!
-  unreadCount?: number;
+  unreadCount: number;
 }

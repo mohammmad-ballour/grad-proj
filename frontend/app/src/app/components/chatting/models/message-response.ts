@@ -6,6 +6,6 @@ export interface MessageResponse {
   content?: string;
   sentAt?: string;
   chatId?: number;
-  senderId?: number;
+  senderId?: string;
   messageId: number
 }

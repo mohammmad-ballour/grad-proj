@@ -20,6 +20,7 @@ import { Observable, Subscription } from 'rxjs';
 import { UserListDialogComponent } from '../user-list-dialog-component/user-list-dialog-component.component';
 import { ChatService } from '../chatting/services/chat.service';
 import { AppRoutes } from '../../config/app-routes.enum';
+import { AuthService } from '../../core/services/auth.service';
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
@@ -414,7 +415,7 @@ export class ProfileComponent implements OnInit {
       {
         next: (chatId) => {
           console.log(chatId);
-          this.router.navigate([AppRoutes.MESSAGES], { queryParams: { chatId } });
+          this.router.navigate([`/${AppRoutes.MESSAGES}`], { queryParams: { chatId: chatId, userId: this.profileServices.userId } });
         }
       }
     );
