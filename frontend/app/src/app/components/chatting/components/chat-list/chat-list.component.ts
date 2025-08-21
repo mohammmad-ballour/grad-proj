@@ -26,7 +26,8 @@ export class ChatListComponent {
   chatSelected = signal<ChatResponse>({} as ChatResponse);
   messagesToSelectedChatt = signal<MessageResponse[]>([]);
   messageToSent!: string;
-  activeUserId!: string | null;
+  activeUserId!: string;
+  MessageStatus = MessageStatus; // expose enum to template
 
   constructor(
     private chatService: ChatService,
@@ -37,7 +38,6 @@ export class ChatListComponent {
     // Load existing chats
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
-        console.log(res);
         this.chats.set(res);
 
         // get chatId from route params (not query params)
@@ -77,7 +77,6 @@ export class ChatListComponent {
   onOpenChat(chatId: number) {
     this.chatService.confirmRead(chatId).subscribe({
       next: () => {
-        console.log(`Read status updated for chat ${chatId}`)
         this.chatSelected().unreadCount = 0
       },
       error: (err) => console.error('Failed to confirm read', err)
@@ -91,30 +90,17 @@ export class ChatListComponent {
 
   getMessagesToSelectedChatt() {
     this.chatService.getChatMessages(this.chatSelected().chatId).subscribe(
-
       {
         next: (messages) => {
           this.messagesToSelectedChatt.set(messages)
-          console.log(messages)
         }
       }
     )
   }
+  selectedFile?: File;
+  replyToMessage?: MessageResponse; // the message being replied to
 
-  sendMessage() {
-    this.chatService.sendMessage(this.chatSelected().chatId, this.messageToSent).subscribe({
-      next: (message) => {
 
-        this.messageToSent = '';
-        this.getMessagesToSelectedChatt();
-
-      },
-      error: (err) => {
-        console.error('Error sending message', err);
-      }
-    });
-
-  }
   // Switch to "search new contact" mode
   searchContact() {
     // this.chatService.getAllUsers().subscribe({
@@ -126,11 +112,6 @@ export class ChatListComponent {
     // });
   }
 
-  // Select new contact
-  selectContact(contact: UserResponse) {
-    console.log('Contact selected:', contact);
-    // You can call chatService.createOneOnOneChat(contact.id) here if needed
-  }
 
   // Truncate long messages
   wrapMessage(lastMessage: string | undefined): string {
@@ -175,8 +156,58 @@ export class ChatListComponent {
     }
   }
 
-  MessageStatus = MessageStatus; // expose enum to template
 
+
+
+
+
+
+  // Handle file selection
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+    }
+  }
+
+  // Set reply target
+  setReplyTo(message: MessageResponse) {
+    this.replyToMessage = message;
+  }
+
+  // Cancel reply
+  cancelReply() {
+    this.replyToMessage = undefined;
+  }
+
+  // Handle Enter / Shift+Enter
+  onEnter(event: KeyboardEvent) {
+    if (event.shiftKey) return; // allow newline
+    event.preventDefault();     // prevent newline on Enter
+    this.sendMessage();
+  }
+
+
+  // Send message
+  sendMessage() {
+    const content = this.messageToSent.trim();
+    if (!content && !this.selectedFile) return;
+
+    this.chatService.sendMessage(
+      this.chatSelected().chatId,   // 👈 assumes you have chatSelected() in parent
+      content,
+      this.selectedFile,
+      this.replyToMessage?.messageId
+    ).subscribe({
+      next: () => {
+        this.messageToSent = '';
+        this.selectedFile = undefined;
+        this.replyToMessage = undefined;
+        this.getMessagesToSelectedChatt(); // refresh chat
+      },
+      error: (err) => console.error('Error sending message', err)
+    });
+  }
 
 
 

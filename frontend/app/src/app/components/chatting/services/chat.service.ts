@@ -27,7 +27,7 @@ export class ChatService extends BaseService {
   createOneOnOneChat(recipientId: number): Observable<number> {
     return this.httpClient.get<number>(
       `${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}/RecipientId`,
-      {} // empty body
+      {}
     );
   }
 
@@ -42,13 +42,37 @@ export class ChatService extends BaseService {
 
   }
 
-  sendMessage(chatId: number, content: string): Observable<MessageResponse> {
-    const body = { content }; // matches your CreateMessage DTO
-    return this.httpClient.post<MessageResponse>(
-      `${this.baseUrl}/api/chats/${chatId}/sendMessage`,
-      body
+  sendMessage(
+    chatId: number,
+    content: string,
+    file?: File,
+    parentMessageId?: number
+  ): Observable<MessageResponse> {
+    const formData = new FormData();
+
+    // JSON part ("request")
+    const request = { content };
+    formData.append(
+      "request",
+      new Blob([JSON.stringify(request)], { type: "application/json" })
     );
+
+    // File part
+    if (file) {
+      formData.append("attachment", file);
+    }
+
+    // Append parentMessageId as query param if present
+    let url = `${this.baseUrl}/api/chats/${chatId}/sendMessage`;
+    if (parentMessageId) {
+      url += `?parentMessageId=${parentMessageId}`;
+    }
+
+    return this.httpClient.post<MessageResponse>(url, formData);
   }
+
+
+
 
   confirmRead(chatId: number) {
     return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});

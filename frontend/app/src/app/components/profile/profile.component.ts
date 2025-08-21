@@ -415,7 +415,7 @@ export class ProfileComponent implements OnInit {
     this.chatService.createOneOnOneChat(this.profile.userAvatar.userId).subscribe({
       next: (chatId) => {
         this.router.navigate([`${AppRoutes.MESSAGES}`, chatId]);
-        // --> http://localhost:4200/messages/{chatId}
+
       },
       error: (err) => {
         if (err.status === 403) {

@@ -51,7 +51,7 @@ export class AuthService {
     }
 
     // Get the user ID claim
-    get UserId(): string | null {
+    get UserId(): string {
         const decoded = this.decodeToken();
         return decoded?.uid || "empty";
     }
