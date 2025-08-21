@@ -12,6 +12,7 @@ public class ChatResponse {
     private String lastMessage;
     private Instant lastMessageTime;
     private Long unreadCount;
+    private int chatMembersNumber;
     private int onlineRecipientsNumber;
     private boolean isPinned;
     private boolean isMuted;

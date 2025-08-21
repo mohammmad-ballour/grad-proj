@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -69,7 +70,6 @@ public class ChattingService {
         this.chattingRepository.muteConversation(chatId, currentUserId);
     }
 
-
     // messages
     public Long saveMessage(Long chatId, Long senderId, Long parentMessageId, CreateMessageRequest createMessageRequest, MultipartFile attachment) throws Exception {
         // validate messsage
@@ -84,8 +84,11 @@ public class ChattingService {
         // Save message to message table
         Long savedMessageId = this.chattingRepository.saveMessage(chatId, senderId, parentMessageId, createMessageRequest, mediaAssetId);
 
+        // find recipients of the newly persisted message
+        Map<Boolean, List<Long>> messageRecipients = this.chattingRepository.getMessageRecipientsExcludingTheSender(chatId, senderId);
+
         // Initialize message_status for all participants except sender
-        this.chattingRepository.initializeMessageStatusForParticipantsExcludingTheSender(savedMessageId, chatId, senderId);
+        this.chattingRepository.initializeMessageStatusForParticipantsExcludingTheSender(savedMessageId, chatId, senderId, messageRecipients.get(true));
         return savedMessageId;
     }
 

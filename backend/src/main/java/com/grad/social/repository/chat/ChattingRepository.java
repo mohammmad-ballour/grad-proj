@@ -1,5 +1,7 @@
 package com.grad.social.repository.chat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
@@ -17,10 +19,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static com.grad.social.model.chat.response.MessageStatus.*;
 import static org.jooq.Records.mapping;
@@ -34,6 +35,7 @@ public class ChattingRepository {
     private final RedisTemplate<String, String> redisTemplate;
     private final DSLContext dsl;
     private final UserUserInteractionRepository userUserInteractionRepository;
+    private final ObjectMapper objectMapper;
 
     // Aliases for subqueries
     private final Messages m = Messages.MESSAGES;
@@ -153,6 +155,7 @@ public class ChattingRepository {
                     res.setLastMessageTime(lastMessageSentAt);
                     res.setUnreadCount(unreadCount);
                     res.setPinned(isPinned);
+                    res.setChatMembersNumber(participants.size());
                     AtomicInteger onlineUsersCount = new AtomicInteger();
                     participants.forEach(participant -> {
                         boolean userOnline = isUserOnline(participant);
@@ -237,34 +240,72 @@ public class ChattingRepository {
     }
 
     public MessageDetailResponse getMessageDetails(Long messageId) {
-        return dsl.select(m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT,
-                        DSL.boolAnd(ms.DELIVERED_AT.isNotNull()).as("delivered"),
+        return dsl.select(DSL.boolAnd(ms.DELIVERED_AT.isNotNull()).as("delivered"),
                         DSL.boolAnd(ms.READ_AT.isNotNull()).as("read"),
-                        DSL.jsonbObjectAgg(u.DISPLAY_NAME.cast(String.class), ms.DELIVERED_AT)
-                                .filterWhere(ms.DELIVERED_AT.isNotNull())
-                                .as("delivered_by_at"),
-                        DSL.jsonbObjectAgg(u.DISPLAY_NAME.cast(String.class), ms.READ_AT)
+                        DSL.jsonbObjectAgg(u.ID.cast(String.class), ms.READ_AT)
                                 .filterWhere(ms.READ_AT.isNotNull())
-                                .as("read_by_at")
+                                .as("read_by_at"),
+                        DSL.jsonbObjectAgg(u.ID.cast(String.class), ms.DELIVERED_AT)
+                                .filterWhere(ms.DELIVERED_AT.isNotNull())
+                                .as("delivered_by_at")
                 )
                 .from(m)
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
                 .join(u).on(u.ID.eq(ms.USER_ID))
                 .where(m.MESSAGE_ID.eq(messageId))
-                .groupBy(m.MESSAGE_ID,
-                        m.SENDER_ID,
-                        m.CONTENT,
-                        m.SENT_AT)
+                .groupBy(m.MESSAGE_ID)
                 .orderBy(m.SENT_AT.asc())
-                .fetchOneInto(MessageDetailResponse.class);
+                .fetchOne(mapping((isDelivered, isRead, readByAt, deliveredByAt) -> {
+                    MessageDetailResponse res = new MessageDetailResponse();
+                    res.setDelivered(isDelivered);
+                    res.setRead(isRead);
+                    try {
+                        Map<String, Object> readByAtMap = this.objectMapper.readValue(readByAt.data(), Map.class);
+                        Map<String, Object> deliveredByAtMap = this.objectMapper.readValue(deliveredByAt.data(), Map.class);
+
+                        Map<Long, Instant> realReadMap = new HashMap<>();
+                        Map<Long, Instant> realDeliveredMap = new HashMap<>();
+
+                        for (Map.Entry<String, Object> entry : readByAtMap.entrySet()) {
+                            Long k = Long.parseLong(entry.getKey());
+                            Instant v = Instant.parse(entry.getValue().toString());
+                            realReadMap.put(k, v);
+                        }
+                        res.setReadByAt(realReadMap);
+
+                        for (Map.Entry<String, Object> entry : deliveredByAtMap.entrySet()) {
+                            Long k = Long.parseLong(entry.getKey());
+                            Instant v = Instant.parse(entry.getValue().toString());
+                            if (realReadMap.containsKey(k)) {
+                                continue;
+                            }
+                            realDeliveredMap.put(k, v);
+                        }
+                        res.setDeliveredByAt(realDeliveredMap);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return res;
+                }));
     }
 
-    public void initializeMessageStatusForParticipantsExcludingTheSender(Long messageId, Long chatId, Long senderId) {
-        dsl.insertInto(ms, ms.MESSAGE_ID, ms.USER_ID)
+    public Map<Boolean, List<Long>> getMessageRecipientsExcludingTheSender(Long chatId, Long senderId) {
+        List<Long> allRecipientsExcludingSender = dsl.select(cp.USER_ID)
+                .from(cp)
+                .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.ne(senderId)))
+                .fetch(cp.USER_ID);
+
+        return allRecipientsExcludingSender.stream().collect(Collectors.partitioningBy(this::isUserOnline));
+    }
+
+    public void initializeMessageStatusForParticipantsExcludingTheSender(Long messageId, Long chatId, Long senderId, List<Long> onlineRecipients) {
+        dsl.insertInto(ms, ms.MESSAGE_ID, ms.USER_ID, ms.DELIVERED_AT)
                 .select(
-                        dsl.select(DSL.val(messageId), cp.USER_ID)
+                        dsl.select(DSL.val(messageId), cp.USER_ID,
+                                        DSL.when(cp.USER_ID.in(onlineRecipients), Instant.now())
+                                                .otherwise(DSL.val((Instant) null)))
                                 .from(cp)
-                                .where(cp.CHAT_ID.eq(chatId)).and(cp.USER_ID.ne(senderId))
+                                .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.ne(senderId)))
                 )
                 .execute();
     }
@@ -300,8 +341,7 @@ public class ChattingRepository {
     public void updateReadStatusForMessagesInChat(Long chatId, Long userId) {
         dsl.update(ms)
                 .set(ms.READ_AT, Instant.now())
-                .where(ms.USER_ID.eq(userId))
-                .and(ms.READ_AT.isNull())
+                .where(ms.USER_ID.eq(userId)).and(ms.READ_AT.isNull())
                 .and(ms.MESSAGE_ID.in(
                         DSL.select(m.MESSAGE_ID)
                                 .from(m)
@@ -319,6 +359,12 @@ public class ChattingRepository {
                 .fetchOneInto(Long.class);
     }
 
+    // Utils
+    private boolean isUserOnline(Long userId) {
+        Long size = redisTemplate.opsForSet().size(RedisConstants.USERS_SESSION_KEY_PREFIX + userId);
+        return size != null && size > 0;
+    }
+
     public boolean isParticipant(Long chatId, Long userId) {
         return dsl.fetchExists(
                 dsl.selectOne()
@@ -328,9 +374,13 @@ public class ChattingRepository {
         );
     }
 
-    private boolean isUserOnline(Long userId) {
-        Long size = redisTemplate.opsForSet().size(RedisConstants.USERS_SESSION_KEY_PREFIX + userId);
-        return size != null && size > 0;
+    public boolean isSelfMessage(Long userId, Long messageId) {
+        return dsl.fetchExists(
+                dsl.selectOne()
+                        .from(m)
+                        .where(m.MESSAGE_ID.eq(messageId).and(m.SENDER_ID.eq(userId)))
+        );
     }
+
 
 }

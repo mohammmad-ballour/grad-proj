@@ -3,9 +3,9 @@ package com.grad.social.common.security;
 import com.grad.social.model.enums.PrivacySettings;
 import com.grad.social.model.shared.FriendshipStatus;
 import com.grad.social.model.shared.ProfileStatus;
+import com.grad.social.repository.chat.ChattingRepository;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.repository.user.UserUserInteractionRepository;
-import com.grad.social.service.chat.ChattingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -23,7 +23,7 @@ import static com.grad.social.model.enums.PrivacySettings.*;
 @Slf4j
 public class SecurityService {
     private final UserUserInteractionRepository userUserInteractionRepository;
-    private final ChattingService chattingService;
+    private final ChattingRepository chattingRepository;
     private final UserRepository userRepository;
 
     public boolean hasUserLongId(Authentication authentication, Long requestedId) {
@@ -51,7 +51,13 @@ public class SecurityService {
     public boolean isParticipantInChat(Jwt jwt, Long chatId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
         if (isAnonymous(currentUserId)) return false;
-        return this.chattingService.isParticipant(chatId, currentUserId);
+        return this.chattingRepository.isParticipant(chatId, currentUserId);
+    }
+
+    public boolean isSelfMessage(Jwt jwt, Long messageId) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        if (isAnonymous(currentUserId)) return false;
+        return this.chattingRepository.isSelfMessage(currentUserId, messageId);
     }
 
     public boolean isPermittedToMessage(Jwt jwt, Long recipientId) {
@@ -95,6 +101,5 @@ public class SecurityService {
         }
         return Long.parseLong(jwt.getClaimAsString("uid"));
     }
-
 
 }

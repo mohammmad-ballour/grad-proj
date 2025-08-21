@@ -3,6 +3,7 @@ package com.grad.social.controller.chat;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
+import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.service.chat.ChattingService;
 import lombok.RequiredArgsConstructor;
@@ -102,6 +103,12 @@ public class ChattingController {
                                             @RequestPart("request") CreateMessageRequest createMessage, @RequestPart(value = "attachment", required = false) MultipartFile mediaFile) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));    // User ID from JWT
         return ResponseEntity.status(HttpStatus.CREATED).body(chattingService.saveMessage(chatId, senderId, parentMessageId, createMessage, mediaFile));
+    }
+
+    @GetMapping("/messages/{messageId}/info")
+    @PreAuthorize("@SecurityService.isSelfMessage(#jwt, #messageId)")
+    public ResponseEntity<MessageDetailResponse> getMessageInfo(@AuthenticationPrincipal Jwt jwt, @PathVariable Long messageId) {
+        return ResponseEntity.ok(this.chattingService.getMessageDetails(messageId));
     }
 
 }

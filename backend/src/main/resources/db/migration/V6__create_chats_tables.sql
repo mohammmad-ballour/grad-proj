@@ -25,7 +25,7 @@ CREATE TABLE chats
 CREATE TABLE chat_participants
 (
     chat_id             BIGINT REFERENCES chats (chat_id) ON DELETE CASCADE,
-    user_id             BIGINT REFERENCES users (id),
+    user_id             BIGINT REFERENCES users (id) ON DELETE CASCADE,
 --     role VARCHAR(50) DEFAULT 'member', -- e.g., 'admin', 'member'
     chat_status         CHAT_STATUS NOT NULL DEFAULT 'NORMAL',
     is_pinned           BOOLEAN              DEFAULT FALSE,
@@ -48,7 +48,7 @@ CREATE TABLE messages
 CREATE TABLE message_status
 (
     message_id   BIGINT REFERENCES messages (message_id) ON DELETE CASCADE,
-    user_id      BIGINT REFERENCES users (id),
+    user_id      BIGINT REFERENCES users (id) ON DELETE CASCADE,
     delivered_at TIMESTAMPTZ DEFAULT NULL,
     read_at      TIMESTAMPTZ DEFAULT NULL,
     PRIMARY KEY (message_id, user_id)
