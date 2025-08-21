@@ -1,11 +1,16 @@
 package com.grad.social.service.chat;
 
+import com.grad.social.common.model.MediaRepresentation;
+import com.grad.social.common.utils.media.MediaStorageService;
+import com.grad.social.common.utils.media.MediaUtils;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.chat.ChattingRepository;
+import com.grad.social.repository.media.MediaRepository;
+import com.grad.social.service.chat.validator.ChattingValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +23,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ChattingService {
     private final ChattingRepository chattingRepository;
+    private final MediaRepository mediaRepository;
+    private final MediaStorageService mediaStorageService;
+    private final ChattingValidator chattingValidator;
 
     // chats
     public Long createGroupChat(Long creatorId, String groupName, MultipartFile groupPicture, Set<Long> participantIds) throws IOException {
@@ -28,10 +36,12 @@ public class ChattingService {
         return this.chattingRepository.createGroupChat(creatorId, groupName, pictureBytes, participantIds);
     }
 
+    // TODO
     public List<UserResponse> searchUsersToAddToGroup(Long currentUserId) {
         return this.chattingRepository.getCandidateGroupMembers(currentUserId);
     }
 
+    // TODO
     public List<UserResponse> searchUsersToAddToMessage(Long currentUserId) {
         return this.chattingRepository.getCandidateGroupMembers(currentUserId);
     }
@@ -66,13 +76,42 @@ public class ChattingService {
     }
 
     // messages
-    public Long saveMessage(CreateMessageRequest createMessageRequest, Long chatId, Long senderId) {
+    public Long saveMessage(Long chatId, Long senderId, Long parentMessageId, CreateMessageRequest createMessageRequest, MultipartFile attachment) throws Exception {
+        // validate messsage
+        this.chattingValidator.validateCreateMessage(createMessageRequest, attachment);
+        Long mediaAssetId = null;
+
+        // upload media to filesystem if any
+        if (attachment != null && !attachment.isEmpty()) {
+            mediaAssetId = this.uploadMedia(attachment);
+        }
+
         // Save message to message table
-        Long savedMessageId = this.chattingRepository.saveMessage(createMessageRequest, chatId, senderId);
+        Long savedMessageId = this.chattingRepository.saveMessage(chatId, senderId, parentMessageId, createMessageRequest, mediaAssetId);
 
         // Initialize message_status for all participants except sender
         this.chattingRepository.initializeMessageStatusForParticipantsExcludingTheSender(savedMessageId, chatId, senderId);
         return savedMessageId;
+    }
+
+    private Long uploadMedia(MultipartFile attachment) throws Exception {
+        String hashedContent = MediaUtils.hashFileContent(attachment.getInputStream());
+        Long mediaAssetId = this.mediaRepository.findMediaAssetIdsByHashes(Set.of(hashedContent)).get(hashedContent);
+
+        // null means a new media asset, we skip it if it exists
+        if (mediaAssetId == null) {
+            // Generate hashed filename + keep extension
+            String hashedFileName = MediaUtils.hashFileName(attachment.getOriginalFilename());
+            String extension = MediaUtils.getExtension(attachment.getOriginalFilename());
+
+            // Save to filesystem: uploads/posts/<hashedFileName>.<ext>
+            this.mediaStorageService.saveFile(hashedFileName, extension, attachment.getInputStream());
+
+            // Insert into DB
+            var toSave = new MediaRepresentation(hashedFileName, hashedContent, extension, attachment.getContentType(), attachment.getSize());
+            mediaAssetId = this.mediaRepository.insertMediaAsset(toSave);
+        }
+        return mediaAssetId;
     }
 
     public MessageDetailResponse getMessageDetails(Long messageId) {

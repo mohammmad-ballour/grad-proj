@@ -134,7 +134,7 @@ public class ChattingRepository {
                 .join(u).on(u.ID.eq(cp.USER_ID))
                 .leftJoin(lateral(lm)).on(DSL.trueCondition())
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
-                .where(cp.USER_ID.ne(currentUserId))
+                .where(cp.USER_ID.eq(currentUserId))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
                 .fetch(mapping((chatId, chatName, chatPicture, chatStatus, isPinned, lastMessage, lastMessageSentAt, unreadCount, participants) -> {
                     ChatResponse res = new ChatResponse();
@@ -228,9 +228,9 @@ public class ChattingRepository {
 
 
     // messages and their statuses
-    public Long saveMessage(CreateMessageRequest messageRequest, Long chatId, Long senderId) {
-        return dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.CONTENT)
-                .values(chatId, senderId, messageRequest.content())
+    public Long saveMessage(Long chatId, Long senderId, Long parentMessageId, CreateMessageRequest messageRequest, Long mediaAssetId) {
+        return dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.PARENT_MESSAGE_ID, m.CONTENT, m.MEDIA_ID)
+                .values(chatId, senderId, parentMessageId, messageRequest.content(), mediaAssetId)
                 .returning(m.MESSAGE_ID)
                 .fetchOne()
                 .getMessageId();

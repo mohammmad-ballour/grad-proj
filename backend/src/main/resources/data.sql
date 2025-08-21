@@ -1,6 +1,10 @@
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
 ALTER SEQUENCE chats_chat_id_seq RESTART WITH 1;
 ALTER SEQUENCE messages_message_id_seq RESTART WITH 1;
+ALTER SEQUENCE media_asset_media_id_seq RESTART WITH 1;
+
+DELETE
+FROM media_asset;
 DELETE
 FROM messages;
 DELETE
@@ -215,7 +219,8 @@ VALUES (2, 3, '2025-08-09');
 INSERT INTO public.chats(chat_id, is_group_chat, name, created_at)
 VALUES (1, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
        (2, false, 'User 3', '2025-08-05 22:05:05.513348 +00:00'),
-       (3, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00');   -- no messages yet
+       (3, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00');
+-- no messages yet
 
 -- chat_participants
 INSERT INTO public.chat_participants(chat_id, user_id)
@@ -228,14 +233,14 @@ VALUES (1, 1),
        (3, 3);
 
 -- messages
-INSERT INTO public.messages(message_id, chat_id, sender_id, content, sent_at)
-VALUES (1, 1, 1, 'Hello, 2 and 3', '2025-08-09 09:15:49.513348 +00:00'),
-       (2, 1, 2, 'Hey, both', '2025-08-09 09:16:49.513348 +00:00'),
-       (3, 1, 1, 'How are you', '2025-08-09 09:25:05.513348 +00:00'),
-       (4, 1, 3, 'Hey folks', '2025-08-09 09:28:05.513348 +00:00'),
+INSERT INTO public.messages(chat_id, sender_id, content, sent_at)
+VALUES (1, 1, 'Hello, 2 and 3', '2025-08-09 09:15:49.513348 +00:00'),
+       (1, 2, 'Hey, both', '2025-08-09 09:16:49.513348 +00:00'),
+       (1, 1, 'How are you', '2025-08-09 09:25:05.513348 +00:00'),
+       (1, 3, 'Hey folks', '2025-08-09 09:28:05.513348 +00:00'),
 
-       (5, 2, 2, 'Hey user 3, Shall we create a group for backend stuff?', '2025-08-05 22:05:05.513348 +00:00'),
-       (6, 2, 3, 'Let us go!', '2025-08-05 22:31:00.513348 +00:00');
+       (2, 2, 'Hey user 3, Shall we create a group for backend stuff?', '2025-08-05 22:05:05.513348 +00:00'),
+       (2, 3, 'Let us go!', '2025-08-05 22:31:00.513348 +00:00');
 
 -- message_status
 INSERT INTO public.message_status(message_id, user_id, delivered_at, read_at)

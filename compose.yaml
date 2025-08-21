@@ -29,8 +29,11 @@ services:
     environment:
       - KEYCLOAK_ADMIN=mohbalor
       - KEYCLOAK_ADMIN_PASSWORD=secret
+    volumes:
+      - ./backend/keycloak-config/grad-proj-realm-export.json:/opt/keycloak/data/import/realm.json
     command:
       - "start-dev"
+      - "--import-realm"
 
 volumes:
   social_data: # Define the volume
