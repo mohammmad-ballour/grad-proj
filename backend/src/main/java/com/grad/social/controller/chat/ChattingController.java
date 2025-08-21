@@ -8,6 +8,7 @@ import com.grad.social.service.chat.ChattingService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -33,11 +34,10 @@ public class ChattingController {
 
     @PostMapping("/chats/group")
     @PreAuthorize("@SecurityService.isPermittedToAddToGroup(#jwt, #participantIds)")
-    @ResponseStatus(code = HttpStatus.CREATED)
     @SneakyThrows
-    public Long createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long creatorId, @RequestParam String groupName,
-                                @RequestBody Set<Long> participantIds, @RequestParam(required = false) MultipartFile groupPicture) {
-        return this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds);
+    public ResponseEntity<Long> createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long creatorId, @RequestParam String groupName,
+                                                @RequestBody Set<Long> participantIds, @RequestParam(required = false) MultipartFile groupPicture) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds));
     }
 
     @GetMapping("/chats/candidate-group-members")
@@ -94,13 +94,14 @@ public class ChattingController {
         this.chattingService.updateReadStatusForMessagesInChat(chatId, userId);
     }
 
-    // send message
-    @PostMapping("/chats/{chatId}/sendMessage")
-    @ResponseStatus(code = HttpStatus.CREATED)
+    // send/reply to a message
+    @PostMapping(value = "/chats/{chatId}/sendMessage", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public Long sendMessage(@PathVariable Long chatId, @RequestBody CreateMessageRequest createMessage, @AuthenticationPrincipal Jwt jwt) {
+    @SneakyThrows
+    public ResponseEntity<Long> sendMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId, @RequestParam(required = false) Long parentMessageId,
+                                            @RequestPart("request") CreateMessageRequest createMessage, @RequestPart(value = "attachment", required = false) MultipartFile mediaFile) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));    // User ID from JWT
-        return chattingService.saveMessage(createMessage, chatId, senderId); // Save and return persisted message
+        return ResponseEntity.status(HttpStatus.CREATED).body(chattingService.saveMessage(chatId, senderId, parentMessageId, createMessage, mediaFile));
     }
 
 }

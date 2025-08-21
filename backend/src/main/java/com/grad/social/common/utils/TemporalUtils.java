@@ -29,8 +29,4 @@ public class TemporalUtils {
                 .toInstant();
     }
 
-    public static Instant localDateToInstant(LocalDate localDate) {
-        return localDate.atStartOfDay(UTC).toInstant();
-    }
-
 }

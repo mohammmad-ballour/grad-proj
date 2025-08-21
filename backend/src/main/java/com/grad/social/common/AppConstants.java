@@ -7,7 +7,7 @@ import java.time.ZoneOffset;
 
 public final class AppConstants {
 
-	public static final String UPLOAD_DIR = "/var/uploads";
+	public static final String UPLOAD_DIR = "uploads";
 
 	public static final int DEFAULT_STRING_MAX_LENGTH = 100;
 

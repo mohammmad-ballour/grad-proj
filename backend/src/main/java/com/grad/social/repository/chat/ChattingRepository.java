@@ -228,9 +228,9 @@ public class ChattingRepository {
 
 
     // messages and their statuses
-    public Long saveMessage(CreateMessageRequest messageRequest, Long chatId, Long senderId) {
-        return dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.CONTENT)
-                .values(chatId, senderId, messageRequest.content())
+    public Long saveMessage(Long chatId, Long senderId, Long parentMessageId, CreateMessageRequest messageRequest, Long mediaAssetId) {
+        return dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.PARENT_MESSAGE_ID, m.CONTENT, m.MEDIA_ID)
+                .values(chatId, senderId, parentMessageId, messageRequest.content(), mediaAssetId)
                 .returning(m.MESSAGE_ID)
                 .fetchOne()
                 .getMessageId();
