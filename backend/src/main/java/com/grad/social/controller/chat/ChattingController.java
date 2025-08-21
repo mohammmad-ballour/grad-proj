@@ -26,7 +26,7 @@ public class ChattingController {
     private final ChattingService chattingService;
 
     // chats
-    @GetMapping("/chats/{userId}")
+    @GetMapping("/chats/{userId}/chat-list")
     @PreAuthorize("@SecurityService.hasUserLongId(authentication, #userId)")
     public ResponseEntity<List<ChatResponse>> getChatListForUserByUserId(@PathVariable Long userId) {
         return ResponseEntity.ok(this.chattingService.getChatListForUserByUserId(userId));
@@ -40,11 +40,12 @@ public class ChattingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds));
     }
 
-    @GetMapping("/chats/candidate-group-members")
+    @GetMapping("/chats/candidate-users/{nameToSearch}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<UserResponse>> getGroupCandidates(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<UserResponse>> getGroupCandidates(@AuthenticationPrincipal Jwt jwt, @PathVariable String nameToSearch,
+                                                                 @RequestParam(defaultValue = "0") int page) {
         long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.chattingService.searchUsersToAddToGroup(currentUserId));
+        return ResponseEntity.ok(this.chattingService.searchUsersToMessageOrAddToGroup(currentUserId, nameToSearch, page));
     }
 
     // when the user/group avatar in the chat list is clicked, this method is called
@@ -61,7 +62,6 @@ public class ChattingController {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
         return this.chattingService.getExistingOrCreateNewOneToOneChat(senderId, recipientId);
     }
-
 
     @DeleteMapping("/chats/{chatId}")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)

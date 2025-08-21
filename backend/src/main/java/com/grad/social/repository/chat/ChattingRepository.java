@@ -8,6 +8,7 @@ import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.enums.ChatStatus;
 import com.grad.social.model.tables.*;
 import com.grad.social.model.user.response.UserResponse;
+import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -15,7 +16,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +32,7 @@ public class ChattingRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final DSLContext dsl;
+    private final UserUserInteractionRepository userUserInteractionRepository;
 
     // Aliases for subqueries
     private final Messages m = Messages.MESSAGES;
@@ -85,8 +86,8 @@ public class ChattingRepository {
         return chatId;
     }
 
-    public List<UserResponse> getCandidateGroupMembers(Long currentUserId) {
-       return Collections.emptyList();
+    public List<UserResponse> getCandidateUsersToMessageOrAddToGroup(Long currentUserId, String nameToSearch, int offset) {
+        return this.userUserInteractionRepository.searchOtherUsers(currentUserId, nameToSearch, offset);
     }
 
     public List<ChatResponse> getChatListForUserByUserId(Long currentUserId) {

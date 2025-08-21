@@ -36,14 +36,8 @@ public class ChattingService {
         return this.chattingRepository.createGroupChat(creatorId, groupName, pictureBytes, participantIds);
     }
 
-    // TODO
-    public List<UserResponse> searchUsersToAddToGroup(Long currentUserId) {
-        return this.chattingRepository.getCandidateGroupMembers(currentUserId);
-    }
-
-    // TODO
-    public List<UserResponse> searchUsersToAddToMessage(Long currentUserId) {
-        return this.chattingRepository.getCandidateGroupMembers(currentUserId);
+    public List<UserResponse> searchUsersToMessageOrAddToGroup(Long currentUserId, String nameToSearch, int offset) {
+        return this.chattingRepository.getCandidateUsersToMessageOrAddToGroup(currentUserId, nameToSearch, offset);
     }
 
     public Long getExistingOrCreateNewOneToOneChat(Long senderId, Long recipientId) {
@@ -74,6 +68,7 @@ public class ChattingService {
     public void muteConversation(Long chatId, Long currentUserId) {
         this.chattingRepository.muteConversation(chatId, currentUserId);
     }
+
 
     // messages
     public Long saveMessage(Long chatId, Long senderId, Long parentMessageId, CreateMessageRequest createMessageRequest, MultipartFile attachment) throws Exception {

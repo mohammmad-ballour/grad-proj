@@ -8,8 +8,9 @@ CREATE SEQUENCE IF NOT EXISTS public.users_id_seq
 DO
 $$
     BEGIN
+        -- FRIENDS means x follows y and y follows x
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'privacy_settings') THEN
-            CREATE TYPE PRIVACY_SETTINGS AS ENUM ('EVERYONE', 'FOLLOWERS', 'NONE');
+            CREATE TYPE PRIVACY_SETTINGS AS ENUM ('EVERYONE', 'FRIENDS', 'FOLLOWERS', 'NONE');
         END IF;
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gender') THEN
             CREATE TYPE GENDER AS ENUM ('MALE', 'FEMALE', 'PREFER_NOT_TO_SAY');
