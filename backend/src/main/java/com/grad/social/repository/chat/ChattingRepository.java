@@ -8,20 +8,21 @@ import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.enums.ChatStatus;
 import com.grad.social.model.tables.*;
 import com.grad.social.model.user.response.UserResponse;
+import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.impl.DSL;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.grad.social.model.chat.response.MessageStatus.*;
-import static com.grad.social.model.tables.ChatParticipants.CHAT_PARTICIPANTS;
 import static org.jooq.Records.mapping;
 import static org.jooq.impl.DSL.lateral;
 import static org.jooq.impl.DSL.row;
@@ -32,6 +33,7 @@ public class ChattingRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final DSLContext dsl;
+    private final UserUserInteractionRepository userUserInteractionRepository;
 
     // Aliases for subqueries
     private final Messages m = Messages.MESSAGES;
@@ -85,8 +87,8 @@ public class ChattingRepository {
         return chatId;
     }
 
-    public List<UserResponse> getCandidateGroupMembers(Long currentUserId) {
-       return Collections.emptyList();
+    public List<UserResponse> getCandidateUsersToMessageOrAddToGroup(Long currentUserId, String nameToSearch, int offset) {
+        return this.userUserInteractionRepository.searchOtherUsers(currentUserId, nameToSearch, offset);
     }
 
     public List<ChatResponse> getChatListForUserByUserId(Long currentUserId) {
@@ -162,46 +164,44 @@ public class ChattingRepository {
     }
 
     public List<ChatMessageResponse> getChatMessagesByChatId(Long chatId) {
-        return dsl.select(m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT, ms.DELIVERED_AT, ms.READ_AT)
+        // scalar subquery: count how many participants still haven't read
+        Field<Integer> unreadCountField = DSL
+                .selectCount()
+                .from(ms)
+                .where(ms.MESSAGE_ID.eq(m.MESSAGE_ID)
+                        .and(ms.USER_ID.ne(m.SENDER_ID)) // exclude sender
+                        .and(ms.READ_AT.isNull()))
+                .asField("unread_count");
+
+        // scalar subquery: count how many participants still haven't received
+        Field<Integer> undeliveredCountField = DSL
+                .selectCount()
+                .from(ms)
+                .where(ms.MESSAGE_ID.eq(m.MESSAGE_ID)
+                        .and(ms.USER_ID.ne(m.SENDER_ID))
+                        .and(ms.DELIVERED_AT.isNull()))
+                .asField("undelivered_count");
+
+        // number of participants in this chat (excluding sender)
+        int participantsCount = Objects.requireNonNull(dsl
+                .selectCount()
+                .from(cp)
+                .where(cp.CHAT_ID.eq(chatId))
+                .fetchOneInto(Integer.class)) - 1;
+
+        return dsl.selectDistinct(m.MESSAGE_ID, m.PARENT_MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT, unreadCountField, undeliveredCountField)
                 .from(m)
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
                 .where(m.CHAT_ID.eq(chatId))
                 .orderBy(m.SENT_AT.asc())
-                .fetch(mapping((messageId, senderId, content, sentAt, deliveredAt, readAt) -> {
+                .fetch(mapping((messageId, parentMessageId, senderId, content, sentAt, unreadCount, undeliveredCount) -> {
                     com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
-                    if (readAt != null) {
+                    if (unreadCount == 0) {
                         messageStatus = READ;
-                    } else if (deliveredAt != null) {
+                    } else if (undeliveredCount == 0) {
                         messageStatus = DELIVERED;
                     }
-                    return new ChatMessageResponse(messageId, senderId, content, sentAt, messageStatus);
-                }));
-    }
-
-    // for 1-1 chats only
-    public List<ChatMessageResponse> getChatMessagesByRecipientId(Long currentUserId, Long recipientId) {
-        return dsl.select(m.MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT, ms.DELIVERED_AT, ms.READ_AT)
-                .from(c)
-                .join(cp).on(c.CHAT_ID.eq(cp.CHAT_ID))
-                .join(cp2).on(c.CHAT_ID.eq(cp2.CHAT_ID))
-                .join(m).on(m.CHAT_ID.eq(c.CHAT_ID).and(m.SENDER_ID.eq(cp.USER_ID)))
-                .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
-                .where(
-                        c.IS_GROUP_CHAT.isFalse()
-                                .and(
-                                        (cp.USER_ID.eq(currentUserId).and(cp2.USER_ID.eq(recipientId)))
-                                                .or(cp.USER_ID.eq(recipientId).and(cp2.USER_ID.eq(currentUserId)))
-                                )
-                )
-                .orderBy(m.SENT_AT)
-                .fetch(mapping((messageId, senderId, content, sentAt, deliveredAt, readAt) -> {
-                    com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
-                    if (readAt != null) {
-                        messageStatus = READ;
-                    } else if (deliveredAt != null) {
-                        messageStatus = DELIVERED;
-                    }
-                    return new ChatMessageResponse(messageId, senderId, content, sentAt, messageStatus);
+                    return new ChatMessageResponse(messageId, parentMessageId, senderId, content, sentAt, messageStatus);
                 }));
     }
 
@@ -322,9 +322,9 @@ public class ChattingRepository {
     public boolean isParticipant(Long chatId, Long userId) {
         return dsl.fetchExists(
                 dsl.selectOne()
-                        .from(CHAT_PARTICIPANTS)
-                        .where(CHAT_PARTICIPANTS.CHAT_ID.eq(chatId))
-                        .and(CHAT_PARTICIPANTS.USER_ID.eq(userId))
+                        .from(cp)
+                        .where(cp.CHAT_ID.eq(chatId))
+                        .and(cp.USER_ID.eq(userId))
         );
     }
 

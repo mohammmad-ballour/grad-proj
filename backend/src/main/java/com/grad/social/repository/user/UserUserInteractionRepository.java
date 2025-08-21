@@ -3,6 +3,8 @@ package com.grad.social.repository.user;
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
+import com.grad.social.model.enums.PrivacySettings;
+import com.grad.social.model.shared.FriendshipStatus;
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
@@ -65,7 +67,7 @@ public class UserUserInteractionRepository {
                 .as("is_following_current_user");
 
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
-        return dsl.select(uf1.FOLLOWER_ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED,
+        return dsl.select(uf1.FOLLOWER_ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, u.PROFILE_BIO, u.IS_VERIFIED,
                         isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
                 .join(uf1).on(uf1.FOLLOWER_ID.eq(u.ID))
@@ -90,7 +92,7 @@ public class UserUserInteractionRepository {
                 .orderBy(isFollowedByCurrentUserField.desc(), uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
                 .offset(offset * pageSize)
                 .limit(pageSize)
-                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
+                .fetch(mapping((uid, username, displayName, profilePicture, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
                     var res = new UserResponse();
                     res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     res.setProfileBio(profileBio);
@@ -111,7 +113,7 @@ public class UserUserInteractionRepository {
                 .as("is_following_current_user");
 
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
-        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField, isFollowingCurrentUserField)
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, u.PROFILE_BIO, u.IS_VERIFIED, isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
                 .join(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID))
                 // isFollowedByCurrentUserField
@@ -134,7 +136,7 @@ public class UserUserInteractionRepository {
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWED_USER_ID.desc())
                 .offset(offset * pageSize)
                 .limit(pageSize)
-                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
+                .fetch(mapping((uid, username, displayName, profilePicture, profileBio, isVerified, isFollowedByCurrentUser, isFollowingCurrentUser) -> {
                     var res = new UserResponse();
                     res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     res.setProfileBio(profileBio);
@@ -148,7 +150,7 @@ public class UserUserInteractionRepository {
     // followings of userId (profile owner) that the current user (you) is following
     public List<UserResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, int offset) {
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
-        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, uf1.FOLLOWED_AT, u.PROFILE_BIO, u.IS_VERIFIED)
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, u.PROFILE_BIO, u.IS_VERIFIED)
                 .from(u)
                 .join(uf1).on(u.ID.eq(uf1.FOLLOWED_USER_ID))
                 .leftJoin(uf2).on(
@@ -165,7 +167,7 @@ public class UserUserInteractionRepository {
                 .orderBy(uf1.FOLLOWED_AT.desc(), uf1.FOLLOWER_ID.desc())
                 .offset(offset * pageSize)
                 .limit(pageSize)
-                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, profileBio, isVerified) -> {
+                .fetch(mapping((uid, username, displayName, profilePicture, profileBio, isVerified) -> {
                     var res = new UserResponse();
                     res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     res.setProfileBio(profileBio);
@@ -189,15 +191,15 @@ public class UserUserInteractionRepository {
 
     public List<UserResponse> findMutedUsersWithPagination(Long userId, int offset) {
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
-        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, um.MUTED_AT)
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE)
                 .from(um)
                 .join(u)
                 .on(um.MUTED_USER_ID.eq(u.ID))
                 .where(um.USER_ID.eq(userId))
                 .orderBy(um.MUTED_AT.desc(), um.MUTED_USER_ID.desc())
-                .offset(offset)
+                .offset(offset * pageSize)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt) -> {
+                .fetch(mapping((uid, username, displayName, profilePicture) -> {
                     var res = new UserResponse();
                     res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     return res;
@@ -218,15 +220,15 @@ public class UserUserInteractionRepository {
 
     public List<UserResponse> findBlockedUsersWithPagination(Long userId, int offset) {
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
-        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, ub.BLOCKED_AT, u.IS_VERIFIED)
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, u.IS_VERIFIED)
                 .from(ub)
                 .join(u)
                 .on(ub.BLOCKED_USER_ID.eq(u.ID))
                 .where(ub.USER_ID.eq(userId))
                 .orderBy(ub.BLOCKED_AT.desc(), ub.BLOCKED_USER_ID.desc())
-                .offset(offset)
+                .offset(offset * pageSize)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping((uid, username, displayName, profilePicture, actionHappenedAt, isVerified) -> {
+                .fetch(mapping((uid, username, displayName, profilePicture, isVerified) -> {
                     var res = new UserResponse();
                     res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
                     res.setVerified(isVerified);
@@ -235,12 +237,31 @@ public class UserUserInteractionRepository {
     }
 
     // search users by username for a given userId, ORDERED BY favourite friends -> default friends -> verified non friends -> restricted friends -> others
-    public List<UserAvatar> searchOtherUsers(Long userId, String usernameToFind) {
-        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE)
+    public List<UserResponse> searchOtherUsers(Long currentUserId, String usernameToFind, int offset) {
+        Field<Boolean> isFollowedByCurrentUserField = when(uf2.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+                .otherwise(DSL.falseCondition())
+                .as("is_followed_by_current_user");
+
+        Field<Boolean> isFollowingCurrentUserField = when(uf3.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+                .otherwise(DSL.falseCondition())
+                .as("is_following_current_user");
+
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, u.PROFILE_BIO, u.IS_VERIFIED, u.WHO_CAN_MESSAGE, u.WHO_CAN_ADD_TO_GROUPS,
+                        isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
                 .leftJoin(uf1)
-                .on(uf1.FOLLOWER_ID.eq(u.ID).and(uf1.FOLLOWED_USER_ID.eq(userId)))
-                .where(u.USERNAME.likeIgnoreCase(usernameToFind + "%"))
+                .on(uf1.FOLLOWED_USER_ID.eq(u.ID).and(uf1.FOLLOWER_ID.eq(currentUserId)))
+                // isFollowedByCurrentUserField
+                .leftJoin(uf2).on(
+                        uf2.FOLLOWED_USER_ID.eq(uf1.FOLLOWER_ID).and(uf2.FOLLOWER_ID.eq(currentUserId))
+                )
+                // isFollowingCurrentUser
+                .leftJoin(uf3).on(
+                        uf3.FOLLOWER_ID.eq(uf1.FOLLOWER_ID).and(uf3.FOLLOWED_USER_ID.eq(currentUserId))
+                )
+                .where(usernameToFind.isBlank() ? DSL.trueCondition() : u.USERNAME.likeIgnoreCase(usernameToFind + "%"))
                 .orderBy(case_()
                         .when(uf1.FOLLOWED_USER_ID.isNotNull(),                                                     // Priority 1: Friends
                                 case_().when(uf1.FOLLOWING_PRIORITY.eq(FollowingPriority.FAVOURITE), 0)      // Priority  1-1: Favourite friends
@@ -251,8 +272,20 @@ public class UserUserInteractionRepository {
                         .when(u.IS_VERIFIED.isTrue(), 2)                                                    // Priority 2: Verified non-friends
                         .otherwise(5)                                                                       // Priority 5: All other non-friends
                 )
-                .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping(UserAvatar::new));
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch(mapping((uid, username, displayName, profilePicture, profileBio, isVerified, whoCanMessage, whoCanAddToGroups,
+                                isFollowedByCurrentUser, isFollowingCurrentUser) -> {
+                    var res = new UserResponse();
+                    res.setUserAvatar(new UserAvatar(uid, username, displayName, profilePicture));
+                    res.setProfileBio(profileBio);
+                    res.setVerified(isVerified);
+                    res.setIsFollowedByCurrentUser(isFollowedByCurrentUser);
+                    res.setIsFollowingCurrentUser(isFollowingCurrentUser);
+                    res.setCanBeMessagedByCurrentUser(canBeMessagedOrAddedToGroup(whoCanAddToGroups, isFollowedByCurrentUser, isFollowingCurrentUser));
+                    res.setCanBeAddedToGroupByCurrentUser(canBeMessagedOrAddedToGroup(whoCanAddToGroups, isFollowedByCurrentUser, isFollowingCurrentUser));
+                    return res;
+                }));
     }
 
     // Utils
@@ -281,27 +314,32 @@ public class UserUserInteractionRepository {
                 .fetchOneInto(ProfileStatus.class);
     }
 
-    public boolean isFollowedByCurrentUser(Long otherUserId, Long currentUserId) {
-        Boolean res = dsl.select(DSL.exists(
-                                dsl.selectOne()
-                                        .from(uf1)
-                                        .where(uf1.FOLLOWER_ID.eq(currentUserId)
-                                                .and(uf1.FOLLOWED_USER_ID.eq(otherUserId)))
-                        ).as("is_followed_by_current_user")
-                )
-                .fetchOneInto(Boolean.class);
-        return res != null && res;
+    private boolean canBeMessagedOrAddedToGroup(PrivacySettings setting, boolean isFollowedByCurrentUser, boolean isFollowingCurrentUser) {
+        return switch (setting) {
+            case EVERYONE -> true;
+            case FOLLOWERS -> isFollowedByCurrentUser;
+            case FRIENDS -> isFollowedByCurrentUser && isFollowingCurrentUser;
+            case NONE -> false;
+        };
     }
 
-    public Map<Long, Boolean> isFollowedByCurrentUser(Set<Long> otherUserIds, Long currentUserId) {
-        return dsl.select(u.ID, DSL.when(uf1.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_followed"))
-                .from(u.as("u"))
-                .leftJoin(uf1).on(uf1.FOLLOWED_USER_ID.eq(field("u.id", Long.class))
+    public Map<Long, FriendshipStatus> getFollowRelations(Set<Long> otherUserIds, Long currentUserId) {
+        return dsl.select(
+                        u.ID,
+                        DSL.when(uf1.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_followed"),
+                        DSL.when(uf2.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_following")
+                )
+                .from(u)
+                // currentUser follows otherUser
+                .leftJoin(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID)
                         .and(uf1.FOLLOWER_ID.eq(currentUserId)))
-                .where(field("u.id", Long.class).in(otherUserIds))
+                // otherUser follows currentUser
+                .leftJoin(uf2).on(uf2.FOLLOWER_ID.eq(u.ID)
+                        .and(uf2.FOLLOWED_USER_ID.eq(currentUserId)))
+                .where(u.ID.in(otherUserIds))
                 .fetchMap(
-                        r -> r.get("id", Long.class),
-                        r -> r.get("is_followed", Boolean.class)
+                        r -> r.get(u.ID),
+                        r -> new FriendshipStatus(r.get("is_followed", Boolean.class), r.get("is_following", Boolean.class))
                 );
     }
 
