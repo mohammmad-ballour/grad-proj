@@ -2,6 +2,7 @@ package com.grad.social.repository.chat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grad.social.common.database.utils.TsidUtils;
 import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
@@ -12,11 +13,15 @@ import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.*;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
+import io.hypersistence.tsid.TSID;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.impl.DSL;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -35,6 +40,7 @@ public class ChattingRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final DSLContext dsl;
+    private final TSID.Factory tsidFactory = TsidUtils.getTsidFactory(2);
     private final UserUserInteractionRepository userUserInteractionRepository;
     private final ObjectMapper objectMapper;
 
@@ -50,10 +56,11 @@ public class ChattingRepository {
     private final UserFollowers uf3 = UserFollowers.USER_FOLLOWERS.as("uf3");
 
     // chats
+    @Retryable(retryFor = {DuplicateKeyException.class}, maxAttempts = 5, backoff = @Backoff(delay = 500))
     public Long createOneToOneChat(Long senderId, Long recipientId) {
         // Create chat
-        Long chatId = dsl.insertInto(c, c.IS_GROUP_CHAT)
-                .values(false)
+        Long chatId = dsl.insertInto(c, c.CHAT_ID, c.IS_GROUP_CHAT)
+                .values(tsidFactory.generate().toLong(), false)
                 .returning(c.CHAT_ID)
                 .fetchOne()
                 .getChatId();
@@ -67,9 +74,11 @@ public class ChattingRepository {
         return chatId;
     }
 
+    @Retryable(retryFor = {DuplicateKeyException.class}, maxAttempts = 5, backoff = @Backoff(delay = 500))
     public Long createGroupChat(Long creatorId, String groupName, byte[] groupPicture, Set<Long> participantIds) {
         // Create group chat
         Long chatId = dsl.insertInto(c)
+                .set(c.CHAT_ID, tsidFactory.generate().toLong())
                 .set(c.NAME, groupName)         // custom group name
                 .set(c.PICTURE, groupPicture)   // Custom group picture
                 .returning(c.CHAT_ID)

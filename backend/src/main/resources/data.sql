@@ -1,5 +1,4 @@
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
-ALTER SEQUENCE chats_chat_id_seq RESTART WITH 1;
 ALTER SEQUENCE messages_message_id_seq RESTART WITH 1;
 ALTER SEQUENCE media_asset_media_id_seq RESTART WITH 1;
 
@@ -118,44 +117,45 @@ VALUES (1, 2, '2025-08-06', 'DEFAULT'),
 
        (16, 2, '2025-05-09', 'DEFAULT');
 
-
+-- mutes
 INSERT INTO public.user_mutes (user_id, muted_user_id, muted_at, muted_until)
 VALUES (2, 1, '2025-08-09 09:15:49.513348 +00:00', '2025-08-10 09:15:49.513348 +00:00');
 
+-- blocks
 INSERT INTO public.user_blocks(user_id, blocked_user_id, blocked_at)
 VALUES (2, 3, '2025-08-09');
 
 -- chats
 INSERT INTO public.chats(chat_id, is_group_chat, name, created_at)
-VALUES (1, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
+VALUES (1000, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
 
-       (2, false, 'User 3', '2025-08-05 22:05:05.513348 +00:00'),
+       (2000, false, 'User 3', '2025-08-05 22:05:05.513348 +00:00'),
 
-       (3, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00');
--- no messages yet
+       -- no messages yet in this chat
+       (3000, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00');
 
 -- chat_participants
 INSERT INTO public.chat_participants(chat_id, user_id)
-VALUES (1, 1),
-       (1, 2),
-       (1, 3),
-       (1, 4),
+VALUES (1000, 1),
+       (1000, 2),
+       (1000, 3),
+       (1000, 4),
 
-       (2, 2),
-       (2, 3),
+       (2000, 2),
+       (2000, 3),
 
-       (3, 2),
-       (3, 3);
+       (3000, 2),
+       (3000, 3);
 
 -- messages
 INSERT INTO public.messages(chat_id, parent_message_id, sender_id, content, sent_at)
-VALUES (1, null, 1, 'Hello, 2 and 3', '2025-08-09 09:15:49.513348 +00:00'),
-       (1, null, 2, 'Hey, both', '2025-08-09 09:16:49.513348 +00:00'),
-       (1, 2, 1, 'How are you', '2025-08-09 09:25:05.513348 +00:00'),
-       (1, 1, 3, 'Hey folks', '2025-08-09 09:28:05.513348 +00:00'),
+VALUES (1000, null, 1, 'Hello, 2 and 3', '2025-08-09 09:15:49.513348 +00:00'),
+       (1000, null, 2, 'Hey, both', '2025-08-09 09:16:49.513348 +00:00'),
+       (1000, 2, 1, 'How are you', '2025-08-09 09:25:05.513348 +00:00'),
+       (1000, 1, 3, 'Hey folks', '2025-08-09 09:28:05.513348 +00:00'),
 
-       (2, null, 2, 'Hey user 3, Shall we create a group for backend stuff?', '2025-08-05 22:05:05.513348 +00:00'),
-       (2, 5, 3, 'Let us go!', '2025-08-05 22:31:00.513348 +00:00');
+       (2000, null, 2, 'Hey user 3, Shall we create a group for backend stuff?', '2025-08-05 22:05:05.513348 +00:00'),
+       (2000, 5, 3, 'Let us go!', '2025-08-05 22:31:00.513348 +00:00');
 
 -- message_status
 INSERT INTO public.message_status(message_id, user_id, delivered_at, read_at)

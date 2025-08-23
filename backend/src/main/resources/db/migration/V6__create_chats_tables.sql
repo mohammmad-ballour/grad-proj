@@ -13,7 +13,7 @@ $$;
 
 CREATE TABLE chats
 (
-    chat_id       BIGSERIAL PRIMARY KEY,
+    chat_id       BIGINT PRIMARY KEY,
     is_group_chat BOOLEAN     DEFAULT FALSE,
     name          VARCHAR(100), -- Display name for 1-1 (default: recipient's display_name, computed at the fly) or group name
     picture       BYTEA,        -- (default: recipient's profile_picture for 1-1, computed at the fly) and custom for groups
@@ -45,6 +45,7 @@ CREATE TABLE messages
     constraint message_type_check check ( message_type = 'TEXT' OR media_id IS NOT NULL ),
     constraint at_least_text_or_media check ( content IS NOT NULL OR media_id IS NOT NULL )
 );
+
 CREATE TABLE message_status
 (
     message_id   BIGINT REFERENCES messages (message_id) ON DELETE CASCADE,
