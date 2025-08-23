@@ -8,6 +8,7 @@ import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.enums.ChatStatus;
+import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.*;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
@@ -192,19 +193,24 @@ public class ChattingRepository {
                 .where(cp.CHAT_ID.eq(chatId))
                 .fetchOneInto(Integer.class)) - 1;
 
-        return dsl.selectDistinct(m.MESSAGE_ID, m.PARENT_MESSAGE_ID, m.SENDER_ID, m.CONTENT, m.SENT_AT, unreadCountField, undeliveredCountField)
+        return dsl.selectDistinct(m.MESSAGE_ID, m.PARENT_MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, m.CONTENT, m.SENT_AT,
+                        unreadCountField, undeliveredCountField)
                 .from(m)
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .join(u).on(m.SENDER_ID.eq(u.ID))
                 .where(m.CHAT_ID.eq(chatId))
                 .orderBy(m.SENT_AT.asc())
-                .fetch(mapping((messageId, parentMessageId, senderId, content, sentAt, unreadCount, undeliveredCount) -> {
+                .fetch(mapping((messageId, parentMessageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
+                                unreadCount, undeliveredCount) -> {
+                    System.out.println("Unread count = " + unreadCount);
+                    System.out.println("Undelivered count = " + undeliveredCount);
                     com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
                     if (unreadCount == 0) {
                         messageStatus = READ;
                     } else if (undeliveredCount == 0) {
                         messageStatus = DELIVERED;
                     }
-                    return new ChatMessageResponse(messageId, parentMessageId, senderId, content, sentAt, messageStatus);
+                    return new ChatMessageResponse(messageId, parentMessageId, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture), content, sentAt, messageStatus);
                 }));
     }
 

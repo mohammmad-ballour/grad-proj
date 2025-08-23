@@ -24,11 +24,11 @@ CREATE TABLE chats
 -- for 1-1 chats only, we ensure that a pair of users can only have one non-group chat at the application level
 CREATE TABLE chat_participants
 (
-    chat_id             BIGINT REFERENCES chats (chat_id) ON DELETE CASCADE,
-    user_id             BIGINT REFERENCES users (id) ON DELETE CASCADE,
+    chat_id     BIGINT REFERENCES chats (chat_id) ON DELETE CASCADE,
+    user_id     BIGINT REFERENCES users (id) ON DELETE CASCADE,
 --     role VARCHAR(50) DEFAULT 'member', -- e.g., 'admin', 'member'
-    chat_status         CHAT_STATUS NOT NULL DEFAULT 'NORMAL',
-    is_pinned           BOOLEAN              DEFAULT FALSE,
+    chat_status CHAT_STATUS NOT NULL DEFAULT 'NORMAL',
+    is_pinned   BOOLEAN              DEFAULT FALSE,
     PRIMARY KEY (chat_id, user_id)
 );
 
@@ -51,5 +51,6 @@ CREATE TABLE message_status
     user_id      BIGINT REFERENCES users (id) ON DELETE CASCADE,
     delivered_at TIMESTAMPTZ DEFAULT NULL,
     read_at      TIMESTAMPTZ DEFAULT NULL,
+    CONSTRAINT read_deliver_consistency CHECK (read_at IS NULL OR delivered_at IS NOT NULL),
     PRIMARY KEY (message_id, user_id)
 );
