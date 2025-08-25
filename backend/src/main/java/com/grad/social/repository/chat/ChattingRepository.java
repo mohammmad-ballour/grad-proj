@@ -120,6 +120,7 @@ public class ChattingRepository {
                 .groupBy(m.CHAT_ID)
                 .asTable("uc");
 
+        var cpOther = cp.as("cp_other");
         return dsl.selectDistinct(
                         c.CHAT_ID,
                         DSL.case_()
@@ -145,7 +146,8 @@ public class ChattingRepository {
                 )
                 .from(c)
                 .join(cp).on(c.CHAT_ID.eq(cp.CHAT_ID))
-                .join(u).on(u.ID.eq(cp.USER_ID))
+                .leftJoin(cpOther).on(cpOther.CHAT_ID.eq(c.CHAT_ID).and(cpOther.USER_ID.ne(currentUserId)))
+                .join(u).on(u.ID.eq(cpOther.USER_ID))
                 .leftJoin(lateral(lm)).on(DSL.trueCondition())
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
                 .where(cp.USER_ID.eq(currentUserId))
@@ -366,11 +368,15 @@ public class ChattingRepository {
     }
 
     public Long isOneToOneChatAlreadyExists(Long userA, Long userB) {
-        return dsl.select(c.CHAT_ID)
+        return dsl.selectDistinct(c.CHAT_ID)
                 .from(c)
                 .join(cp).on(c.CHAT_ID.eq(cp.CHAT_ID))
                 .join(cp2).on(c.CHAT_ID.eq(cp2.CHAT_ID))
-                .where(c.IS_GROUP_CHAT.isFalse().and(cp.USER_ID.eq(userA).and(cp2.USER_ID.eq(userB))))
+                .where(c.IS_GROUP_CHAT.isFalse().and(
+                                (cp.USER_ID.eq(userA).and(cp2.USER_ID.eq(userB)))
+                                        .or(cp.USER_ID.eq(userB).and(cp2.USER_ID.eq(userA)))
+                        )
+                )
                 .fetchOneInto(Long.class);
     }
 

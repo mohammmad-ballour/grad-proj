@@ -44,6 +44,7 @@ public class ChattingService {
     public Long getExistingOrCreateNewOneToOneChat(Long senderId, Long recipientId) {
         Long chatId = this.chattingRepository.isOneToOneChatAlreadyExists(senderId, recipientId);
         if (chatId == null) {
+            System.out.println("Not existing chat, creating new one");
             // create new chat and add participants
             chatId = this.chattingRepository.createOneToOneChat(senderId, recipientId);
         }

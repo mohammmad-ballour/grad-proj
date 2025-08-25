@@ -22,7 +22,7 @@ public class ChatsCleanerJob {
     private final DSLContext dsl;
 
     // Runs every 5 minutes
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "0 */30 * * * *")
     public void cleanStaleOneToOneChats() {
         int deleted = dsl.deleteFrom(CHATS)
                 .where(CHATS.IS_GROUP_CHAT.isFalse())
