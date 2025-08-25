@@ -47,7 +47,7 @@ export class ChatService extends BaseService {
     content: string,
     file?: File,
     parentMessageId?: number
-  ): Observable<MessageResponse> {
+  ): Observable<number> {
     const formData = new FormData();
 
     // JSON part ("request")
@@ -57,18 +57,18 @@ export class ChatService extends BaseService {
       new Blob([JSON.stringify(request)], { type: "application/json" })
     );
 
-    // File part
+    // File part (optional)
     if (file) {
       formData.append("attachment", file);
     }
 
-    // Append parentMessageId as query param if present
-    let url = `${this.baseUrl}/api/chats/${chatId}/sendMessage`;
-    if (parentMessageId) {
+    // Append parentMessageId as query param (only if defined, including 0)
+    let url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/sendMessage`;
+    if (parentMessageId !== undefined && parentMessageId !== null) {
       url += `?parentMessageId=${parentMessageId}`;
     }
 
-    return this.httpClient.post<MessageResponse>(url, formData);
+    return this.httpClient.post<number>(url, formData);
   }
 
 

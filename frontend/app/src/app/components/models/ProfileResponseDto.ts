@@ -28,7 +28,12 @@ export interface PostCard {
     postedAt: string;
     isPinned: boolean;
 }
-
+export interface UserAvatar {
+    userId: number;
+    displayName: string;
+    username: string;
+    profilePicture: string; // (byte) → base64 or URL on backend
+}
 
 
 

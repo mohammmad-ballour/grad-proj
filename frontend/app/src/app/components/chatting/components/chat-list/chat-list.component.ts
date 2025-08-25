@@ -45,8 +45,10 @@ export class ChatListComponent {
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
         this.chats.set(res);
+        console.log(res)
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
+          console.log(chatId)
           const chat = this.chats().find((c) => c.chatId === +chatId);
           if (chat) {
             this.chatClicked(chat);
@@ -85,6 +87,7 @@ export class ChatListComponent {
   }
 
   sendMessage(): void {
+    console.log(this.chatSelected())
     if (!this.messageToSent.trim() || !this.isChatSelected()) return;
 
     const parentMessageId = this.replyingToMessage()?.messageId
@@ -92,7 +95,7 @@ export class ChatListComponent {
       : undefined;
 
     this.chatService
-      .sendMessage(this.chatSelected().chatId, this.messageToSent, undefined, parentMessageId)
+      .sendMessage(this.chatSelected().chatId, this.messageToSent, undefined, undefined)
       .subscribe({
         next: () => {
           this.messageToSent = '';
@@ -113,8 +116,11 @@ export class ChatListComponent {
   }
 
   getMessagesToSelectedChatt() {
+
     this.chatService.getChatMessages(this.chatSelected().chatId).subscribe({
-      next: (messages) => this.messagesToSelectedChatt.set(messages),
+      next: (messages) => {
+        this.messagesToSelectedChatt.set(messages);
+      },
       error: (err) => console.error('Error fetching messages', err)
     });
   }
