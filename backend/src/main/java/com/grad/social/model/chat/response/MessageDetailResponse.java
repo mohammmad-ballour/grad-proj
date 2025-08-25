@@ -11,12 +11,8 @@ import java.util.Map;
 @AllArgsConstructor
 @Data
 public final class MessageDetailResponse {
-    private Long messageId;
-    private Long senderId;
-    private String content;
-    private Instant sentAt;
     private boolean delivered;
     private boolean read;
-    private Map<Long, Instant> deliveredByAt;
     private Map<Long, Instant> readByAt;
+    private Map<Long, Instant> deliveredByAt;
 }

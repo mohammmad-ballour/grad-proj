@@ -1,5 +1,4 @@
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
-ALTER SEQUENCE chats_chat_id_seq RESTART WITH 1;
 ALTER SEQUENCE messages_message_id_seq RESTART WITH 1;
 ALTER SEQUENCE media_asset_media_id_seq RESTART WITH 1;
 
@@ -68,36 +67,32 @@ VALUES ('test@gmail.com', 'testusername', 'USER 1', '1990-01-01', 'MALE', 'Köln
 -- followers
 INSERT INTO public.user_followers (followed_user_id, follower_id, followed_at, following_priority)
 VALUES (1, 2, '2025-08-06', 'DEFAULT'),
-
        (1, 3, '2025-08-01', 'DEFAULT'),
-
        (1, 4, '2025-08-06', 'DEFAULT'),
-
        (1, 5, '2025-08-06', 'FAVOURITE'),
-
        (1, 6, '2025-08-05', 'DEFAULT'),
-
        (1, 7, '2025-08-06', 'DEFAULT'),
-
        (1, 8, '2025-08-06', 'DEFAULT'),
-
        (1, 10, '2025-08-06', 'FAVOURITE'),
-
        (1, 11, '2025-05-06', 'DEFAULT'),
-
        (1, 12, '2025-08-06', 'DEFAULT'),
-
        (1, 13, '2025-08-06', 'DEFAULT'),
-
        (1, 14, '2025-08-02', 'RESTRICTED'),
-
        (1, 15, '2025-07-06', 'DEFAULT'),
+
+       (2, 1, '2025-05-01', 'DEFAULT'),
+       (2, 6, '2025-06-01', 'DEFAULT'),
+       (2, 8, '2025-05-07', 'DEFAULT'),
+       (2, 5, '2025-05-02', 'FAVOURITE'),
+       (2, 4, '2025-05-02', 'DEFAULT'),
+       (2, 7, '2025-05-01', 'DEFAULT'),
 
        (3, 1, '2025-05-06', 'DEFAULT'),
 
        (4, 1, '2025-05-06', 'DEFAULT'),
 
        (5, 1, '2025-05-10', 'DEFAULT'),
+       (5, 2, '2025-05-09', 'RESTRICTED'),
 
        (6, 1, '2025-06-06', 'DEFAULT'),
 
@@ -106,106 +101,79 @@ VALUES (1, 2, '2025-08-06', 'DEFAULT'),
        (8, 1, '2025-05-06', 'DEFAULT'),
 
        (9, 1, '2025-07-03', 'DEFAULT'),
-
-       (11, 1, '2024-09-13', 'DEFAULT'),
-
-       (12, 1, '2025-05-06', 'DEFAULT'),
+       (9, 2, '2025-05-09', 'DEFAULT'),
 
        (10, 1, '2025-05-04', 'DEFAULT'),
-
-       (14, 1, '2025-05-09', 'DEFAULT'),
-
-       (11, 2, '2024-09-13', 'DEFAULT'),
-
-       (12, 2, '2025-05-06', 'FAVOURITE'),
-
        (10, 2, '2025-05-04', 'DEFAULT'),
 
+       (11, 1, '2024-09-13', 'DEFAULT'),
+       (11, 2, '2024-09-13', 'DEFAULT'),
+
+       (12, 1, '2025-05-06', 'DEFAULT'),
+       (12, 2, '2025-05-06', 'FAVOURITE'),
+
+       (14, 1, '2025-05-09', 'DEFAULT'),
        (14, 2, '2025-05-09', 'DEFAULT'),
-
-       (2, 1, '2025-05-01', 'DEFAULT'),
-
-       (2, 6, '2025-06-01', 'DEFAULT'),
-
-       (2, 8, '2025-05-07', 'DEFAULT'),
-
-       (2, 5, '2025-05-02', 'FAVOURITE'),
-
-       (2, 4, '2025-05-02', 'DEFAULT'),
-
-       (2, 7, '2025-05-01', 'DEFAULT'),
-
-       (5, 2, '2025-05-09', 'RESTRICTED'),
-
-       (9, 2, '2025-05-09', 'DEFAULT'),
 
        (16, 2, '2025-05-09', 'DEFAULT');
 
-
+-- mutes
 INSERT INTO public.user_mutes (user_id, muted_user_id, muted_at, muted_until)
 VALUES (2, 1, '2025-08-09 09:15:49.513348 +00:00', '2025-08-10 09:15:49.513348 +00:00');
 
+-- blocks
 INSERT INTO public.user_blocks(user_id, blocked_user_id, blocked_at)
 VALUES (2, 3, '2025-08-09');
 
 -- chats
 INSERT INTO public.chats(chat_id, is_group_chat, name, created_at)
-VALUES (1, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
+VALUES (1000, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
 
-       (2, false, 'User 3', '2025-08-05 22:05:05.513348 +00:00'),
+       (2000, false, 'User 3', '2025-08-05 22:05:05.513348 +00:00'),
 
-       (3, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00');
--- no messages yet
+       -- no messages yet in this chat
+       (3000, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00');
 
 -- chat_participants
 INSERT INTO public.chat_participants(chat_id, user_id)
-VALUES (1, 1),
+VALUES (1000, 1),
+       (1000, 2),
+       (1000, 3),
+       (1000, 4),
 
-       (1, 2),
+       (2000, 2),
+       (2000, 3),
 
-       (1, 3),
-
-       (2, 2),
-
-       (2, 3),
-
-       (3, 2),
-
-       (3, 3);
+       (3000, 2),
+       (3000, 3);
 
 -- messages
-INSERT INTO public.messages(chat_id, sender_id, content, sent_at)
-VALUES (1, 1, 'Hello, 2 and 3', '2025-08-09 09:15:49.513348 +00:00'),
+INSERT INTO public.messages(chat_id, parent_message_id, sender_id, content, sent_at)
+VALUES (1000, null, 1, 'Hello, 2 and 3', '2025-08-09 09:15:49.513348 +00:00'),
+       (1000, null, 2, 'Hey, both', '2025-08-09 09:16:49.513348 +00:00'),
+       (1000, 2, 1, 'How are you', '2025-08-09 09:25:05.513348 +00:00'),
+       (1000, 1, 3, 'Hey folks', '2025-08-09 09:28:05.513348 +00:00'),
 
-       (1, 2, 'Hey, both', '2025-08-09 09:16:49.513348 +00:00'),
-
-       (1, 1, 'How are you', '2025-08-09 09:25:05.513348 +00:00'),
-
-       (1, 3, 'Hey folks', '2025-08-09 09:28:05.513348 +00:00'),
-
-
-       (2, 2, 'Hey user 3, Shall we create a group for backend stuff?', '2025-08-05 22:05:05.513348 +00:00'),
-
-       (2, 3, 'Let us go!', '2025-08-05 22:31:00.513348 +00:00');
+       (2000, null, 2, 'Hey user 3, Shall we create a group for backend stuff?', '2025-08-05 22:05:05.513348 +00:00'),
+       (2000, 5, 3, 'Let us go!', '2025-08-05 22:31:00.513348 +00:00');
 
 -- message_status
 INSERT INTO public.message_status(message_id, user_id, delivered_at, read_at)
 VALUES (1, 2, '2025-08-09 09:16:05.513348 +00:00', '2025-08-09 09:15:49.513348 +00:00'),
-
        (1, 3, '2025-08-09 09:16:05.513348 +00:00', '2025-08-09 09:16:00.513348 +00:00'),
+       (1, 4, null, null),
 
        (2, 1, '2025-08-09 09:17:05.513348 +00:00', '2025-08-09 09:18:07.513348 +00:00'),
-
        (2, 3, '2025-08-09 09:17:10.513348 +00:00', '2025-08-09 09:18:50.513348 +00:00'),
+       (2, 4, null, null),
 
        (3, 2, '2025-08-09 09:25:49.513348 +00:00', null),
-
        (3, 3, '2025-08-09 09:25:48.513348 +00:00', '2025-08-09 09:26:05.513348 +00:00'),
+       (3, 4, null, null),
 
        (4, 1, '2025-08-10 22:05:48.513348 +00:00', '2025-08-10 22:30:05.513348 +00:00'),
-
        (4, 2, '2025-08-09 09:30:05.513348 +00:00', null),
-
+       (4, 4, null, null),
 
        (5, 3, '2025-08-05 22:05:48.513348 +00:00', '2025-08-05 22:30:05.513348 +00:00'),
 
