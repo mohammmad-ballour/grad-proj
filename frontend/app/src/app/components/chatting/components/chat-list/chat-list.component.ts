@@ -1,33 +1,40 @@
-import { Component, ElementRef, output, QueryList, signal, ViewChildren } from '@angular/core';
+import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { ChatResponse } from '../../models/chat-response';
 import { CommonModule, DatePipe } from '@angular/common';
 import { UserResponse } from '../../models/user-response';
 import { ActivatedRoute } from '@angular/router';
-import { MatIconModule } from "@angular/material/icon";
-import { FormsModule } from "@angular/forms";
+import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MessageResponse, MessageStatus } from '../../models/message-response';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatIconModule } from "@angular/material/icon";
+import { ViewChild } from '@angular/core';
 
 @Component({
   selector: 'app-chat-list',
   templateUrl: 'chat-list.component.html',
-  imports: [DatePipe, MatIconModule, FormsModule, CommonModule],
-  styleUrl: 'chat-list.component.css'
+  styleUrls: ['chat-list.component.css'],
+  imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule],
+  standalone: true
 })
 export class ChatListComponent {
-  // });
+  msgMenu = 'msgMenu_';
+  searchTerm: any;
+  selectMessage(arg0: any) {
+    throw new Error('Method not implemented.');
+  }
+  @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
 
   // Signals for state
   chats = signal<ChatResponse[]>([]);
   contacts = signal<UserResponse[]>([]);
   searchNewContact = signal(false);
-  // Output event when a chat is selected
   chatSelected = signal<ChatResponse>({} as ChatResponse);
   messagesToSelectedChatt = signal<MessageResponse[]>([]);
-  messageToSent!: string;
-  activeUserId!: string;
-  MessageStatus = MessageStatus; // expose enum to template
+  messageToSent: string = '';
+  activeUserId: string = '';
+  replyingToMessage = signal<MessageResponse | null>(null);
 
   constructor(
     private chatService: ChatService,
@@ -35,16 +42,12 @@ export class ChatListComponent {
   ) { }
 
   ngOnInit() {
-    // Load existing chats
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
         this.chats.set(res);
-
-        // get chatId from route params (not query params)
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
-          // find the chat object by id
-          const chat = this.chats().find(c => c.chatId === +chatId);
+          const chat = this.chats().find((c) => c.chatId === +chatId);
           if (chat) {
             this.chatClicked(chat);
           }
@@ -59,28 +62,104 @@ export class ChatListComponent {
     this.activeUserId = this.chatService.ActiveUserId;
   }
 
+  ngAfterViewInit() {
+    this.scrollToUnreadOrBottom();
+    this.messageElements.changes.subscribe(() => {
+      this.scrollToUnreadOrBottom();
+    });
+  }
+
+  // ✅ Start replying to a message
+  startReply(message?: MessageResponse): void {
+    console.log(message)
+    if (!message) return;
+    this.replyingToMessage.set({
+      ...message,
+      content: message.content?.substring(0, 40) || ''
+    });
+  }
+
+  cancelReply(): void {
+    this.replyingToMessage.set(null);
+    this.messageToSent = '';
+  }
+
+  sendMessage(): void {
+    if (!this.messageToSent.trim() || !this.isChatSelected()) return;
+
+    const parentMessageId = this.replyingToMessage()?.messageId
+      ? +this.replyingToMessage()!.messageId
+      : undefined;
+
+    this.chatService
+      .sendMessage(this.chatSelected().chatId, this.messageToSent, undefined, parentMessageId)
+      .subscribe({
+        next: () => {
+          this.messageToSent = '';
+          this.replyingToMessage.set(null);
+          this.getMessagesToSelectedChatt();
+        },
+        error: (err) => console.error('Error sending message', err)
+      });
+  }
+
+  chatClicked(chat: ChatResponse) {
+    this.chatSelected.set(chat);
+    this.replyingToMessage.set(null);
+    this.getMessagesToSelectedChatt();
+    if (chat.unreadCount > 0) {
+      this.onOpenChat(chat.chatId);
+    }
+  }
+
+  getMessagesToSelectedChatt() {
+    this.chatService.getChatMessages(this.chatSelected().chatId).subscribe({
+      next: (messages) => this.messagesToSelectedChatt.set(messages),
+      error: (err) => console.error('Error fetching messages', err)
+    });
+  }
+
+  onOpenChat(chatId: number) {
+    this.chatService.confirmRead(chatId).subscribe({
+      next: () => this.chatSelected().unreadCount = 0,
+      error: (err) => console.error('Failed to confirm read', err)
+    });
+  }
+
+  getParentMessageContent(parentMessageId: number | undefined): string {
+    if (!parentMessageId) return 'Message not found';
+    const parentMessage = this.messagesToSelectedChatt().find(
+      (m) => m.messageId === parentMessageId
+    );
+    return parentMessage?.content || 'Message not found';
+  }
+
+  scrollToParentMessage(parentMessageId: number): void {
+    const parentElement = this.messageElements
+      .toArray()
+      .find(el => el.nativeElement.getAttribute('data-message-id') === parentMessageId.toString());
+
+    if (parentElement) {
+      // Scroll smoothly to the parent
+      parentElement.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Add temporary highlight effect
+      parentElement.nativeElement.classList.add('highlight-parent');
+
+      // Remove highlight after 1.5 seconds
+      setTimeout(() => {
+        parentElement.nativeElement.classList.remove('highlight-parent');
+      }, 800);
+    }
+  }
+
 
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
   }
-  processImage(image: string) {
-    return `data:image/png;base64,${image}`
-  }
-  // Select existing chat
-  chatClicked(chat: ChatResponse) {
-    this.chatSelected.set(chat)
-    this.getMessagesToSelectedChatt()
-    if (chat.unreadCount > 0)
-      this.onOpenChat(chat.chatId)
 
-  }
-  onOpenChat(chatId: number) {
-    this.chatService.confirmRead(chatId).subscribe({
-      next: () => {
-        this.chatSelected().unreadCount = 0
-      },
-      error: (err) => console.error('Failed to confirm read', err)
-    });
+  processImage(image: string): string {
+    return `data:image/png;base64,${image}`;
   }
 
   isChatSelected(): boolean {
@@ -88,127 +167,46 @@ export class ChatListComponent {
     return chat && Object.keys(chat).length > 0;
   }
 
-  getMessagesToSelectedChatt() {
-    this.chatService.getChatMessages(this.chatSelected().chatId).subscribe(
-      {
-        next: (messages) => {
-          this.messagesToSelectedChatt.set(messages)
-        }
-      }
-    )
-  }
-  selectedFile?: File;
-  replyToMessage?: MessageResponse; // the message being replied to
-
-
-  // Switch to "search new contact" mode
-  searchContact() {
-    // this.chatService.getAllUsers().subscribe({
-    //   next: (users) => {
-    //     console.log('Contacts:', users);
-    //     // this.contacts.set(users);
-    //     this.searchNewContact.set(true);
-    //   }
-    // });
-  }
-
-
-  // Truncate long messages
   wrapMessage(lastMessage: string | undefined): string {
-    if (lastMessage && lastMessage.length <= 20) {
-      return lastMessage;
-    }
+    if (lastMessage && lastMessage.length <= 20) return lastMessage;
     return lastMessage ? lastMessage.substring(0, 17) + '...' : '';
-  }
-
-
-
-
-
-  @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
-
-  ngAfterViewInit() {
-    this.scrollToUnreadOrBottom();
-
-    // React if messages change
-    this.messageElements.changes.subscribe(() => {
-      this.scrollToUnreadOrBottom();
-    });
   }
 
   private scrollToUnreadOrBottom() {
     const unreadCount = this.chatSelected().unreadCount;
     const messages = this.messageElements.toArray();
-
     if (!messages.length) return;
 
     if (unreadCount > 0) {
-      // Clamp index so it won’t go below 0
       const firstUnreadIndex = Math.max(messages.length - unreadCount, 0);
-      const firstUnreadElement = messages[firstUnreadIndex]?.nativeElement;
-
-      if (firstUnreadElement) {
-        firstUnreadElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      messages[firstUnreadIndex]?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else {
-      // Scroll to last message
       messages[messages.length - 1].nativeElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }
 
+  MessageStatus = MessageStatus;
+
+  // Placeholder menu actions
+  reply(m: any) { }
+  copy(m: any) { }
+  replyPrivately(m: any) { }
+  forward(m: any) { }
+  star(m: any) { }
+  pin(m: any) { }
+  deleteForMe(m: any) { }
+  share(m: any) { }
+  react(emoji: string) { }
+  moreReactions() { }
 
 
+  @ViewChild('t') menuTrigger!: MatMenuTrigger;
 
-
-
-
-  // Handle file selection
-  onFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    // Close menu if click is outside the open menu
+    if (this.menuTrigger?.menuOpen) {
+      this.menuTrigger.closeMenu();
     }
   }
-
-  // Set reply target
-  setReplyTo(message: MessageResponse) {
-    this.replyToMessage = message;
-  }
-
-  // Cancel reply
-  cancelReply() {
-    this.replyToMessage = undefined;
-  }
-
-  // Handle Enter / Shift+Enter
-  onEnter(event: KeyboardEvent) {
-    if (event.shiftKey) return; // allow newline
-    event.preventDefault();     // prevent newline on Enter
-    this.sendMessage();
-  }
-
-
-  // Send message
-  sendMessage() {
-    const content = this.messageToSent.trim();
-    if (!content && !this.selectedFile) return;
-
-    this.chatService.sendMessage(
-      this.chatSelected().chatId,   // 👈 assumes you have chatSelected() in parent
-      content,
-      this.selectedFile,
-      this.replyToMessage?.messageId
-    ).subscribe({
-      next: () => {
-        this.messageToSent = '';
-        this.selectedFile = undefined;
-        this.replyToMessage = undefined;
-        this.getMessagesToSelectedChatt(); // refresh chat
-      },
-      error: (err) => console.error('Error sending message', err)
-    });
-  }
-
-
-
 }

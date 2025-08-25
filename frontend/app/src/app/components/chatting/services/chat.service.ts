@@ -22,11 +22,11 @@ export class ChatService extends BaseService {
   }
 
   getAllUsers() {
-    return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}`);
+    return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}/chat-list`);
   }
   createOneOnOneChat(recipientId: number): Observable<number> {
     return this.httpClient.get<number>(
-      `${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}/RecipientId`,
+      `${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}`,
       {}
     );
   }

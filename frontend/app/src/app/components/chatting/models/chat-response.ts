@@ -9,4 +9,9 @@ export interface ChatResponse {
   lastMessageTime?: string;
   onlineRecipientsNumber?: number; // fix here!
   unreadCount: number;
+  isPinned: boolean;
+  isMuted: boolean;
+  isDeleted: boolean;
 }
+
+

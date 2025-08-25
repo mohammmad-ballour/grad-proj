@@ -1,4 +1,4 @@
-<div class="container-fluid  bg-white rounded shadow-sm" style="height: 100%;">
+<div class="container-fluid bg-white rounded shadow-sm" style="height: 100%;">
   <div class="row h-100 rounded">
 
     <!-- Chat List -->
@@ -13,158 +13,133 @@
       <div class="p-2 border-bottom">
         <div class="input-group input-group-sm">
           <span class="input-group-text"><i class="fas fa-search"></i></span>
-          <input type="text" class="form-control" placeholder="Search chats">
+          <input type="text" class="form-control" placeholder="Search chats" [(ngModel)]="searchTerm">
         </div>
       </div>
 
       <!-- Chat List (scrollable) -->
       <div class="flex-grow-1 overflow-auto">
         @for (chat of chats(); track chat.chatId) {
-        <div class="d-flex align-items-center justify-content-between border-bottom p-2 cursor-pointer"
-          (click)="chatClicked(chat)">
-          <div class="d-flex gap-2">
-            <img [src]="processImage(chat.chatPicture)" (error)="onImageError($event,'assets/ProfileAvatar.png')"
-              class="rounded-circle" width="40" height="40" alt="">
-            <div class="d-flex flex-column">
-              <span>{{ chat.name }}</span>
-              <small class="text-muted">{{ chat.lastMessage }}</small>
+          <div class="d-flex align-items-center justify-content-between border-bottom p-2 cursor-pointer"
+               (click)="chatClicked(chat)">
+            <div class="d-flex gap-2">
+              <img [src]="processImage(chat.chatPicture)" (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+                   class="rounded-circle" width="40" height="40" alt="">
+              <div class="d-flex flex-column">
+                <span>{{ chat.name }}</span>
+                <small class="text-muted">{{ wrapMessage(chat.lastMessage) }}</small>
+              </div>
+            </div>
+            <div class="d-flex flex-column align-items-end">
+              <small>{{ chat.lastMessageTime | date:'HH:mm' }}</small>
+              @if(chat.unreadCount) {
+                <span class="badge bg-success rounded-pill">{{ chat.unreadCount }}</span>
+              }
             </div>
           </div>
-          <div class="d-flex flex-column align-items-end">
-            <small>{{ chat.lastMessageTime | date:'HH:mm' }}</small>
-            @if (chat.unreadCount) {
-            <span class="badge bg-success rounded-pill">
-              {{ chat.unreadCount }}
-            </span>
-            }
-          </div>
-        </div>
         }
       </div>
     </div>
 
     <!-- Chat Content -->
     <div class="col-9 d-flex flex-column h-100">
-      @if ( isChatSelected()) {
+      @if(isChatSelected()) {
 
+        <!-- Chat Header -->
+        <div class="p-2 border-bottom d-flex align-items-center bg-white sticky-top">
+          <img [src]="processImage(chatSelected().chatPicture)" (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+               class="rounded-circle me-2" width="40" height="40" alt="">
+          <strong>{{ chatSelected().name }}</strong>
+        </div>
 
-      <!-- Chat Header (sticky) -->
-      <div class="p-2 border-bottom d-flex align-items-center bg-white sticky-top">
-        <img [src]="processImage(chatSelected().chatPicture)" (error)="onImageError($event,'assets/ProfileAvatar.png')"
-          class="rounded-circle me-2" width="40" height="40" alt="">
-        <strong>{{ chatSelected().name }}</strong>
-      </div>
+        <!-- Messages -->
+        <div #scrollContainer class="flex-grow-1 overflow-auto p-3 bg-light chat-scrollbar">
+          @for (m of messagesToSelectedChatt(); track m.messageId) {
+            <div #messageElement class="d-flex mb-2" [attr.data-message-id]="m.messageId"
+                 [class.justify-content-end]="m.senderId == activeUserId"
+                 [class.justify-content-start]="m.senderId != activeUserId">
 
-      <!-- Messages (scrollable) -->
-<div #scrollContainer class="flex-grow-1 overflow-auto p-3 bg-light chat-scrollbar">
-  @for (m of messagesToSelectedChatt(); track m.messageId) {
-    <div #messageElement 
-         class="d-flex mb-2"
-         [class.justify-content-end]="m.senderId == activeUserId"
-         [class.justify-content-start]="m.senderId != activeUserId">
+            <div class="chat-bubble p-2 shadow-sm"
+     [class.bg-white]="m.senderId != activeUserId"
+     >
+                
+                <!-- Reply preview -->
+                @if(m.parentMessageId) {
+                  <div class="replied-message p-2 mb-2 bg-secondary bg-opacity-10 rounded"
+                       (click)="scrollToParentMessage(m.parentMessageId)">
+                    <small class="text-muted">
+                      <strong>{{  m.parentMessageId }}</strong>
+                      <div>{{ m.parentMessageId  }}</div>
+                    </small>
+                  </div>
+                }
 
-      <!-- Chat bubble -->
-      <div class="chat-bubble p-2 shadow-sm"
-           [class.bg-white]="m.senderId != activeUserId">
+                <!-- Text content -->
+                <div  [matMenuTriggerFor]="msgMenu"
+     #t="matMenuTrigger"
+     (contextmenu)="$event.preventDefault(); t.openMenu()" class="message-content">{{ m.content }}</div>
 
-        <!-- Reply snippet (if replying to another message) -->
-        @if(m.parentMessage) {
-          <div class="reply-snippet p-1 border-start border-3 mb-1 text-muted small">
-            <div class="fw-bold">{{ m.parentMessage.senderName }}</div>
-            <div class="text-truncate" style="max-width: 200px;">
-              {{ m.parentMessage.content }}
+                <!-- File/Image
+                @if(m.fileUrl) {
+                  <div class="mt-1">
+                    @if(m.fileType?.startsWith('image/')) {
+                      <img [src]="m.fileUrl" class="rounded img-fluid" style="max-width: 200px;" alt="image">
+                    } @else {
+                      <a [href]="m.fileUrl" target="_blank" class="text-decoration-none">📎 {{ m.fileName }}</a>
+                    }
+                  </div>
+                } -->
+
+                <!-- Meta -->
+                <div class="chat-meta d-flex align-items-center justify-content-end mt-1">
+                  <span class="me-1 small">{{ m.senderId| date:'shortTime' }}</span>
+                  @if(activeUserId == m.senderId) {
+                    <i class="bi ms-1" [ngClass]="{
+                      'bi-check-lg': m.messageStatus === MessageStatus.SENT,
+                      'bi-check-all': m.messageStatus === MessageStatus.DELIVERED || m.messageStatus === MessageStatus.READ,
+                      'text-primary': m.messageStatus === MessageStatus.READ
+                    }"></i>
+                  }
+                </div>
+              </div>
+
+              <!-- Context menu per message -->
+           <mat-menu #msgMenu="matMenu">
+  <ng-template matMenuContent let-data="matMenuTriggerData">
+                <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
+                <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
+                <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
+                <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
+                <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
+  </ng-template>
+              </mat-menu>
+
             </div>
+          }
+        </div>
+
+        <!-- Reply Preview -->
+        @if(replyingToMessage()) {
+          <div class="p-2 border-top bg-white d-flex align-items-center">
+            <div class="flex-grow-1">
+              <small class="text-muted">Replying to <strong>{{ replyingToMessage()!.senderId }}</strong></small>
+              <div>{{ replyingToMessage()!.content }}</div>
+            </div>
+            <button class="btn btn-sm btn-light" (click)="cancelReply()">
+              <i class="bi bi-x-lg"></i>
+            </button>
           </div>
         }
 
-        <!-- Message content -->
-        <div>{{ m.content }}</div>
-
-        <!-- Time + Status -->
-        <div class="chat-meta d-flex align-items-center">
-          <span class="me-1">{{ m.sentAt | date:'shortTime' }}</span>
-          @if(activeUserId == m.senderId) {
-            <i class="bi"
-               [ngClass]="{
-                 'bi-check-lg': m.messageStatus === MessageStatus.SENT,
-                 'bi-check-all': m.messageStatus === MessageStatus.DELIVERED || m.messageStatus === MessageStatus.READ,
-                 'text-primary': m.messageStatus === MessageStatus.READ   
-               }">
-            </i>
-          }
+        <!-- Input -->
+        <div class="p-2 border-top d-flex bg-white align-items-center">
+          <input type="text" class="form-control me-2" [(ngModel)]="messageToSent" placeholder="Type a message"
+                 (keyup.enter)="sendMessage()">
+          <button class="btn btn-success" (click)="sendMessage()">
+            <mat-icon>send</mat-icon>
+          </button>
         </div>
-      </div>
-
-      <!-- Reply button -->
-      <button class="btn btn-sm btn-link text-muted ms-1" (click)="setReplyTo(m)">
-        <i class="bi bi-reply"></i>
-      </button>
-    </div>
-  }
-</div>
-
- <!-- Reply Preview -->
-@if(replyToMessage) {
-  <div class="p-2 border-top bg-light small d-flex align-items-center">
-    <div class="flex-grow-1">
-      <div class="fw-bold">{{ replyToMessage.senderId }}</div>
-      <div class="text-muted text-truncate" style="max-width: 250px;">
-        {{ replyToMessage.content }}
-      </div>
-    </div>
-    <button class="btn btn-sm btn-link text-danger" (click)="cancelReply()">
-      <i class="bi bi-x"></i>
-    </button>
-  </div>
-}
-
-<!-- Input Area -->
-<div class="p-2 border-top d-flex bg-white align-items-end">
-  <!-- File upload -->
-  <input
-    type="file"
-    #fileInput
-    class="d-none"
-    (change)="onFileSelected($event)"
-  />
-  <button class="btn btn-outline-secondary me-2" (click)="fileInput.click()">
-    <i class="bi bi-paperclip"></i>
-  </button>
-
-  <!-- Message input -->
-  <textarea
-  class="form-control me-2"
-  [(ngModel)]="messageToSent"
-  placeholder="Type a message"
-  rows="1"
-  style="resize: none; overflow-y: auto; max-height: 150px;"
- >
-</textarea>
-
-
-  <!-- Send button -->
-  <button
-    class="btn btn-success"
-    (click)="sendMessage()"
-    [disabled]="!messageToSent.trim() && !selectedFile"
-  >
-    <i class="bi bi-send"></i>
-  </button>
-</div>
-
-<!-- File Preview -->
-@if(selectedFile) {
-  <div class="p-2 border-top bg-light small d-flex align-items-center">
-    <span class="flex-grow-1">📎 {{ selectedFile.name }}</span>
-    <button class="btn btn-sm btn-link text-danger" (click)="selectedFile = undefined">
-      <i class="bi bi-x"></i>
-    </button>
-  </div>
-}
-
-
       }
     </div>
-
   </div>
 </div>

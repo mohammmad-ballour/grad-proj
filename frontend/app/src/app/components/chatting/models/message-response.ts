@@ -4,11 +4,16 @@
 
 export interface MessageResponse {
   content?: string;
-  sentAt?: string;
-  messageId?: number;
-  senderId?: string;
-  messageStatus: MessageStatus
+  sentAt: string;
+  messageId: number;
+  senderId: string;
+  messageStatus: MessageStatus,
+  parentMessageId: number
 }
+
+
+
+
 export enum MessageStatus {
   SENT = 'SENT', DELIVERED = 'DELIVERED', READ = 'READ'
 }
