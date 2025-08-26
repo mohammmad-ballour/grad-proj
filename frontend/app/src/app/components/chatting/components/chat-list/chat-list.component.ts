@@ -19,6 +19,7 @@ import { ViewChild } from '@angular/core';
   standalone: true
 })
 export class ChatListComponent {
+
   msgMenu = 'msgMenu_';
   searchTerm: any;
   selectMessage(arg0: any) {
@@ -33,7 +34,7 @@ export class ChatListComponent {
   chatSelected = signal<ChatResponse>({} as ChatResponse);
   messagesToSelectedChatt = signal<MessageResponse[]>([]);
   messageToSent: string = '';
-  activeUserId: string = '';
+  activeUserId!: number;
   replyingToMessage = signal<MessageResponse | null>(null);
 
   constructor(
@@ -84,31 +85,15 @@ export class ChatListComponent {
     this.replyingToMessage.set(null);
     this.messageToSent = '';
   }
-
-  sendMessage(): void {
-    console.log(this.chatSelected())
-    if (!this.messageToSent.trim() || !this.isChatSelected()) return;
-
-    const parentMessageId = this.replyingToMessage()?.messageId
-      ? +this.replyingToMessage()!.messageId
-      : undefined;
-
-    this.chatService
-      .sendMessage(this.chatSelected().chatId, this.messageToSent, undefined, undefined)
-      .subscribe({
-        next: () => {
-          this.messageToSent = '';
-          this.replyingToMessage.set(null);
-          this.getMessagesToSelectedChatt();
-        },
-        error: (err) => console.error('Error sending message', err)
-      });
+  getTheParentMesaage(messageId: number): MessageResponse {
+    return this.messagesToSelectedChatt().find((m) => m.messageId == messageId) as MessageResponse;
   }
 
   chatClicked(chat: ChatResponse) {
     this.chatSelected.set(chat);
     this.replyingToMessage.set(null);
     this.getMessagesToSelectedChatt();
+
     if (chat.unreadCount > 0) {
       this.onOpenChat(chat.chatId);
     }
@@ -119,6 +104,7 @@ export class ChatListComponent {
     this.chatService.getChatMessages(this.chatSelected().chatId).subscribe({
       next: (messages) => {
         this.messagesToSelectedChatt.set(messages);
+        console.log(this.messagesToSelectedChatt())
       },
       error: (err) => console.error('Error fetching messages', err)
     });
@@ -172,6 +158,13 @@ export class ChatListComponent {
     return chat && Object.keys(chat).length > 0;
   }
 
+  isLastFromSender(index: number): boolean {
+    const msgs = this.messagesToSelectedChatt();
+    const current = msgs[index];
+    const next = msgs[index + 1];
+    return !next || next.senderAvatar.userId !== current.senderAvatar.userId;
+  }
+
   wrapMessage(lastMessage: string | undefined): string {
     if (lastMessage && lastMessage.length <= 20) return lastMessage;
     return lastMessage ? lastMessage.substring(0, 17) + '...' : '';
@@ -214,4 +207,120 @@ export class ChatListComponent {
       this.menuTrigger.closeMenu();
     }
   }
+
+
+
+
+
+
+
+
+
+  selectedFile?: File;
+  filePreviewUrl?: string;
+  sendMessage(): void {
+    if ((!this.messageToSent.trim() && !this.selectedFile) || !this.isChatSelected()) return;
+
+    const parentMessageId = this.replyingToMessage()?.messageId
+      ? +this.replyingToMessage()!.messageId
+      : undefined;
+
+    this.chatService
+      .sendMessage(this.chatSelected().chatId, this.messageToSent, this.selectedFile, parentMessageId)
+      .subscribe({
+        next: () => {
+          this.messageToSent = '';
+          this.removeAttachment(); // clear file preview
+
+          // Reset textarea height
+          const textarea = document.querySelector<HTMLTextAreaElement>('textarea');
+          if (textarea) {
+            textarea.style.height = 'auto'; // reset
+          }
+
+          this.replyingToMessage.set(null);
+          this.getMessagesToSelectedChatt();
+        },
+        error: (err) => console.error('Error sending message', err),
+      });
+  }
+
+
+  // Handle file selection
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+
+      // If image, create preview URL
+      if (this.isImage(this.selectedFile)) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.filePreviewUrl = reader.result as string;
+        };
+        reader.readAsDataURL(this.selectedFile);
+      } else {
+        this.filePreviewUrl = undefined;
+      }
+    }
+  }
+
+  // Check if file is an image
+  isImage(file: File): boolean {
+    return file.type.startsWith('image/');
+  }
+
+  // Remove file/preview
+  removeAttachment(): void {
+    this.selectedFile = undefined;
+    this.filePreviewUrl = undefined;
+  }
+
+  // Auto-resize textarea while typing
+  autoResize(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
+  contextMenuVisible = false;
+  contextMenuPosition = { x: 0, y: 0 };
+  contextMenuChat: any; // chat object for which menu opened
+
+  // Open context menu
+  openContextMenu(event: MouseEvent, chat: any) {
+    event.preventDefault(); // prevent default browser menu
+    this.contextMenuChat = chat;
+    this.contextMenuPosition = { x: event.clientX, y: event.clientY };
+    this.contextMenuVisible = true;
+  }
+
+  // Close menu when clicking outside
+  closeContextMenu() {
+    this.contextMenuVisible = false;
+    this.contextMenuChat = null;
+  }
+
+  pinChat(chat: any) {
+    this.chatService.pinConversation(chat.chatId).subscribe({
+      next: () => {
+        chat.isPinned = !chat.isPinned; // toggle pinned state
+        this.closeContextMenu();
+      },
+      error: (err) => console.error(err)
+    });
+  }
+
+  muteChat(chat: any) {
+    this.chatService.muteConversation(chat.chatId).subscribe({
+      next: () => {
+        chat.isMuted = !chat.isMuted; // toggle muted state
+        this.closeContextMenu();
+      },
+      error: (err) => console.error(err)
+    });
+  }
+
+
+
+
 }

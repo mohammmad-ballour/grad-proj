@@ -31,7 +31,7 @@ export class ChatService extends BaseService {
   }
 
 
-  get ActiveUserId() {
+  get ActiveUserId(): number {
     return this.authServices.UserId;
   }
 
@@ -75,6 +75,16 @@ export class ChatService extends BaseService {
     return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});
   }
 
+  // Pin a conversation
+  pinConversation(chatId: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/pin`;
+    return this.httpClient.patch<void>(url, null); // no body needed
+  }
 
+  // Mute a conversation
+  muteConversation(chatId: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/mute`;
+    return this.httpClient.patch<void>(url, null); // no body needed
+  }
 
 }

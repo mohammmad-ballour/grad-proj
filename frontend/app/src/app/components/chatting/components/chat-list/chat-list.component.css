@@ -365,3 +365,20 @@
     background-color: transparent;
   }
 }
+
+.chat-bubble {
+  max-width: 70%;
+  border-radius: 1rem;
+  word-wrap: break-word;
+}
+
+.chat-bubble.bg-primary {
+  color: #fff;
+  /* ensure white text on sent bubbles */
+}
+
+
+img.rounded-circle {
+  align-self: flex-start;
+  /* ensures avatar stays top-aligned */
+}
