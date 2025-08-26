@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grad.social.common.database.utils.TsidUtils;
 import com.grad.social.common.messaging.redis.RedisConstants;
+import com.grad.social.common.utils.media.MediaStorageService;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
@@ -43,6 +44,7 @@ public class ChattingRepository {
     private final TSID.Factory tsidFactory = TsidUtils.getTsidFactory(2);
     private final UserUserInteractionRepository userUserInteractionRepository;
     private final ObjectMapper objectMapper;
+    private final MediaStorageService mediaStorageService;
 
     // Aliases for subqueries
     private final Messages m = Messages.MESSAGES;
@@ -51,6 +53,7 @@ public class ChattingRepository {
     private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS.as("cp");
     private final ChatParticipants cp2 = ChatParticipants.CHAT_PARTICIPANTS.as("cp2");
     private final Users u = Users.USERS;
+    private final MediaAsset ma = MediaAsset.MEDIA_ASSET;
     private final UserFollowers uf1 = UserFollowers.USER_FOLLOWERS.as("uf1");
     private final UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
     private final UserFollowers uf3 = UserFollowers.USER_FOLLOWERS.as("uf3");
@@ -105,7 +108,7 @@ public class ChattingRepository {
 
     public List<ChatResponse> getChatListForUserByUserId(Long currentUserId) {
         // LATERAL: last message per chat
-        var lm = dsl.select(m.CONTENT, m.SENT_AT)
+        var lm = dsl.select(m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE)
                 .from(m)
                 .where(m.CHAT_ID.eq(c.CHAT_ID))
                 .orderBy(m.SENT_AT.desc())
@@ -133,6 +136,7 @@ public class ChattingRepository {
                         cp.IS_PINNED,
                         lm.field(m.CONTENT).as("last_message"),
                         lm.field(m.SENT_AT).as("last_message_time"),
+                        lm.field(m.MESSAGE_TYPE).as("message_type"),
                         DSL.coalesce(uc.field("unread_count", Long.class), DSL.inline(0L)).as("unread_count"),
                         // MULTISET participants (excluding current user)
                         DSL.multiset(
@@ -152,7 +156,7 @@ public class ChattingRepository {
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
                 .where(cp.USER_ID.eq(currentUserId))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
-                .fetch(mapping((chatId, chatName, chatPicture, chatStatus, isPinned, lastMessage, lastMessageSentAt, unreadCount, participants) -> {
+                .fetch(mapping((chatId, chatName, chatPicture, chatStatus, isPinned, lastMessage, lastMessageSentAt, lastMessageType, unreadCount, participants) -> {
                     ChatResponse res = new ChatResponse();
                     switch (chatStatus) {
                         case ChatStatus.DELETED -> res.setDeleted(true);
@@ -165,6 +169,7 @@ public class ChattingRepository {
                     res.setChatPicture(chatPicture);
                     res.setLastMessage(lastMessage);
                     res.setLastMessageTime(lastMessageSentAt);
+                    res.setMessageType(lastMessageType == null? null : lastMessageType.name());
                     res.setUnreadCount(unreadCount);
                     res.setPinned(isPinned);
                     res.setChatMembersNumber(participants.size());
@@ -205,23 +210,30 @@ public class ChattingRepository {
                 .fetchOneInto(Integer.class)) - 1;
 
         return dsl.selectDistinct(m.MESSAGE_ID, m.PARENT_MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, m.CONTENT, m.SENT_AT,
-                        unreadCountField, undeliveredCountField)
+                        ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION, unreadCountField, undeliveredCountField)
                 .from(m)
+                .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
                 .join(u).on(m.SENDER_ID.eq(u.ID))
                 .where(m.CHAT_ID.eq(chatId))
                 .orderBy(m.SENT_AT.asc())
                 .fetch(mapping((messageId, parentMessageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
-                                unreadCount, undeliveredCount) -> {
-                    System.out.println("Unread count = " + unreadCount);
-                    System.out.println("Undelivered count = " + undeliveredCount);
+                                mediaId, fileNameHashed, extension, unreadCount, undeliveredCount) -> {
                     com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
                     if (unreadCount == 0) {
                         messageStatus = READ;
                     } else if (undeliveredCount == 0) {
                         messageStatus = DELIVERED;
                     }
-                    return new ChatMessageResponse(messageId, parentMessageId, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture), content, sentAt, messageStatus);
+                    byte[] media = null;
+                    if (mediaId != null) {
+                        try {
+                            media = this.mediaStorageService.loadFile(fileNameHashed, extension).readAllBytes();
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    return new ChatMessageResponse(messageId, parentMessageId, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture), content, media, sentAt, messageStatus);
                 }));
     }
 
