@@ -48,8 +48,7 @@ export class ChatListComponent {
         console.log(res)
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
-          console.log(chatId)
-          const chat = this.chats().find((c) => c.chatId === +chatId);
+          const chat = this.chats().find((c) => c.chatId === chatId);
           if (chat) {
             this.chatClicked(chat);
           }
@@ -125,7 +124,7 @@ export class ChatListComponent {
     });
   }
 
-  onOpenChat(chatId: number) {
+  onOpenChat(chatId: string) {
     this.chatService.confirmRead(chatId).subscribe({
       next: () => this.chatSelected().unreadCount = 0,
       error: (err) => console.error('Failed to confirm read', err)

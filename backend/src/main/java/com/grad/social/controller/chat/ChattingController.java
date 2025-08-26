@@ -36,9 +36,9 @@ public class ChattingController {
     @PostMapping("/chats/group")
     @PreAuthorize("@SecurityService.isPermittedToAddToGroup(#jwt, #participantIds)")
     @SneakyThrows
-    public ResponseEntity<Long> createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long creatorId, @RequestParam String groupName,
+    public ResponseEntity<String> createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long creatorId, @RequestParam String groupName,
                                                 @RequestBody Set<Long> participantIds, @RequestParam(required = false) MultipartFile groupPicture) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds));
+        return ResponseEntity.status(HttpStatus.CREATED).body(String.valueOf(this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds)));
     }
 
     @GetMapping("/chats/candidate-users/{nameToSearch}")
@@ -52,57 +52,59 @@ public class ChattingController {
     // when the user/group avatar in the chat list is clicked, this method is called
     @GetMapping("/chats/{chatId}/chat-messages")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
-        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(chatId));
+    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
+        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(Long.parseLong(chatId)));
     }
 
     // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
     @GetMapping("/chats/{recipientId}")
     @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
-    public Long getChatIdRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
+    public String getChatIdRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return this.chattingService.getExistingOrCreateNewOneToOneChat(senderId, recipientId);
+        var res = String.valueOf(this.chattingService.getExistingOrCreateNewOneToOneChat(senderId, recipientId));
+        System.out.println("Returned " + res);
+        return res;
     }
 
     @DeleteMapping("/chats/{chatId}")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public void deleteConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
+    public void deleteConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chattingService.deleteConversation(chatId, userId);
+        this.chattingService.deleteConversation(Long.parseLong(chatId), userId);
     }
 
     @PatchMapping("/chats/{chatId}/pin")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public void pinConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
+    public void pinConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chattingService.pinConversation(chatId, userId);
+        this.chattingService.pinConversation(Long.parseLong(chatId), userId);
     }
 
     @PatchMapping("/chats/{chatId}/mute")
     @ResponseStatus(code = HttpStatus.NO_CONTENT)
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public void muteConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId) {
+    public void muteConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chattingService.muteConversation(chatId, userId);
+        this.chattingService.muteConversation(Long.parseLong(chatId), userId);
     }
 
     @PostMapping("/chats/{chatId}/confirmRead")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public void updateReadStatusForMessagesInChat(@PathVariable Long chatId, @AuthenticationPrincipal Jwt jwt) {
+    public void updateReadStatusForMessagesInChat(@PathVariable String chatId, @AuthenticationPrincipal Jwt jwt) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chattingService.updateReadStatusForMessagesInChat(chatId, userId);
+        this.chattingService.updateReadStatusForMessagesInChat(Long.parseLong(chatId), userId);
     }
 
     // send/reply to a message
     @PostMapping(value = "/chats/{chatId}/sendMessage", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     @SneakyThrows
-    public ResponseEntity<Long> sendMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId, @RequestParam(required = false) Long parentMessageId,
+    public ResponseEntity<Long> sendMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId, @RequestParam(required = false) Long parentMessageId,
                                             @RequestPart("request") CreateMessageRequest createMessage, @RequestPart(value = "attachment", required = false) MultipartFile mediaFile) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));    // User ID from JWT
-        return ResponseEntity.status(HttpStatus.CREATED).body(chattingService.saveMessage(chatId, senderId, parentMessageId, createMessage, mediaFile));
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.chattingService.saveMessage(Long.parseLong(chatId), senderId, parentMessageId, createMessage, mediaFile));
     }
 
     @GetMapping("/messages/{messageId}/info")

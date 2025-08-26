@@ -1,4 +1,3 @@
-
 import { Injectable } from '@angular/core';
 import { BaseService } from '../../../core/services/base.service';
 import { HttpClient } from '@angular/common/http';
@@ -24,26 +23,24 @@ export class ChatService extends BaseService {
   getAllUsers() {
     return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}/chat-list`);
   }
-  createOneOnOneChat(recipientId: number): Observable<number> {
-    return this.httpClient.get<number>(
-      `${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}`,
-      {}
-    );
+
+  createOneOnOneChat(recipientId: number): Observable<string> {
+    return this.httpClient.get(`${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}`, {
+      responseType: 'text'
+    });
   }
+
 
   get ActiveUserId() {
     return this.authServices.UserId;
   }
 
-  getChatMessages(chatId: number): Observable<MessageResponse[]> {
-
-
+  getChatMessages(chatId: string): Observable<MessageResponse[]> {
     return this.httpClient.get<MessageResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`,)
-
   }
 
   sendMessage(
-    chatId: number,
+    chatId: string,
     content: string,
     file?: File,
     parentMessageId?: number
@@ -74,7 +71,7 @@ export class ChatService extends BaseService {
 
 
 
-  confirmRead(chatId: number) {
+  confirmRead(chatId: string) {
     return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});
   }
 
