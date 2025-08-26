@@ -125,6 +125,10 @@ VALUES (2, 1, '2025-08-09 09:15:49.513348 +00:00', '2025-08-10 09:15:49.513348 +
 INSERT INTO public.user_blocks(user_id, blocked_user_id, blocked_at)
 VALUES (2, 3, '2025-08-09');
 
+-- media assets
+INSERT INTO public.media_asset (content_hash, filename_hash, extension, mime_type, size_bytes)
+VALUES ('content19', 'nature1', 'jpeg', 'image/jpeg', 1024);
+
 -- chats
 INSERT INTO public.chats(chat_id, is_group_chat, name, created_at)
 VALUES (1000, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
@@ -148,14 +152,15 @@ VALUES (1000, 1),
        (3000, 3);
 
 -- messages
-INSERT INTO public.messages(chat_id, parent_message_id, sender_id, content, sent_at)
-VALUES (1000, null, 1, 'Hello, 2 and 3', '2025-08-09 09:15:49.513348 +00:00'),
-       (1000, null, 2, 'Hey, both', '2025-08-09 09:16:49.513348 +00:00'),
-       (1000, 2, 1, 'How are you', '2025-08-09 09:25:05.513348 +00:00'),
-       (1000, 1, 3, 'Hey folks', '2025-08-09 09:28:05.513348 +00:00'),
+INSERT INTO public.messages(chat_id, parent_message_id, sender_id, content, message_type, media_id, sent_at)
+VALUES (1000, null, 1, 'Hello, 2 and 3', 'TEXT', null, '2025-08-09 09:15:49.513348 +00:00'),
+       (1000, null, 2, 'Hey, both', 'TEXT', null, '2025-08-09 09:16:49.513348 +00:00'),
+       (1000, 2, 1, 'How are you', 'TEXT', null, '2025-08-09 09:25:05.513348 +00:00'),
+       (1000, 1, 3, 'Hey folks', 'IMAGE', 1, '2025-08-09 09:28:05.513348 +00:00'),
 
-       (2000, null, 2, 'Hey user 3, Shall we create a group for backend stuff?', '2025-08-05 22:05:05.513348 +00:00'),
-       (2000, 5, 3, 'Let us go!', '2025-08-05 22:31:00.513348 +00:00');
+       (2000, null, 2, 'Hey user 3, Shall we create a group for backend stuff?', 'TEXT', null,
+        '2025-08-05 22:05:05.513348 +00:00'),
+       (2000, 5, 3, 'Let us go!', 'TEXT', null, '2025-08-05 22:31:00.513348 +00:00');
 
 -- message_status
 INSERT INTO public.message_status(message_id, user_id, delivered_at, read_at)

@@ -14,6 +14,7 @@ public class ChatResponse {
     private byte[] chatPicture;
     private String lastMessage;
     private Instant lastMessageTime;
+    private String messageType;
     private Long unreadCount;
     private int chatMembersNumber;
     private int onlineRecipientsNumber;

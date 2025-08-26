@@ -28,6 +28,11 @@ public class MediaStorageService {
         }
     }
 
+    public InputStream loadFile(String hashedFileName, String extension) throws Exception {
+        Path path = resolvePath(hashedFileName, extension);
+        return Files.newInputStream(path);
+    }
+
     public void deleteFile(String hashedFileName, String extension) throws Exception {
         Path path = resolvePath(hashedFileName, extension);
         boolean b = Files.deleteIfExists(path);
