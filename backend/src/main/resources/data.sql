@@ -139,7 +139,7 @@ VALUES (1000, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
        -- no messages yet in this chat
        (3000, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00'),
 
-       (4000, true, '', '2025-08-05 22:05:07.513348 +00:00');
+       (4000, false, '', '2025-08-05 22:05:07.513348 +00:00');
 
 -- chat_participants
 INSERT INTO public.chat_participants(chat_id, user_id)

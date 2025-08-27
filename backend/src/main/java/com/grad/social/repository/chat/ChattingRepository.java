@@ -10,6 +10,7 @@ import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.enums.ChatStatus;
+import com.grad.social.model.enums.MediaType;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.*;
 import com.grad.social.model.user.response.UserResponse;
@@ -260,9 +261,9 @@ public class ChattingRepository {
 
 
     // messages and their statuses
-    public Long saveMessage(Long chatId, Long senderId, Long parentMessageId, CreateMessageRequest messageRequest, Long mediaAssetId) {
-        return dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.PARENT_MESSAGE_ID, m.CONTENT, m.MEDIA_ID)
-                .values(chatId, senderId, parentMessageId, messageRequest.content(), mediaAssetId)
+    public Long saveMessage(Long chatId, Long senderId, Long parentMessageId, MediaType messageType, CreateMessageRequest messageRequest, Long mediaAssetId) {
+        return dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.PARENT_MESSAGE_ID, m.CONTENT, m.MEDIA_ID, m.MESSAGE_TYPE)
+                .values(chatId, senderId, parentMessageId, messageRequest.content(), mediaAssetId, messageType)
                 .returning(m.MESSAGE_ID)
                 .fetchOne()
                 .getMessageId();
