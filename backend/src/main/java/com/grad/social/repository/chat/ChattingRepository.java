@@ -244,16 +244,16 @@ public class ChattingRepository {
                 .execute();
     }
 
-    public void pinConversation(Long chatId, Long userId) {
+    public void pinConversation(Long chatId, Long userId, boolean toPin) {
         dsl.update(cp)
-                .set(cp.IS_PINNED, true)
+                .set(cp.IS_PINNED, toPin)
                 .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.eq(userId)))
                 .execute();
     }
 
-    public void muteConversation(Long chatId, Long userId) {
+    public void muteConversation(Long chatId, Long userId, boolean toMute) {
         dsl.update(cp)
-                .set(cp.CHAT_STATUS, ChatStatus.MUTED)
+                .set(cp.CHAT_STATUS, toMute? ChatStatus.MUTED : ChatStatus.NORMAL)
                 .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.eq(userId)))
                 .execute();
     }

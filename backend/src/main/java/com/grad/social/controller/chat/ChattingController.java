@@ -79,7 +79,15 @@ public class ChattingController {
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public void pinConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chattingService.pinConversation(Long.parseLong(chatId), userId);
+        this.chattingService.pinConversation(Long.parseLong(chatId), userId, true);
+    }
+
+    @PatchMapping("/chats/{chatId}/unpin")
+    @ResponseStatus(code = HttpStatus.NO_CONTENT)
+    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
+    public void unpinConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
+        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.chattingService.pinConversation(Long.parseLong(chatId), userId, false);
     }
 
     @PatchMapping("/chats/{chatId}/mute")
@@ -87,7 +95,15 @@ public class ChattingController {
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public void muteConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        this.chattingService.muteConversation(Long.parseLong(chatId), userId);
+        this.chattingService.muteConversation(Long.parseLong(chatId), userId, true);
+    }
+
+    @PatchMapping("/chats/{chatId}/unmute")
+    @ResponseStatus(code = HttpStatus.NO_CONTENT)
+    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
+    public void unmuteConversation(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
+        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.chattingService.muteConversation(Long.parseLong(chatId), userId, false);
     }
 
     @PostMapping("/chats/{chatId}/confirmRead")

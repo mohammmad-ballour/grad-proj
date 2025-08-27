@@ -63,12 +63,12 @@ public class ChattingService {
         this.chattingRepository.deleteConversation(chatId, currentUserId);
     }
 
-    public void pinConversation(Long chatId, Long currentUserId) {
-        this.chattingRepository.pinConversation(chatId, currentUserId);
+    public void pinConversation(Long chatId, Long currentUserId, boolean toPin) {
+        this.chattingRepository.pinConversation(chatId, currentUserId, toPin);
     }
 
-    public void muteConversation(Long chatId, Long currentUserId) {
-        this.chattingRepository.muteConversation(chatId, currentUserId);
+    public void muteConversation(Long chatId, Long currentUserId, boolean toMute) {
+        this.chattingRepository.muteConversation(chatId, currentUserId, toMute);
     }
 
     // messages
