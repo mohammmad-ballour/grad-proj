@@ -127,16 +127,19 @@ VALUES (2, 3, '2025-08-09');
 
 -- media assets
 INSERT INTO public.media_asset (content_hash, filename_hash, extension, mime_type, size_bytes)
-VALUES ('content19', 'nature1', 'jpeg', 'image/jpeg', 1024);
+VALUES ('content19', 'nature1', 'jpeg', 'image/jpeg', 1024),
+('content23', 'let-us-go', 'mp4', 'video/mp4', 232448);
 
 -- chats
 INSERT INTO public.chats(chat_id, is_group_chat, name, created_at)
 VALUES (1000, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
 
-       (2000, false, 'User 3', '2025-08-05 22:05:05.513348 +00:00'),
+       (2000, false, '', '2025-08-05 22:05:05.513348 +00:00'),
 
        -- no messages yet in this chat
-       (3000, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00');
+       (3000, true, 'Backend Team', '2025-08-05 22:05:05.513348 +00:00'),
+
+       (4000, true, '', '2025-08-05 22:05:07.513348 +00:00');
 
 -- chat_participants
 INSERT INTO public.chat_participants(chat_id, user_id)
@@ -149,7 +152,10 @@ VALUES (1000, 1),
        (2000, 3),
 
        (3000, 2),
-       (3000, 3);
+       (3000, 3),
+
+       (4000, 2),
+       (4000, 4);
 
 -- messages
 INSERT INTO public.messages(chat_id, parent_message_id, sender_id, content, message_type, media_id, sent_at)
@@ -160,7 +166,9 @@ VALUES (1000, null, 1, 'Hello, 2 and 3', 'TEXT', null, '2025-08-09 09:15:49.5133
 
        (2000, null, 2, 'Hey user 3, Shall we create a group for backend stuff?', 'TEXT', null,
         '2025-08-05 22:05:05.513348 +00:00'),
-       (2000, 5, 3, 'Let us go!', 'TEXT', null, '2025-08-05 22:31:00.513348 +00:00');
+       (2000, 5, 3, '', 'VIDEO', 2, '2025-08-05 22:31:00.513348 +00:00'),
+
+       (4000, null, 2, 'Call me!', 'TEXT', null, '2025-08-05 22:06:00.513348 +00:00');
 
 -- message_status
 INSERT INTO public.message_status(message_id, user_id, delivered_at, read_at)
@@ -182,4 +190,6 @@ VALUES (1, 2, '2025-08-09 09:16:05.513348 +00:00', '2025-08-09 09:15:49.513348 +
 
        (5, 3, '2025-08-05 22:05:48.513348 +00:00', '2025-08-05 22:30:05.513348 +00:00'),
 
-       (6, 2, '2025-08-05 22:31:48.513348 +00:00', '2025-08-05 22:32:15.513348 +00:00');
+       (6, 2, '2025-08-05 22:31:48.513348 +00:00', '2025-08-05 22:32:15.513348 +00:00'),
+
+       (7, 4, '2025-08-05 22:07:00.513348 +00:00', '2025-08-05 23:55:11.513348 +00:00');
