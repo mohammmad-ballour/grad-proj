@@ -1,7 +1,7 @@
 <div class="container-fluid bg-white rounded shadow-sm" style="height: 100%;">
   <div class="row h-100 rounded">
 
-    <!-- Chat List -->
+
     <div class="col-3 border-end d-flex flex-column h-100">
       <!-- Header -->
       <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
@@ -18,40 +18,70 @@
       </div>
 
       <!-- Chat List (scrollable) -->
-<div class="flex-grow-1 overflow-auto" (click)="closeContextMenu()">
-  @for (chat of chats(); track chat.chatId) {
-    <div class="d-flex align-items-center justify-content-between border-bottom p-2 cursor-pointer"
-         (click)="chatClicked(chat)"
-         (contextmenu)="openContextMenu($event, chat)">
-      <div class="d-flex gap-2">
-        <img [src]="processImage(chat.chatPicture)"
-             (error)="onImageError($event, 'assets/ProfileAvatar.png')"
-             class="rounded-circle" width="40" height="40" alt="">
-        <div class="d-flex flex-column">
-          <span>{{ chat.name }}</span>
-          <small class="text-muted">{{ wrapMessage(chat.lastMessage) }}</small>
+      <!-- Chat List (scrollable) -->
+      <div class="flex-grow-1 overflow-auto" (click)="closeContextMenu()">
+        @for (chat of chats(); track chat.chatId) {
+        <div class="chat-item d-flex align-items-center p-2 border-bottom cursor-pointer" (click)="chatClicked(chat)"
+          (contextmenu)="openContextMenu($event, chat)">
+
+          <!-- Left: Avatar -->
+          <div class="me-2">
+            <img [src]="processImage(chat.chatPicture)" (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+              class="rounded-circle" width="50" height="50" alt="">
+          </div>
+
+          <!-- Middle: Chat Info -->
+          <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-semibold text-truncate d-flex align-items-center gap-1" style="max-width: 70%;">
+                {{ chat.name }}
+
+                <!-- Pinned -->
+                @if(chat.pinned) {
+                <i style="color: rgb(26, 81, 175);"  class="bi bi-pin-angle-fill"></i>
+                }
+              </span>
+
+              <!-- Time -->
+              <small class="text-muted">{{ chat.lastMessageTime | date:'HH:mm' }}</small>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+              <!-- Last message -->
+              <small class="text-muted text-truncate" style="max-width: 70%;">
+                {{ wrapMessage(chat.lastMessage) }}
+              </small>
+
+              <div class="d-flex align-items-center gap-1">
+                <!-- Unread badge -->
+                @if(chat.unreadCount) {
+                <span class="badge bg-success rounded-pill px-2">{{ chat.unreadCount }}</span>
+                }
+
+                <!-- Muted -->
+                @if(chat.muted) {
+                <mat-icon class="text-muted" style="font-size: 16px;">notifications_off</mat-icon>
+                }
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="d-flex flex-column align-items-end">
-        <small>{{ chat.lastMessageTime | date:'HH:mm' }}</small>
-        @if(chat.unreadCount) {
-          <span class="badge bg-success rounded-pill">{{ chat.unreadCount }}</span>
+        }
+
+
+        <!-- Context Menu -->
+        @if(contextMenuVisible) {
+        <div class="position-fixed bg-white border rounded shadow p-2" [style.top.px]="contextMenuPosition.y"
+          [style.left.px]="contextMenuPosition.x" style="z-index: 1000; width: 150px;">
+          <button class="dropdown-item" (click)="pinChat(contextMenuChat)">
+            {{ contextMenuChat.pinned ? 'Unpin' : 'Pin to Top' }}
+          </button>
+          <button class="dropdown-item" (click)="muteChat(contextMenuChat)">
+            {{ contextMenuChat.muted ? 'Unmute' : 'Mute' }}
+          </button>
+        </div>
         }
       </div>
-    </div>
-  }
-
-  <!-- Context Menu -->
-  @if(contextMenuVisible) {
-    <div class="position-fixed bg-white border rounded shadow p-2"
-         [style.top.px]="contextMenuPosition.y"
-         [style.left.px]="contextMenuPosition.x"
-         style="z-index: 1000; width: 150px;">
-      <button class="dropdown-item" (click)="pinChat(contextMenuChat)">Pin to Top</button>
-      <button class="dropdown-item" (click)="muteChat(contextMenuChat)">Mute</button>
-    </div>
-  }
-</div>
 
     </div>
 
@@ -66,64 +96,69 @@
         <strong>{{ chatSelected().name }}</strong>
       </div>
 
- <!-- Messages -->
- <!-- Chat List (scrollable) -->
-<div class="flex-grow-1 overflow-auto" (click)="closeContextMenu()">
-  @for (chat of chats(); track chat.chatId) {
-    <div class="d-flex align-items-center justify-content-between border-bottom p-2 cursor-pointer"
-         (click)="chatClicked(chat)"
-         (contextmenu)="openContextMenu($event, chat)">
+      <!-- Messages -->
+      <div #scrollContainer class="overflow-auto p-3 h-100 bg-light chat-scrollbar">
+        @for (m of messagesToSelectedChatt(); track m.messageId) {
 
-      <!-- Left: Avatar + Name + Last Message -->
-      <div class="d-flex gap-2">
-        <img [src]="processImage(chat.chatPicture)"
-             (error)="onImageError($event, 'assets/ProfileAvatar.png')"
-             class="rounded-circle" width="40" height="40" alt="">
-        <div class="d-flex flex-column">
-          <span class="d-flex align-items-center gap-1">
-            {{ chat.name }}
+        <div class="d-flex mb-2 align-items-start" [class.flex-row-reverse]="m.senderAvatar.userId == activeUserId">
 
-            <!-- Pinned Icon -->
-            @if(chat.isPinned) {
-              <mat-icon class="text-warning" style="font-size: 18px;">push_pin</mat-icon>
+          <!-- Avatar (top corner) -->
+          <img class="rounded-circle me-2 ms-2" width="20" height="20"
+            [src]="processImage(m.senderAvatar.profilePicture)"
+            (error)="onImageError($event,'assets/ProfileAvatar.png')">
+
+          <!-- Chat Bubble -->
+          <div #messageElement class="chat-bubble p-2 shadow-sm" [attr.data-message-id]="m.messageId">
+
+            <!-- Reply preview -->
+            @if(m.parentMessageId) {
+            <div class="replied-message p-2 mb-2 bg-secondary bg-opacity-10 rounded"
+              (click)="scrollToParentMessage(m.parentMessageId)">
+              <small class="text-muted">
+                <strong>
+                  {{
+                  getTheParentMesaage(m.parentMessageId).senderAvatar.userId == activeUserId
+                  ? 'You'
+                  : getTheParentMesaage(m.parentMessageId).senderAvatar.username
+                  }}
+                </strong>
+                <div>{{ getTheParentMesaage(m.parentMessageId).content }}</div>
+              </small>
+            </div>
             }
 
-            <!-- Muted Icon -->
-            @if(chat.isMuted) {
-              <mat-icon class="text-muted" style="font-size: 18px;">volume_off</mat-icon>
-            }
-          </span>
+            <!-- Text content -->
+            <div [matMenuTriggerFor]="msgMenu" #t="matMenuTrigger" (contextmenu)="$event.preventDefault(); t.openMenu()"
+              class="message-content">
+              {{ m.content }}
+            </div>
 
-          <small class="text-muted">{{ wrapMessage(chat.lastMessage) }}</small>
+            <!-- Meta -->
+            <div class="chat-meta d-flex align-items-center justify-content-end mt-1">
+              <span class="me-1 small">{{ m.sentAt | date:'shortTime' }}</span>
+              @if(activeUserId == m.senderAvatar.userId) {
+              <i class="bi ms-1" [ngClass]="{ 
+                 'bi-check-lg': m.messageStatus === MessageStatus.SENT,
+                 'bi-check-all': m.messageStatus === MessageStatus.DELIVERED || m.messageStatus === MessageStatus.READ,
+                 'text-primary': m.messageStatus === MessageStatus.READ
+               }"></i>
+              }
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Right: Time + Unread Badge -->
-      <div class="d-flex flex-column align-items-end">
-        <small>{{ chat.lastMessageTime | date:'HH:mm' }}</small>
-        @if(chat.unreadCount) {
-          <span class="badge bg-success rounded-pill">{{ chat.unreadCount }}</span>
+        <!-- Context menu per message -->
+        <mat-menu #msgMenu="matMenu">
+          <ng-template matMenuContent let-data="matMenuTriggerData">
+            <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
+            <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
+            <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
+            <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
+            <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
+          </ng-template>
+        </mat-menu>
         }
       </div>
-    </div>
-  }
-
-  <!-- Context Menu -->
-  @if(contextMenuVisible) {
-    <div class="position-fixed bg-white border rounded shadow p-2"
-         [style.top.px]="contextMenuPosition.y"
-         [style.left.px]="contextMenuPosition.x"
-         style="z-index: 1000; width: 150px;">
-      <button class="dropdown-item" (click)="pinChat(contextMenuChat)">
-        {{ contextMenuChat?.isPinned ? 'Unpin' : 'Pin to Top' }}
-      </button>
-      <button class="dropdown-item" (click)="muteChat(contextMenuChat)">
-        {{ contextMenuChat?.isMuted ? 'Unmute' : 'Mute' }}
-      </button>
-    </div>
-  }
-</div>
-
 
 
       <!-- Reply Preview -->
@@ -139,56 +174,39 @@
         </button>
       </div>
       }
-   <!-- File / Image Preview -->
-@if (selectedFile) {
-  <div class="p-2 border-top bg-light d-flex align-items-center">
-    <div class="me-2">
-      @if (isImage(selectedFile)) {
-        <img
-          [src]="filePreviewUrl"
-          alt="preview"
-          class="rounded"
-          style="max-height: 80px; max-width: 120px;"
-        />
-      } @else {
-        <span class="fw-bold">{{ selectedFile.name }}</span>
+      <!-- File / Image Preview -->
+      @if (selectedFile) {
+      <div class="p-2 border-top bg-light d-flex align-items-center">
+        <div class="me-2">
+          @if (isImage(selectedFile)) {
+          <img [src]="filePreviewUrl" alt="preview" class="rounded" style="max-height: 80px; max-width: 120px;" />
+          } @else {
+          <span class="fw-bold">{{ selectedFile.name }}</span>
+          }
+        </div>
+        <button class="btn btn-sm btn-outline-danger ms-auto" (click)="removeAttachment()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
       }
-    </div>
-    <button class="btn btn-sm btn-outline-danger ms-auto" (click)="removeAttachment()">
-      <mat-icon>close</mat-icon>
-    </button>
-  </div>
-}
 
-<!-- Input Area -->
-<div class="p-2 border-top d-flex bg-white align-items-center">
-  <!-- File Upload -->
-  <button class="btn btn-light me-2" (click)="fileInput.click()">
-    <mat-icon>attach_file</mat-icon>
-  </button>
-  <input
-    type="file"
-    #fileInput
-    hidden
-    (change)="onFileSelected($event)"
-  />
+      <!-- Input Area -->
+      <div class="p-2 border-top d-flex bg-white align-items-center">
+        <!-- File Upload -->
+        <button class="btn btn-light me-2" (click)="fileInput.click()">
+          <mat-icon>attach_file</mat-icon>
+        </button>
+        <input type="file" #fileInput hidden (change)="onFileSelected($event)" />
 
-  <!-- Message Box -->
-  <textarea
-    class="form-control me-2"
-    [(ngModel)]="messageToSent"
-    placeholder="Type a message"
-    rows="1"
-    (input)="autoResize($event)"
-    (keyup.enter)="sendMessage()"
-    style="resize: none; overflow: hidden;"
-  ></textarea>
+        <!-- Message Box -->
+        <textarea class="form-control me-2" [(ngModel)]="messageToSent" placeholder="Type a message" rows="1"
+          (input)="autoResize($event)" (keyup.enter)="sendMessage()" style="resize: none; overflow: hidden;"></textarea>
 
-  <!-- Send Button -->
-  <button class="btn btn-success" (click)="sendMessage()">
-    <mat-icon>send</mat-icon>
-  </button>
-</div>
+        <!-- Send Button -->
+        <button class="btn btn-success" (click)="sendMessage()">
+          <mat-icon>send</mat-icon>
+        </button>
+      </div>
 
       }
     </div>

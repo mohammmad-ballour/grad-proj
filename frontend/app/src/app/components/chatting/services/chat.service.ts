@@ -20,7 +20,7 @@ export class ChatService extends BaseService {
     super();
   }
 
-  getAllUsers() {
+  getAllUsers(): Observable<ChatResponse[]> {
     return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}/chat-list`);
   }
 
@@ -38,7 +38,9 @@ export class ChatService extends BaseService {
   getChatMessages(chatId: string): Observable<MessageResponse[]> {
     return this.httpClient.get<MessageResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`,)
   }
-
+  deleteConversation(chatId: string): Observable<void> {
+    return this.httpClient.delete<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}`);
+  }
   sendMessage(
     chatId: string,
     content: string,

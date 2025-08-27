@@ -46,7 +46,7 @@ export class ChatListComponent {
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
         this.chats.set(res);
-        console.log(res)
+        console.log(this.chats())
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
           const chat = this.chats().find((c) => c.chatId === chatId);
@@ -284,10 +284,10 @@ export class ChatListComponent {
   }
   contextMenuVisible = false;
   contextMenuPosition = { x: 0, y: 0 };
-  contextMenuChat: any; // chat object for which menu opened
+  contextMenuChat!: ChatResponse; // chat object for which menu opened
 
   // Open context menu
-  openContextMenu(event: MouseEvent, chat: any) {
+  openContextMenu(event: MouseEvent, chat: ChatResponse) {
     event.preventDefault(); // prevent default browser menu
     this.contextMenuChat = chat;
     this.contextMenuPosition = { x: event.clientX, y: event.clientY };
@@ -297,23 +297,32 @@ export class ChatListComponent {
   // Close menu when clicking outside
   closeContextMenu() {
     this.contextMenuVisible = false;
-    this.contextMenuChat = null;
   }
 
-  pinChat(chat: any) {
-    this.chatService.pinConversation(chat.chatId).subscribe({
-      next: () => {
-        chat.isPinned = !chat.isPinned; // toggle pinned state
-        this.closeContextMenu();
-      },
-      error: (err) => console.error(err)
-    });
+  pinChat(chat: ChatResponse) {
+    if (chat.pinned) {
+      this.chatService.deleteConversation(chat.chatId).subscribe({
+        next: () => {
+          chat.pinned = !chat.pinned; // toggle pinned state
+          this.closeContextMenu();
+        },
+        error: (err) => console.error(err)
+      });
+    } else {
+      this.chatService.pinConversation(chat.chatId).subscribe({
+        next: () => {
+          chat.pinned = !chat.pinned; // toggle pinned state
+          this.closeContextMenu();
+        },
+        error: (err) => console.error(err)
+      });
+    }
   }
 
-  muteChat(chat: any) {
+  muteChat(chat: ChatResponse) {
     this.chatService.muteConversation(chat.chatId).subscribe({
       next: () => {
-        chat.isMuted = !chat.isMuted; // toggle muted state
+        chat.muted = !chat.muted; // toggle muted state
         this.closeContextMenu();
       },
       error: (err) => console.error(err)
