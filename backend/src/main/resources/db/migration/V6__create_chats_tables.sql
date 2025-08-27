@@ -6,7 +6,7 @@ $$
             CREATE TYPE CHAT_STATUS AS ENUM ('NORMAL', 'MUTED', 'DELETED');
         END IF;
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'media_type') THEN
-            CREATE TYPE MEDIA_TYPE AS ENUM ('TEXT', 'IMAGE', 'VIDEO');
+            CREATE TYPE MEDIA_TYPE AS ENUM ('TEXT', 'IMAGE', 'VIDEO', 'OTHER');
         END IF;
     END
 $$;

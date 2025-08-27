@@ -1,5 +1,6 @@
 package com.grad.social.common.utils.media;
 
+import com.grad.social.model.enums.MediaType;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -7,6 +8,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+
+import static com.grad.social.model.enums.MediaType.*;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MediaUtils {
@@ -21,8 +24,6 @@ public class MediaUtils {
         return HexFormat.of().formatHex(digest.digest());
     }
 
-
-    // new method with entityId
     public static String hashFileName(String originalFileName) throws Exception {
         if(originalFileName == null) {
             throw new IllegalArgumentException("Original name cannot be null");
@@ -46,4 +47,11 @@ public class MediaUtils {
         return (idx == -1) ? "" : filename.substring(idx + 1);
     }
 
+    public static MediaType getFileType(String contentType) {
+        return switch (contentType) {
+            case String s when s.startsWith("image/") -> IMAGE;
+            case String s when s.startsWith("video/") -> VIDEO;
+            case null, default -> MediaType.OTHER;
+        };
+    }
 }

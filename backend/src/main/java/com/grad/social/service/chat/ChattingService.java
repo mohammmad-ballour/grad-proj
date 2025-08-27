@@ -7,6 +7,7 @@ import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
+import com.grad.social.model.enums.MediaType;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.chat.ChattingRepository;
 import com.grad.social.repository.media.MediaRepository;
@@ -76,14 +77,16 @@ public class ChattingService {
         // validate messsage
         this.chattingValidator.validateCreateMessage(createMessageRequest, attachment);
         Long mediaAssetId = null;
+        MediaType messageType = null;
 
         // upload media to filesystem if any
         if (attachment != null && !attachment.isEmpty()) {
             mediaAssetId = this.uploadMedia(attachment);
+            messageType = MediaUtils.getFileType(attachment.getContentType());
         }
 
         // Save message to message table
-        Long savedMessageId = this.chattingRepository.saveMessage(chatId, senderId, parentMessageId, createMessageRequest, mediaAssetId);
+        Long savedMessageId = this.chattingRepository.saveMessage(chatId, senderId, parentMessageId, messageType, createMessageRequest, mediaAssetId);
 
         // find recipients of the newly persisted message
         Map<Boolean, List<Long>> messageRecipients = this.chattingRepository.getMessageRecipientsExcludingTheSender(chatId, senderId);

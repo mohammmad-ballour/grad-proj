@@ -61,9 +61,7 @@ public class ChattingController {
     @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
     public String getChatIdRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
-        var res = String.valueOf(this.chattingService.getExistingOrCreateNewOneToOneChat(senderId, recipientId));
-        System.out.println("Returned " + res);
-        return res;
+        return String.valueOf(this.chattingService.getExistingOrCreateNewOneToOneChat(senderId, recipientId));
     }
 
     @DeleteMapping("/chats/{chatId}")
