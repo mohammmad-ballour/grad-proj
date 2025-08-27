@@ -299,37 +299,45 @@ export class ChatListComponent {
     this.contextMenuVisible = false;
   }
 
-  pinChat(chat: ChatResponse) {
-    if (chat.pinned) {
-      this.chatService.deleteConversation(chat.chatId).subscribe({
-        next: () => {
-          chat.pinned = !chat.pinned; // toggle pinned state
-          this.closeContextMenu();
-        },
-        error: (err) => console.error(err)
-      });
-    } else {
-      this.chatService.pinConversation(chat.chatId).subscribe({
-        next: () => {
-          chat.pinned = !chat.pinned; // toggle pinned state
-          this.closeContextMenu();
-        },
-        error: (err) => console.error(err)
-      });
-    }
-  }
+  togglePinChat(chat: ChatResponse) {
+    const request$ = chat.pinned
+      ? this.chatService.UnPinConversation(chat.chatId)
+      : this.chatService.pinConversation(chat.chatId);
 
-  muteChat(chat: ChatResponse) {
-    this.chatService.muteConversation(chat.chatId).subscribe({
+    request$.subscribe({
       next: () => {
-        chat.muted = !chat.muted; // toggle muted state
+        chat.pinned = !chat.pinned;
         this.closeContextMenu();
       },
       error: (err) => console.error(err)
     });
   }
 
+  toggleMuteChat(chat: ChatResponse) {
+    const request$ = chat.muted
+      ? this.chatService.UnMuteConversation(chat.chatId)
+      : this.chatService.MuteConversation(chat.chatId);
 
+    request$.subscribe({
+      next: () => {
+        chat.muted = !chat.muted;
+        this.closeContextMenu();
+      },
+      error: (err) => console.error(err)
+    });
+  }
+  get sortedChats() {
+    return this.chats().slice().sort((a, b) => {
+      // 1️⃣ Pinned first
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
 
+      // 2️⃣ Sort by lastMessageTime (fallback: 0 if undefined)
+      const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+      const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+
+      return timeB - timeA;
+    });
+  }
 
 }

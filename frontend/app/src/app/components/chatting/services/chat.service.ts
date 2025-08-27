@@ -38,6 +38,7 @@ export class ChatService extends BaseService {
   getChatMessages(chatId: string): Observable<MessageResponse[]> {
     return this.httpClient.get<MessageResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`,)
   }
+
   deleteConversation(chatId: string): Observable<void> {
     return this.httpClient.delete<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}`);
   }
@@ -82,10 +83,19 @@ export class ChatService extends BaseService {
     const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/pin`;
     return this.httpClient.patch<void>(url, null); // no body needed
   }
+  UnPinConversation(chatId: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/unpin`;
+    return this.httpClient.patch<void>(url, null); // no body needed
+  }
 
-  // Mute a conversation
-  muteConversation(chatId: string): Observable<void> {
+  // UnMute a conversation
+  MuteConversation(chatId: string): Observable<void> {
     const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/mute`;
+    return this.httpClient.patch<void>(url, null); // no body needed
+  }
+  // Mute a conversation
+  UnMuteConversation(chatId: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/unmute`;
     return this.httpClient.patch<void>(url, null); // no body needed
   }
 

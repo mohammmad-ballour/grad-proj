@@ -11,7 +11,8 @@ export interface ChatResponse {
   muted: boolean;
   Deleted: boolean;
   messageType: string;
-  chatMembersNumber: number
+  chatMembersNumber: number;
+
 }
 
 
