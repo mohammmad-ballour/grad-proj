@@ -45,7 +45,8 @@ export class ChatListComponent {
   ngOnInit() {
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
-        this.chats.set(res);
+        const filteredChats = res.filter(chat => !chat.deleted);
+        this.chats.set(filteredChats);
         console.log(this.chats())
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
@@ -126,6 +127,7 @@ export class ChatListComponent {
   }
 
   scrollToParentMessage(parentMessageId: number): void {
+    console.log('Scrolling to parent message ID:', parentMessageId);
     const parentElement = this.messageElements
       .toArray()
       .find(el => el.nativeElement.getAttribute('data-message-id') === parentMessageId.toString());
@@ -144,7 +146,19 @@ export class ChatListComponent {
     }
   }
 
+  deleteChat(chatId: string) {
 
+
+    this.chatService.deleteConversation(chatId).subscribe({
+      next: () => {
+        console.log('Chat deleted successfully');
+        this.chats().splice(this.chats().findIndex(c => c.chatId === chatId), 1);
+      },
+      error: (err) => {
+        console.error('Failed to delete chat', err);
+      }
+    });
+  }
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
   }

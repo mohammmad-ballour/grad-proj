@@ -9,7 +9,7 @@ export interface ChatResponse {
   unreadCount: number;
   pinned: boolean;
   muted: boolean;
-  Deleted: boolean;
+  deleted: boolean;
   messageType: string;
   chatMembersNumber: number;
 

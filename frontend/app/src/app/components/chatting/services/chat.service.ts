@@ -40,7 +40,9 @@ export class ChatService extends BaseService {
   }
 
   deleteConversation(chatId: string): Observable<void> {
-    return this.httpClient.delete<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}`);
+    const req$ = this.httpClient.delete<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}`);
+
+    return req$;
   }
   sendMessage(
     chatId: string,
@@ -71,9 +73,6 @@ export class ChatService extends BaseService {
     return this.httpClient.post<number>(url, formData);
   }
 
-
-
-
   confirmRead(chatId: string) {
     return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});
   }
@@ -98,5 +97,6 @@ export class ChatService extends BaseService {
     const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/unmute`;
     return this.httpClient.patch<void>(url, null); // no body needed
   }
+
 
 }

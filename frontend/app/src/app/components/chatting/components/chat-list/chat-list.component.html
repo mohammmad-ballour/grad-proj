@@ -51,6 +51,7 @@
         <!-- Last message -->
         <small class="text-muted text-truncate" style="max-width: 70%;">
           @if(chat.messageType =='IMAGE'){
+            photo
             <i class="bi bi-image-fill"></i>
           }@else{
             {{ wrapMessage(chat.lastMessage) }}
@@ -83,6 +84,9 @@
           </button>
           <button class="dropdown-item" (click)="toggleMuteChat(contextMenuChat)">
             {{ contextMenuChat.muted ? 'Unmute' : 'Mute' }}
+          </button> 
+          <button class="dropdown-item" (click)="deleteChat(contextMenuChat.chatId)">
+             delete
           </button>
         </div>
         }
@@ -128,16 +132,13 @@
           'sent': m.senderAvatar.userId == activeUserId,
           'received': m.senderAvatar.userId != activeUserId
         }"
-        [attr.data-message-id]="m.messageId"
-        [matMenuTriggerFor]="msgMenu"
-        #t="matMenuTrigger"
-        (contextmenu)="$event.preventDefault(); t.openMenu()"
+          [attr.data-message-id]="m.messageId"
       >
         <!-- Reply preview -->
         @if(m.parentMessageId) {
           <div
             class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
-            (click)="scrollToParentMessage(m.parentMessageId)"
+            (click)="scrollToParentMessage(m.parentMessageId);    "
           >
             <small class="text-muted">
               <strong>
@@ -159,6 +160,14 @@
             </small>
           </div>
         }
+        <div
+          
+        [matMenuTriggerFor]="msgMenu"
+        #t="matMenuTrigger"
+        (contextmenu)="$event.preventDefault(); t.openMenu()"
+        >
+
+        
 
         <!-- Media -->
         @if(m.media) {
@@ -183,6 +192,7 @@
               }"
             ></i>
           }
+        </div>
         </div>
       </div>
     </div>
