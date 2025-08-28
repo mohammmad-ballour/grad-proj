@@ -29,7 +29,6 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static com.grad.social.model.chat.response.MessageStatus.*;
 import static org.jooq.Records.mapping;
@@ -259,7 +258,6 @@ public class ChattingRepository {
                 .execute();
     }
 
-
     // messages and their statuses
     public Long saveMessage(Long chatId, Long senderId, Long parentMessageId, MediaType messageType, CreateMessageRequest messageRequest, Long mediaAssetId) {
         return dsl.insertInto(m, m.CHAT_ID, m.SENDER_ID, m.PARENT_MESSAGE_ID, m.CONTENT, m.MEDIA_ID, m.MESSAGE_TYPE)
@@ -267,6 +265,13 @@ public class ChattingRepository {
                 .returning(m.MESSAGE_ID)
                 .fetchOne()
                 .getMessageId();
+    }
+
+    public void editDeletedChatsToNormalAfterNewMessageArrives(Long chatId, List<Long> messageRecipients) {
+        dsl.update(cp)
+                .set(cp.CHAT_STATUS, ChatStatus.NORMAL)
+                .where(cp.CHAT_ID.eq(chatId).and(cp.CHAT_STATUS.eq(ChatStatus.DELETED)).and(cp.USER_ID.in(messageRecipients)))
+                .execute();
     }
 
     public MessageDetailResponse getMessageDetails(Long messageId) {
@@ -319,23 +324,22 @@ public class ChattingRepository {
                 }));
     }
 
-    public Map<Boolean, List<Long>> getMessageRecipientsExcludingTheSender(Long chatId, Long senderId) {
-        List<Long> allRecipientsExcludingSender = dsl.select(cp.USER_ID)
+    public List<Long> getMessageRecipients(Long chatId) {
+        return dsl.select(cp.USER_ID)
                 .from(cp)
-                .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.ne(senderId)))
+                .where(cp.CHAT_ID.eq(chatId))
                 .fetch(cp.USER_ID);
-
-        return allRecipientsExcludingSender.stream().collect(Collectors.partitioningBy(this::isUserOnline));
     }
 
-    public void initializeMessageStatusForParticipantsExcludingTheSender(Long messageId, Long chatId, Long senderId, List<Long> onlineRecipients) {
+    // excluding the sender is in the service
+    public void initializeMessageStatusForParticipants(Long messageId, Long chatId, List<Long> onlineRecipients) {
         dsl.insertInto(ms, ms.MESSAGE_ID, ms.USER_ID, ms.DELIVERED_AT)
                 .select(
                         dsl.select(DSL.val(messageId), cp.USER_ID,
                                         DSL.when(cp.USER_ID.in(onlineRecipients), Instant.now())
                                                 .otherwise(DSL.val((Instant) null)))
                                 .from(cp)
-                                .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.ne(senderId)))
+                                .where(cp.CHAT_ID.eq(chatId))
                 )
                 .execute();
     }
@@ -394,7 +398,7 @@ public class ChattingRepository {
     }
 
     // Utils
-    private boolean isUserOnline(Long userId) {
+    public boolean isUserOnline(Long userId) {
         Long size = redisTemplate.opsForSet().size(RedisConstants.USERS_SESSION_KEY_PREFIX + userId);
         return size != null && size > 0;
     }
@@ -415,6 +419,5 @@ public class ChattingRepository {
                         .where(m.MESSAGE_ID.eq(messageId).and(m.SENDER_ID.eq(userId)))
         );
     }
-
 
 }
