@@ -83,9 +83,9 @@ public class SecurityService {
         } else {
             Map<Long, FriendshipStatus> followRelations = this.userUserInteractionRepository.getFollowRelations(recipientIds, currentUserId);
             if (privacySettings == FRIENDS) {
-                return followRelations.values().stream().allMatch(FriendshipStatus::isFollowedByCurrentUser);
-            } else if (privacySettings == FOLLOWERS) {
                 return followRelations.values().stream().allMatch(FriendshipStatus::areFriends);
+            } else if (privacySettings == FOLLOWERS) {
+                return followRelations.values().stream().allMatch(FriendshipStatus::isFollowedByCurrentUser);
             }
         }
         return false;

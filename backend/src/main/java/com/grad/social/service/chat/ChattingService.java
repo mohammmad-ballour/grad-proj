@@ -13,12 +13,12 @@ import com.grad.social.repository.chat.ChattingRepository;
 import com.grad.social.repository.media.MediaRepository;
 import com.grad.social.service.chat.validator.ChattingValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -88,12 +88,21 @@ public class ChattingService {
         // Save message to message table
         Long savedMessageId = this.chattingRepository.saveMessage(chatId, senderId, parentMessageId, messageType, createMessageRequest, mediaAssetId);
 
+        this.onSaveMessage(chatId, senderId, savedMessageId);
+        return savedMessageId;
+    }
+
+    @Async
+    protected void onSaveMessage(Long chatId, Long senderId, Long savedMessageId) {
         // find recipients of the newly persisted message
-        Map<Boolean, List<Long>> messageRecipients = this.chattingRepository.getMessageRecipientsExcludingTheSender(chatId, senderId);
+        List<Long> messageRecipients = this.chattingRepository.getMessageRecipients(chatId);
 
         // Initialize message_status for all participants except sender
-        this.chattingRepository.initializeMessageStatusForParticipantsExcludingTheSender(savedMessageId, chatId, senderId, messageRecipients.get(true));
-        return savedMessageId;
+        List<Long> onLineMessageRecipients = messageRecipients.stream().skip(senderId).filter(this.chattingRepository::isUserOnline).toList();
+        this.chattingRepository.initializeMessageStatusForParticipants(savedMessageId, chatId, onLineMessageRecipients);
+
+        // Edit chat status to NORMAL for those who self-deleted it
+        this.chattingRepository.editDeletedChatsToNormalAfterNewMessageArrives(chatId, messageRecipients);
     }
 
     private Long uploadMedia(MultipartFile attachment) throws Exception {
