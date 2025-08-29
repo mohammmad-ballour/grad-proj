@@ -7,7 +7,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MessageResponse, MessageStatus } from '../../models/message-response';
-import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from "@angular/material/icon";
 import { ViewChild } from '@angular/core';
 import { MessageDetailResponse } from '../../models/message-detail-response';
@@ -122,10 +122,10 @@ export class ChatListComponent {
   }
 
   onOpenChat(chatId: string) {
-    this.chatService.confirmRead(chatId).subscribe({
-      next: () => this.chatSelected().unreadCount = 0,
-      error: (err) => console.error('Failed to confirm read', err)
-    });
+    // this.chatService.confirmRead(chatId).subscribe({
+    //   next: () => this.chatSelected().unreadCount = 0,
+    //   error: (err) => console.error('Failed to confirm read', err)
+    // });
   }
 
   getParentMessageContent(parentMessageId: number | undefined): string {
@@ -382,34 +382,47 @@ export class ChatListComponent {
       return nameMatch || lastMsgMatch;
     });
   }
+  // Component.ts
+  messageInfoData: MessageDetailResponse | null = null;
+
+  // These will hold the keys for iteration in the template
+  deliveredKeys: string[] = [];
+  readKeys: string[] = [];
+
   fetchMessageInfo(messageId: number): void {
     this.chatService.getMessageInfo(messageId).subscribe({
       next: (info: MessageDetailResponse) => {
-        console.log("Delivered:", info.delivered);
-        console.log("Read:", info.read);
+        this.messageInfoData = info;
+        console.log("Fetched message info:", this.messageInfoData);
 
-        // DeliveredByAt
-        if (info.deliveredByAt) {
-          for (const userId in info.deliveredByAt) {
-            const deliveredTime = new Date(info.deliveredByAt[userId]);
-            console.log(`User ${userId} delivered at:`, deliveredTime.toLocaleString());
-          }
-        }
-
-        // ReadByAt
-        if (info.readByAt) {
-          for (const userId in info.readByAt) {
-            const readTime = new Date(info.readByAt[userId]);
-            console.log(`User ${userId} read at:`, readTime.toLocaleString());
-          }
-        }
+        // Precompute keys for template
+        this.deliveredKeys = info.deliveredByAt ? Object.keys(info.deliveredByAt) : [];
+        this.readKeys = info.readByAt ? Object.keys(info.readByAt) : [];
       },
       error: (err) => {
         console.error("Failed to fetch message info:", err);
       }
     });
   }
+  selectedMessageForMenu!: MessageResponse;
 
+  openInfoFromContext(trigger: MatMenuTrigger, infoMenu: MatMenu, message: MessageResponse) {
+    this.fetchMessageInfo(message.messageId);
+
+    const originalMenu = trigger.menu;
+    trigger.closeMenu();
+
+    // Temporarily switch the trigger to open the info menu
+    trigger.menu = infoMenu;
+
+    setTimeout(() => {
+      trigger.openMenu();
+      const sub = trigger.menuClosed.subscribe(() => {
+        trigger.menu = originalMenu;
+        sub.unsubscribe();
+      });
+    }, 440);
+  }
 
 
 }
