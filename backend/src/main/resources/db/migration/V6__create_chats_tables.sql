@@ -2,9 +2,6 @@
 DO
 $$
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'chat_status') THEN
-            CREATE TYPE CHAT_STATUS AS ENUM ('NORMAL', 'MUTED', 'DELETED');
-        END IF;
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'media_type') THEN
             CREATE TYPE MEDIA_TYPE AS ENUM ('TEXT', 'IMAGE', 'VIDEO', 'OTHER');
         END IF;
@@ -24,11 +21,12 @@ CREATE TABLE chats
 -- for 1-1 chats only, we ensure that a pair of users can only have one non-group chat at the application level
 CREATE TABLE chat_participants
 (
-    chat_id     BIGINT REFERENCES chats (chat_id) ON DELETE CASCADE,
-    user_id     BIGINT REFERENCES users (id) ON DELETE CASCADE,
+    chat_id         BIGINT REFERENCES chats (chat_id) ON DELETE CASCADE,
+    user_id         BIGINT REFERENCES users (id) ON DELETE CASCADE,
 --     role VARCHAR(50) DEFAULT 'member', -- e.g., 'admin', 'member'
-    chat_status CHAT_STATUS NOT NULL DEFAULT 'NORMAL',
-    is_pinned   BOOLEAN              DEFAULT FALSE,
+    is_muted        BOOLEAN     DEFAULT FALSE,
+    is_pinned       BOOLEAN     DEFAULT FALSE,
+    last_deleted_at TIMESTAMPTZ DEFAULT NULL,
     PRIMARY KEY (chat_id, user_id)
 );
 
