@@ -47,17 +47,18 @@ export class ChatListComponent {
       next: (res) => {
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
-          console.log("chatId:", chatId);
+          // console.log("chatId:", chatId);
           const chat = res.find(c => c.chatId === chatId);
-          console.log("chat found:", chat);
+          // console.log("chat found:", chat);
           if (chat) {
-            chat.deleted = false; // change deleted status
-            console.log("changed");
+
+
             this.chatClicked(chat);
           }
         }
-        const filteredChats = res.filter(chat => !chat.deleted);
-        this.chats.set(filteredChats);
+        // const filteredChats = res.filter(chat => !chat.deleted);
+        this.chats.set(res);
+        console.log(this.chats())
       },
       error: (err: HttpErrorResponse) => {
         console.error('Backend returned code:', err.status);

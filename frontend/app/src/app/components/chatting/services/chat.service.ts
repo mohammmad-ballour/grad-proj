@@ -13,6 +13,7 @@ export class ChatService extends BaseService {
 
   private readonly ENDPOINTS = {
     chats: '/api/chats/',
+    messages: '/api/messages/',
 
   };
   http: any;
@@ -101,7 +102,7 @@ export class ChatService extends BaseService {
 
   getMessageInfo(messageId: number): Observable<MessageDetailResponse> {
     return this.httpClient.get<MessageDetailResponse>(
-      `${this.baseUrl}/messages/${messageId}/info`
+      `${this.baseUrl}${this.ENDPOINTS.messages}${messageId}/info`
     );
   }
 }
