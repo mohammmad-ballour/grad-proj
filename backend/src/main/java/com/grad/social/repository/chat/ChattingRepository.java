@@ -126,6 +126,8 @@ public class ChattingRepository {
         var cpOther = cp.as("cp_other");
         return dsl.selectDistinct(
                         c.CHAT_ID,
+                        c.IS_GROUP_CHAT,
+                        cp.LAST_DELETED_AT,
                         DSL.case_()
                                 .when(c.IS_GROUP_CHAT.isTrue(), c.NAME)
                                 .otherwise(u.DISPLAY_NAME).as("chat_name"),
@@ -154,14 +156,23 @@ public class ChattingRepository {
                 .leftJoin(lateral(lm)).on(DSL.trueCondition())
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
                 .where(cp.USER_ID.eq(currentUserId))
+                .and(c.IS_GROUP_CHAT.isTrue().or(
+                        (lm.field(m.SENT_AT).isNull().or(lm.field(m.SENT_AT).gt(DSL.coalesce(cp.LAST_DELETED_AT, DSL.val(AppConstants.DEFAULT_MIN_TIMESTAMP)))))
+                ))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
-                .fetch(mapping((chatId, chatName, chatPicture, isMuted, isPinned, lastMessage, lastMessageSentAt, lastMessageType, unreadCount, participants) -> {
+                .fetch(mapping((chatId, isGroup, lastDeletedAt, chatName, chatPicture, isMuted, isPinned, lastMessage,
+                                lastMessageSentAt, lastMessageType, unreadCount, participants) -> {
                     ChatResponse res = new ChatResponse();
                     res.setChatId(chatId);
                     res.setName(chatName);
                     res.setChatPicture(chatPicture);
-                    res.setLastMessage(lastMessage);
-                    res.setLastMessageTime(lastMessageSentAt);
+                    if (isGroup && (lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt))) {
+                        res.setLastMessage(null);
+                        res.setLastMessageTime(null);
+                    } else {
+                        res.setLastMessage(lastMessage);
+                        res.setLastMessageTime(lastMessageSentAt);
+                    }
                     res.setMessageType(lastMessageType == null ? null : lastMessageType.name());
                     res.setUnreadCount(unreadCount);
                     res.setPinned(isPinned);
@@ -308,7 +319,7 @@ public class ChattingRepository {
                 }));
     }
 
-    public List<Long> getMessageRecipients(Long chatId) {
+    public List<Long> getMessageRecipientsExcludingSender(Long chatId) {
         return dsl.select(cp.USER_ID)
                 .from(cp)
                 .where(cp.CHAT_ID.eq(chatId))
@@ -316,14 +327,14 @@ public class ChattingRepository {
     }
 
     // excluding the sender is in the service
-    public void initializeMessageStatusForParticipants(Long messageId, Long chatId, List<Long> onlineRecipients) {
+    public void initializeMessageStatusForParticipants(Long messageId, Long chatId, Long senderId, List<Long> onlineRecipients) {
         dsl.insertInto(ms, ms.MESSAGE_ID, ms.USER_ID, ms.DELIVERED_AT)
                 .select(
                         dsl.select(DSL.val(messageId), cp.USER_ID,
                                         DSL.when(cp.USER_ID.in(onlineRecipients), Instant.now())
                                                 .otherwise(DSL.val((Instant) null)))
                                 .from(cp)
-                                .where(cp.CHAT_ID.eq(chatId))
+                                .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.ne(senderId)))
                 )
                 .execute();
     }

@@ -19,10 +19,10 @@ public class MessageListener {
         Long senderId = event.senderId();
 
         // find recipients of the newly persisted message
-        List<Long> messageRecipients = this.chattingRepository.getMessageRecipients(chatId);
+        List<Long> messageRecipients = this.chattingRepository.getMessageRecipientsExcludingSender(chatId);
 
         // Initialize message_status for all participants except sender
-        List<Long> onLineMessageRecipients = messageRecipients.stream().skip(senderId).filter(this.chattingRepository::isUserOnline).toList();
-        this.chattingRepository.initializeMessageStatusForParticipants(savedMessageId, chatId, onLineMessageRecipients);
+        List<Long> onLineMessageRecipients = messageRecipients.stream().filter(this.chattingRepository::isUserOnline).toList();
+        this.chattingRepository.initializeMessageStatusForParticipants(savedMessageId, chatId, senderId, onLineMessageRecipients);
     }
 }

@@ -79,7 +79,7 @@ public class ChattingService {
         // validate messsage
         this.chattingValidator.validateCreateMessage(createMessageRequest, attachment);
         Long mediaAssetId = null;
-        MediaType messageType = null;
+        MediaType messageType = MediaType.TEXT;
 
         // upload media to filesystem if any
         if (attachment != null && !attachment.isEmpty()) {

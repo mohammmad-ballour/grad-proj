@@ -18,8 +18,9 @@ public class ChatsCleanerJob {
     private final DSLContext dsl;
 
     /**
-     * Runs every 10 minutes to clean up 1-1 chats where which have no messages.
-     */    @Scheduled(cron = "0 */10 * * * *")
+     * Runs every 5 minutes to clean up 1-1 chats where which have no messages.
+     */
+    @Scheduled(cron = "0 */5 * * * *")
     public void cleanStaleOneToOneChats() {
         int deleted = dsl.deleteFrom(CHATS)
                 .where(CHATS.IS_GROUP_CHAT.isFalse())
