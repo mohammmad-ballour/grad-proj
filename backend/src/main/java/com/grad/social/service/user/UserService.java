@@ -1,7 +1,6 @@
 package com.grad.social.service.user;
 
 import com.grad.grad_proj.generated.api.model.CreateUserDto;
-import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.Model;
 import com.grad.social.common.exceptionhandling.ModelNotFoundException;

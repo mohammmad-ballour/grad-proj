@@ -20,5 +20,4 @@ public class ChatResponse {
     private int onlineRecipientsNumber;
     private boolean isPinned;
     private boolean isMuted;
-    private boolean isDeleted;
 }

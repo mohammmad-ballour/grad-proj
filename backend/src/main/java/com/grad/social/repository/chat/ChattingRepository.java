@@ -9,7 +9,6 @@ import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
-import com.grad.social.model.enums.ChatStatus;
 import com.grad.social.model.enums.MediaType;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.*;
@@ -132,8 +131,7 @@ public class ChattingRepository {
                         DSL.case_()
                                 .when(c.IS_GROUP_CHAT.isTrue(), c.PICTURE)
                                 .otherwise(u.PROFILE_PICTURE).as("chat_picture"),
-                        cp.CHAT_STATUS,
-                        cp.IS_PINNED,
+                        cp.IS_MUTED, cp.IS_PINNED,
                         lm.field(m.CONTENT).as("last_message"),
                         lm.field(m.SENT_AT).as("last_message_time"),
                         lm.field(m.MESSAGE_TYPE).as("message_type"),
@@ -156,22 +154,17 @@ public class ChattingRepository {
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
                 .where(cp.USER_ID.eq(currentUserId))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
-                .fetch(mapping((chatId, chatName, chatPicture, chatStatus, isPinned, lastMessage, lastMessageSentAt, lastMessageType, unreadCount, participants) -> {
+                .fetch(mapping((chatId, chatName, chatPicture, isMuted, isPinned, lastMessage, lastMessageSentAt, lastMessageType, unreadCount, participants) -> {
                     ChatResponse res = new ChatResponse();
-                    switch (chatStatus) {
-                        case ChatStatus.DELETED -> res.setDeleted(true);
-                        case ChatStatus.MUTED -> res.setMuted(true);
-                        case null, default -> {
-                        }
-                    }
                     res.setChatId(chatId);
                     res.setName(chatName);
                     res.setChatPicture(chatPicture);
                     res.setLastMessage(lastMessage);
                     res.setLastMessageTime(lastMessageSentAt);
-                    res.setMessageType(lastMessageType == null? null : lastMessageType.name());
+                    res.setMessageType(lastMessageType == null ? null : lastMessageType.name());
                     res.setUnreadCount(unreadCount);
                     res.setPinned(isPinned);
+                    res.setMuted(isMuted);
                     res.setChatMembersNumber(participants.size());
                     AtomicInteger onlineUsersCount = new AtomicInteger();
                     participants.forEach(participant -> {
@@ -202,20 +195,14 @@ public class ChattingRepository {
                         .and(ms.DELIVERED_AT.isNull()))
                 .asField("undelivered_count");
 
-        // number of participants in this chat (excluding sender)
-        int participantsCount = Objects.requireNonNull(dsl
-                .selectCount()
-                .from(cp)
-                .where(cp.CHAT_ID.eq(chatId))
-                .fetchOneInto(Integer.class)) - 1;
-
         return dsl.selectDistinct(m.MESSAGE_ID, m.PARENT_MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, m.CONTENT, m.SENT_AT,
                         ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION, unreadCountField, undeliveredCountField)
                 .from(m)
                 .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .join(cp).on(cp.CHAT_ID.eq(m.CHAT_ID))
                 .join(u).on(m.SENDER_ID.eq(u.ID))
-                .where(m.CHAT_ID.eq(chatId))
+                .where(m.CHAT_ID.eq(chatId).and(m.SENT_AT.gt(cp.LAST_DELETED_AT)))
                 .orderBy(m.SENT_AT.asc())
                 .fetch(mapping((messageId, parentMessageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
                                 mediaId, fileNameHashed, extension, unreadCount, undeliveredCount) -> {
@@ -239,7 +226,7 @@ public class ChattingRepository {
 
     public void deleteConversation(Long chatId, Long userId) {
         dsl.update(cp)
-                .set(cp.CHAT_STATUS, ChatStatus.DELETED)
+                .set(cp.LAST_DELETED_AT, Instant.now())
                 .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.eq(userId)))
                 .execute();
     }
@@ -253,7 +240,7 @@ public class ChattingRepository {
 
     public void muteConversation(Long chatId, Long userId, boolean toMute) {
         dsl.update(cp)
-                .set(cp.CHAT_STATUS, toMute? ChatStatus.MUTED : ChatStatus.NORMAL)
+                .set(cp.IS_MUTED, toMute)
                 .where(cp.CHAT_ID.eq(chatId).and(cp.USER_ID.eq(userId)))
                 .execute();
     }
@@ -265,13 +252,6 @@ public class ChattingRepository {
                 .returning(m.MESSAGE_ID)
                 .fetchOne()
                 .getMessageId();
-    }
-
-    public void editDeletedChatsToNormalAfterNewMessageArrives(Long chatId, List<Long> messageRecipients) {
-        dsl.update(cp)
-                .set(cp.CHAT_STATUS, ChatStatus.NORMAL)
-                .where(cp.CHAT_ID.eq(chatId).and(cp.CHAT_STATUS.eq(ChatStatus.DELETED)).and(cp.USER_ID.in(messageRecipients)))
-                .execute();
     }
 
     public MessageDetailResponse getMessageDetails(Long messageId) {

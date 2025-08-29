@@ -11,9 +11,10 @@ import com.grad.social.model.enums.MediaType;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.chat.ChattingRepository;
 import com.grad.social.repository.media.MediaRepository;
+import com.grad.social.service.chat.event.MessageSavedEvent;
 import com.grad.social.service.chat.validator.ChattingValidator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +29,7 @@ public class ChattingService {
     private final MediaRepository mediaRepository;
     private final MediaStorageService mediaStorageService;
     private final ChattingValidator chattingValidator;
+    private final ApplicationEventPublisher eventPublisher;
 
     // chats
     public Long createGroupChat(Long creatorId, String groupName, MultipartFile groupPicture, Set<Long> participantIds) throws IOException {
@@ -88,21 +90,8 @@ public class ChattingService {
         // Save message to message table
         Long savedMessageId = this.chattingRepository.saveMessage(chatId, senderId, parentMessageId, messageType, createMessageRequest, mediaAssetId);
 
-        this.onSaveMessage(chatId, senderId, savedMessageId);
+        this.eventPublisher.publishEvent(new MessageSavedEvent(chatId, savedMessageId, senderId));
         return savedMessageId;
-    }
-
-    @Async
-    protected void onSaveMessage(Long chatId, Long senderId, Long savedMessageId) {
-        // find recipients of the newly persisted message
-        List<Long> messageRecipients = this.chattingRepository.getMessageRecipients(chatId);
-
-        // Initialize message_status for all participants except sender
-        List<Long> onLineMessageRecipients = messageRecipients.stream().skip(senderId).filter(this.chattingRepository::isUserOnline).toList();
-        this.chattingRepository.initializeMessageStatusForParticipants(savedMessageId, chatId, onLineMessageRecipients);
-
-        // Edit chat status to NORMAL for those who self-deleted it
-        this.chattingRepository.editDeletedChatsToNormalAfterNewMessageArrives(chatId, messageRecipients);
     }
 
     private Long uploadMedia(MultipartFile attachment) throws Exception {
@@ -132,10 +121,6 @@ public class ChattingService {
     // used in FeedService to update unread message count badge in frontend
     public Integer getNumberOfUnreadMessagesSinceLastOnline(Long userId) {
         return this.chattingRepository.getNumberOfUnreadMessagesSinceLastOnline(userId);
-    }
-
-    public boolean isParticipant(Long chatId, Long userId) {
-        return this.chattingRepository.isParticipant(chatId, userId);
     }
 
     // called whenever the user comes online again (in LoginSuccessEventHandler)

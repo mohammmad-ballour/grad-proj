@@ -128,7 +128,7 @@ VALUES (2, 3, '2025-08-09');
 -- media assets
 INSERT INTO public.media_asset (content_hash, filename_hash, extension, mime_type, size_bytes)
 VALUES ('content19', 'nature1', 'jpeg', 'image/jpeg', 1024),
-('content23', 'let-us-go', 'mp4', 'video/mp4', 232448);
+       ('content23', 'let-us-go', 'mp4', 'video/mp4', 232448);
 
 -- chats
 INSERT INTO public.chats(chat_id, is_group_chat, name, created_at)
@@ -142,20 +142,20 @@ VALUES (1000, true, 'Besties', '''2025-08-09 09:15:49.513348 +00:00'''),
        (4000, false, '', '2025-08-05 22:05:07.513348 +00:00');
 
 -- chat_participants
-INSERT INTO public.chat_participants(chat_id, user_id)
-VALUES (1000, 1),
-       (1000, 2),
-       (1000, 3),
-       (1000, 4),
+INSERT INTO public.chat_participants(chat_id, user_id, last_deleted_at)
+VALUES (1000, 1, null),
+       (1000, 2, null),
+       (1000, 3, null),
+       (1000, 4, null),
 
-       (2000, 2),
-       (2000, 3),
+       (2000, 2, '2025-08-05 22:10:05.513348 +00:00'),
+       (2000, 3, null),
 
-       (3000, 2),
-       (3000, 3),
+       (3000, 2, null),
+       (3000, 3, null),
 
-       (4000, 2),
-       (4000, 4);
+       (4000, 2, null),
+       (4000, 4, null);
 
 -- messages
 INSERT INTO public.messages(chat_id, parent_message_id, sender_id, content, message_type, media_id, sent_at)
