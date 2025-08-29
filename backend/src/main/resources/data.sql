@@ -15,21 +15,21 @@ FROM users;
 INSERT INTO public.users (email, username, display_name, dob, gender, residence, timezone_id, is_protected, is_verified,
                           account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
                           profile_bio)
-VALUES ('test@gmail.com', 'testusername', 'USER 1', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+VALUES ('mohbalor@gmail.com', 'mohbalor', 'Mohammad Ballour', '2002-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
 
-       ('test2@gmail.com', 'testusername2', 'USER 2', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin',
-        false,
+       ('mshukur@gmail.com', 'mshukur', 'Mohammad Shukur', '2003-01-01', 'MALE', 'Köln', 'Europe/Berlin',
+        false, false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+
+       ('baraa@gmail.com', 'baraa', 'Baraa Shaat', '2002-05-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
 
-       ('mshokor2003@gmail.com', 'moh2', 'USER 3', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+       ('sarahhhh@gmail.com', 'sarah', 'Sarah', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
 
-       ('mshokor2004@gmail.com', 'moh3', 'USER 4', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+       ('lucy@gmail.com', 'lucy', 'Lucy 💕', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
 
-       ('mshokor2005@gmail.com', 'moh4', 'USER 5', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
 
        ('mshokor2006@gmail.com', 'moh5', 'USER 6', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
         false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
@@ -88,11 +88,14 @@ VALUES (1, 2, '2025-08-06', 'DEFAULT'),
        (2, 7, '2025-05-01', 'DEFAULT'),
 
        (3, 1, '2025-05-06', 'DEFAULT'),
+       (3, 2, '2025-05-06', 'DEFAULT'),
 
        (4, 1, '2025-05-06', 'DEFAULT'),
+       (4, 5, '2025-05-06', 'DEFAULT'),
 
        (5, 1, '2025-05-10', 'DEFAULT'),
        (5, 2, '2025-05-09', 'RESTRICTED'),
+       (5, 4, '2025-05-09', 'RESTRICTED'),
 
        (6, 1, '2025-06-06', 'DEFAULT'),
 
@@ -164,9 +167,10 @@ VALUES (1000, null, 1, 'Hello, 2 and 3', 'TEXT', null, '2025-08-09 09:15:49.5133
        (1000, 2, 1, 'How are you', 'TEXT', null, '2025-08-09 09:25:05.513348 +00:00'),
        (1000, 1, 3, 'Hey folks', 'IMAGE', 1, '2025-08-09 09:28:05.513348 +00:00'),
 
-       (2000, null, 2, 'Hey user 3, Shall we create a group for backend stuff?', 'TEXT', null,
+       (2000, null, 2, 'Hey baraa, Shall we create a group for backend stuff?', 'TEXT', null,
         '2025-08-05 22:05:05.513348 +00:00'),
-       (2000, 5, 3, '', 'VIDEO', 2, '2025-08-05 22:31:00.513348 +00:00'),
+       (2000, 5, 2, 'Answer ASAP', 'TEXT', null, '2025-08-05 22:20:05.513348 +00:00'),
+       (2000, null, 3, '', 'VIDEO', 2, '2025-08-05 22:31:00.513348 +00:00'),
 
        (4000, null, 2, 'Call me!', 'TEXT', null, '2025-08-05 22:06:00.513348 +00:00');
 
@@ -190,6 +194,8 @@ VALUES (1, 2, '2025-08-09 09:16:05.513348 +00:00', '2025-08-09 09:15:49.513348 +
 
        (5, 3, '2025-08-05 22:05:48.513348 +00:00', '2025-08-05 22:30:05.513348 +00:00'),
 
-       (6, 2, '2025-08-05 22:31:48.513348 +00:00', '2025-08-05 22:32:15.513348 +00:00'),
+       (6, 3, '2025-08-05 22:20:48.513348 +00:00', '2025-08-05 22:30:05.513348 +00:00'),
 
-       (7, 4, '2025-08-05 22:07:00.513348 +00:00', '2025-08-05 23:55:11.513348 +00:00');
+       (7, 2, '2025-08-05 22:31:48.513348 +00:00', '2025-08-05 22:32:15.513348 +00:00'),
+
+       (8, 4, '2025-08-05 22:07:00.513348 +00:00', '2025-08-05 23:55:11.513348 +00:00');

@@ -20,8 +20,11 @@ public class SocialApplication {
     ApplicationRunner applicationRunner(KeycloakUserService keycloakUserService) {
         return args -> {
             try {
-                keycloakUserService.createUserAccount("1", "test@gmail.com", "testusername", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/London"));
-                keycloakUserService.createUserAccount("2", "test2@gmail.com", "testusername2", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
+                keycloakUserService.createUserAccount("1", "mohbalor@gmail.com", "mohbalor", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Africa/Cairo"));
+                keycloakUserService.createUserAccount("2", "mshukur@gmail.com", "mshukur", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
+                keycloakUserService.createUserAccount("3", "baraa@gmail.com", "baraa", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
+                keycloakUserService.createUserAccount("4", "sarahhhh@gmail.com", "sarah", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
+                keycloakUserService.createUserAccount("5", "lucy@gmail.com", "lucy", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
             } catch (Exception e) {
 
             }
