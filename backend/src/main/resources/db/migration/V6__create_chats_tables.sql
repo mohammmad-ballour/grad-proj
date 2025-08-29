@@ -50,6 +50,6 @@ CREATE TABLE message_status
     user_id      BIGINT REFERENCES users (id) ON DELETE CASCADE,
     delivered_at TIMESTAMPTZ DEFAULT NULL,
     read_at      TIMESTAMPTZ DEFAULT NULL,
-    CONSTRAINT read_deliver_consistency CHECK (read_at IS NULL OR delivered_at IS NOT NULL),
+--     CONSTRAINT read_deliver_consistency CHECK (read_at IS NULL OR delivered_at IS NOT NULL),     // Fixme, uncomment when enabling websocket
     PRIMARY KEY (message_id, user_id)
 );
