@@ -7,6 +7,8 @@
       <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="m-0">Chats</h5>
         <i class="fas fa-comment-medical cursor-pointer"></i>
+
+        
       </div>
 
       <!-- Search -->
@@ -17,63 +19,69 @@
         </div>
       </div>
 
-       <!-- Chat List (scrollable) -->
+
+      <!-- Chat List (scrollable) -->
       <div class="flex-grow-1 overflow-auto" (click)="closeContextMenu()">
-      @for (chat of sortedChats; track chat.chatId) {
-  <div class="chat-item d-flex align-items-center p-2 border-bottom cursor-pointer"
-       (click)="chatClicked(chat)"
-       (contextmenu)="openContextMenu($event, chat)">
-       
-    <!-- Left: Avatar -->
-    <div class="me-2">
-      <img [src]="processImage(chat.chatPicture)" 
-           (error)="onImageError($event, 'assets/ProfileAvatar.png')"
-           class="rounded-circle" width="50" height="50" alt="">
-    </div>
-
-    <!-- Middle: Chat Info -->
-    <div class="flex-grow-1 d-flex flex-column overflow-hidden">
-      <div class="d-flex justify-content-between align-items-center">
-        <span class="fw-semibold text-truncate d-flex align-items-center gap-1" style="max-width: 70%;">
-          {{ chat.name }}
-
-          <!-- Pinned -->
-          @if(chat.pinned) {
-            <i style="color: rgb(26, 81, 175);" class="bi bi-pin-angle-fill"></i>
-          }
-        </span>
-
-        <!-- Time -->
-        <small class="text-muted">{{ chat.lastMessageTime | date:'HH:mm' }}</small>
-      </div>
-
-      <div class="d-flex justify-content-between align-items-center">
-        <!-- Last message -->
-        <small class="text-muted text-truncate" style="max-width: 70%;">
-          @if(chat.messageType =='IMAGE'){
-            photo
-            <i class="bi bi-image-fill"></i>
-          }@else{
-            {{ wrapMessage(chat.lastMessage) }}
-          }
-        </small>
-
-        <div class="d-flex align-items-center gap-1">
-          <!-- Unread badge -->
-          @if(chat.unreadCount) {
-            <span class="badge bg-success rounded-pill px-2">{{ chat.unreadCount }}</span>
-          }
-
-          <!-- Muted -->
-          @if(chat.muted) {
-            <mat-icon class="text-muted" style="font-size: 16px;">notifications_off</mat-icon>
-          }
+        @if(chats().length === 0) {
+        <div class="text-center text-muted mt-4">
+          <i class="bi bi-chat-dots" style="font-size: 48px;"></i>
+          <p class="mt-2">No chats available</p>  
         </div>
-      </div>
-    </div>
-  </div>
-}
+        }
 
+        @for (chat of filteredChats; track chat.chatId) {
+        <div class="chat-item d-flex align-items-center p-2 border-bottom cursor-pointer" (click)="chatClicked(chat)"
+          (contextmenu)="openContextMenu($event, chat)">
+
+          <!-- Left: Avatar -->
+          <div class="me-2">
+            <img [src]="processImage(chat.chatPicture)" (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+              class="rounded-circle" width="50" height="50" alt="">
+          </div>
+
+          <!-- Middle: Chat Info -->
+          <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-semibold text-truncate d-flex align-items-center gap-1" style="max-width: 70%;">
+                {{ chat.name }}
+
+                <!-- Pinned -->
+                @if(chat.pinned) {
+                <i style="color: rgb(26, 81, 175);" class="bi bi-pin-angle-fill"></i>
+                }
+              </span>
+
+              <!-- Time -->
+              <small class="text-muted">{{ chat.lastMessageTime | date:'HH:mm' }}</small>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+              <!-- Last message -->
+              <small class="text-muted text-truncate" style="max-width: 70%;">
+                @if(chat.messageType =='IMAGE'){
+                photo
+                <i class="bi bi-image-fill"></i>
+                }@else{
+                {{ wrapMessage(chat.lastMessage) }}
+                }
+              </small>
+
+              <div class="d-flex align-items-center gap-1">
+                <!-- Unread badge -->
+                @if(chat.unreadCount) {
+                <span class="badge bg-success rounded-pill px-2">{{ chat.unreadCount }}</span>
+                }
+
+                <!-- Muted -->
+                @if(chat.muted) {
+                <mat-icon class="text-muted" style="font-size: 16px;">notifications_off</mat-icon>
+                }
+              </div>
+            </div>
+          </div>
+
+        </div>
+        }
 
         <!-- Context Menu -->
         @if(contextMenuVisible) {
@@ -84,12 +92,13 @@
           </button>
           <button class="dropdown-item" (click)="toggleMuteChat(contextMenuChat)">
             {{ contextMenuChat.muted ? 'Unmute' : 'Mute' }}
-          </button> 
+          </button>
           <button class="dropdown-item" (click)="deleteChat(contextMenuChat.chatId)">
-             delete
+            delete
           </button>
         </div>
         }
+
       </div>
 
     </div>
@@ -105,110 +114,89 @@
         <strong>{{ chatSelected().name }}</strong>
       </div>
 
-   <!-- Messages -->
-<div #scrollContainer class="overflow-auto p-3 h-100 bg-light chat-scrollbar">
-  @for (m of messagesToSelectedChatt(); track m.messageId) {
-    <div
-      class="d-flex mb-2"
-      [class.justify-content-end]="m.senderAvatar.userId == activeUserId"
-      [class.justify-content-start]="m.senderAvatar.userId != activeUserId"
-    >
-      <!-- Avatar (only for received messages) -->
-      @if(m.senderAvatar.userId != activeUserId) {
-        <img
-          class="rounded-circle me-2 align-self-end"
-          width="28"
-          height="28"
-          [src]="processImage(m.senderAvatar.profilePicture)"
-          (error)="onImageError($event,'assets/ProfileAvatar.png')"
-        />
-      }
+      <!-- Messages -->
+      <div #scrollContainer class="overflow-auto p-3 h-100 bg-light chat-scrollbar">
+        @for (m of messagesToSelectedChatt(); track m.messageId) {
+        <div class="d-flex mb-2" [class.justify-content-end]="m.senderAvatar.userId == activeUserId"
+          [class.justify-content-start]="m.senderAvatar.userId != activeUserId">
+          <!-- Avatar (only for received messages) -->
+          @if(m.senderAvatar.userId != activeUserId) {
+          <img class="rounded-circle me-2 align-self-end" width="28" height="28"
+            [src]="processImage(m.senderAvatar.profilePicture)"
+            (error)="onImageError($event,'assets/ProfileAvatar.png')" />
+          }
 
-      <!-- Chat Bubble -->
-      <div
-        #messageElement
-        class="chat-bubble shadow-sm p-2"
-        [ngClass]="{
+          <!-- Chat Bubble -->
+          <div #messageElement class="chat-bubble shadow-sm p-2" [ngClass]="{
           'sent': m.senderAvatar.userId == activeUserId,
           'received': m.senderAvatar.userId != activeUserId
-        }"
-          [attr.data-message-id]="m.messageId"
-      >
-        <!-- Reply preview -->
-        @if(m.parentMessageId) {
-          <div
-            class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
-            (click)="scrollToParentMessage(m.parentMessageId);    "
-          >
-            <small class="text-muted">
-              <strong>
-                {{
+        }" [attr.data-message-id]="m.messageId">
+            <!-- Reply preview -->
+            @if(m.parentMessageId) {
+            <div class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
+              (click)="scrollToParentMessage(m.parentMessageId);    ">
+              <small class="text-muted">
+                <strong>
+                  {{
                   getTheParentMesaage(m.parentMessageId).senderAvatar.userId == activeUserId
-                    ? 'You'
-                    : getTheParentMesaage(m.parentMessageId).senderAvatar.username
-                }}
-              </strong>
-              <div class="text-truncate">
-                @if( getTheParentMesaage(m.parentMessageId).media){
-               <img [src]="processImage(getTheParentMesaage(m.parentMessageId).media)" class="message-media mb-1" />
+                  ? 'You'
+                  : getTheParentMesaage(m.parentMessageId).senderAvatar.username
+                  }}
+                </strong>
+                <div class="text-truncate">
+                  @if( getTheParentMesaage(m.parentMessageId).media){
+                  <img [src]="processImage(getTheParentMesaage(m.parentMessageId).media)" class="message-media mb-1" />
 
 
-                }
-                
+                  }
+
                 </div>
-              <div class="text-truncate">{{ getTheParentMesaage(m.parentMessageId).content }}</div>
-            </small>
-          </div>
-        }
-        <div
-          
-        [matMenuTriggerFor]="msgMenu"
-        #t="matMenuTrigger"
-        (contextmenu)="$event.preventDefault(); t.openMenu()"
-        >
+                <div class="text-truncate">{{ getTheParentMesaage(m.parentMessageId).content }}</div>
+              </small>
+            </div>
+            }
+            <div [matMenuTriggerFor]="msgMenu" #t="matMenuTrigger"
+              (contextmenu)="$event.preventDefault(); t.openMenu()">
 
-        
 
-        <!-- Media -->
-        @if(m.media) {
-          <img [src]="processImage(m.media)" class="message-media mb-1" />
-        }
 
-        <!-- Text -->
-        @if(m.content) {
-          <div class="text-content">{{ m.content }}</div>
-        }
+              <!-- Media -->
+              @if(m.media) {
+              <img [src]="processImage(m.media)" class="message-media mb-1" />
+              }
 
-        <!-- Meta inside bubble -->
-        <div class="chat-meta text-end mt-1">
-          <small class="text-muted me-1">{{ m.sentAt | date:'shortTime' }}</small>
-          @if(activeUserId == m.senderAvatar.userId) {
-            <i
-              class="bi"
-              [ngClass]="{
+              <!-- Text -->
+              @if(m.content) {
+              <div class="text-content">{{ m.content }}</div>
+              }
+
+              <!-- Meta inside bubble -->
+              <div class="chat-meta text-end mt-1">
+                <small class="text-muted me-1">{{ m.sentAt | date:'shortTime' }}</small>
+                @if(activeUserId == m.senderAvatar.userId) {
+                <i class="bi" [ngClass]="{
                 'bi-check-lg': m.messageStatus === MessageStatus.SENT,
                 'bi-check-all': m.messageStatus === MessageStatus.DELIVERED || m.messageStatus === MessageStatus.READ,
                 'text-primary': m.messageStatus === MessageStatus.READ
-              }"
-            ></i>
-          }
+              }"></i>
+                }
+              </div>
+            </div>
+          </div>
         </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Context menu -->
-    <mat-menu #msgMenu="matMenu">
-      <ng-template matMenuContent>
-        <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
-        <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
-        <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
-        <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
-        <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
-      </ng-template>
-    </mat-menu>
-  }
-</div>
+        <!-- Context menu -->
+        <mat-menu #msgMenu="matMenu">
+          <ng-template matMenuContent>
+            <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
+            <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
+            <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
+            <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
+            <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
+          </ng-template>
+        </mat-menu>
+        }
+      </div>
 
 
       <!-- Reply Preview -->

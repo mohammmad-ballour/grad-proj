@@ -22,9 +22,7 @@ export class ChatListComponent {
 
   msgMenu = 'msgMenu_';
   searchTerm: any;
-  selectMessage(arg0: any) {
-    throw new Error('Method not implemented.');
-  }
+
   @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
 
   // Signals for state
@@ -353,5 +351,21 @@ export class ChatListComponent {
       return timeB - timeA;
     });
   }
+
+  get filteredChats(): ChatResponse[] {
+    const term = this.searchTerm?.trim().toLowerCase();
+
+    if (!term) {
+      return this.sortedChats;
+    }
+
+    return this.sortedChats.filter(chat => {
+      const nameMatch = chat.name?.toLowerCase().includes(term);
+      const lastMsgMatch = chat.lastMessage?.toLowerCase().includes(term);
+      return nameMatch || lastMsgMatch;
+    });
+  }
+
+
 
 }
