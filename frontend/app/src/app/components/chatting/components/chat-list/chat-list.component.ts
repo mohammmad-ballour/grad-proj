@@ -10,6 +10,7 @@ import { MessageResponse, MessageStatus } from '../../models/message-response';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from "@angular/material/icon";
 import { ViewChild } from '@angular/core';
+import { MessageDetailResponse } from '../../models/message-detail-response';
 
 @Component({
   selector: 'app-chat-list',
@@ -19,6 +20,7 @@ import { ViewChild } from '@angular/core';
   standalone: true
 })
 export class ChatListComponent {
+
 
   msgMenu = 'msgMenu_';
   searchTerm: any;
@@ -43,25 +45,34 @@ export class ChatListComponent {
   ngOnInit() {
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
-        const filteredChats = res.filter(chat => !chat.deleted);
-        this.chats.set(filteredChats);
-        console.log(this.chats())
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
-          const chat = this.chats().find((c) => c.chatId === chatId);
+          console.log("chatId:", chatId);
+          const chat = res.find(c => c.chatId === chatId);
+          console.log("chat found:", chat);
           if (chat) {
+            chat.deleted = false; // change deleted status
+            console.log("changed");
             this.chatClicked(chat);
           }
         }
+        const filteredChats = res.filter(chat => !chat.deleted);
+        this.chats.set(filteredChats);
       },
       error: (err: HttpErrorResponse) => {
         console.error('Backend returned code:', err.status);
         console.error('Error body:', err.error);
+      },
+      complete: () => {
+
+
       }
+
     });
 
     this.activeUserId = this.chatService.ActiveUserId;
   }
+
 
   ngAfterViewInit() {
     this.scrollToUnreadOrBottom();
@@ -151,6 +162,11 @@ export class ChatListComponent {
       next: () => {
         console.log('Chat deleted successfully');
         this.chats().splice(this.chats().findIndex(c => c.chatId === chatId), 1);
+        // If the deleted chat was selected, clear selection and messages
+        if (this.chatSelected().chatId === chatId) {
+          this.chatSelected.set({} as ChatResponse);
+          this.messagesToSelectedChatt.set([]);
+        }
       },
       error: (err) => {
         console.error('Failed to delete chat', err);
@@ -363,6 +379,33 @@ export class ChatListComponent {
       const nameMatch = chat.name?.toLowerCase().includes(term);
       const lastMsgMatch = chat.lastMessage?.toLowerCase().includes(term);
       return nameMatch || lastMsgMatch;
+    });
+  }
+  fetchMessageInfo(messageId: number): void {
+    this.chatService.getMessageInfo(messageId).subscribe({
+      next: (info: MessageDetailResponse) => {
+        console.log("Delivered:", info.delivered);
+        console.log("Read:", info.read);
+
+        // DeliveredByAt
+        if (info.deliveredByAt) {
+          for (const userId in info.deliveredByAt) {
+            const deliveredTime = new Date(info.deliveredByAt[userId]);
+            console.log(`User ${userId} delivered at:`, deliveredTime.toLocaleString());
+          }
+        }
+
+        // ReadByAt
+        if (info.readByAt) {
+          for (const userId in info.readByAt) {
+            const readTime = new Date(info.readByAt[userId]);
+            console.log(`User ${userId} read at:`, readTime.toLocaleString());
+          }
+        }
+      },
+      error: (err) => {
+        console.error("Failed to fetch message info:", err);
+      }
     });
   }
 

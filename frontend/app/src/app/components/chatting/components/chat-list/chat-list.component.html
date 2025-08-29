@@ -193,6 +193,9 @@
             <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
             <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
             <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
+            <button mat-menu-item (click)=" fetchMessageInfo(m.messageId)">
+              info
+            </button>
           </ng-template>
         </mat-menu>
         }

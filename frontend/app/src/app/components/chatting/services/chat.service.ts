@@ -5,6 +5,7 @@ import { ChatResponse } from '../models/chat-response';
 import { AuthService } from '../../../core/services/auth.service';
 import { Observable } from 'rxjs';
 import { MessageResponse } from '../models/message-response';
+import { MessageDetailResponse } from '../models/message-detail-response';
 
 
 @Injectable({ providedIn: 'root' })
@@ -98,5 +99,9 @@ export class ChatService extends BaseService {
     return this.httpClient.patch<void>(url, null); // no body needed
   }
 
-
+  getMessageInfo(messageId: number): Observable<MessageDetailResponse> {
+    return this.httpClient.get<MessageDetailResponse>(
+      `${this.baseUrl}/messages/${messageId}/info`
+    );
+  }
 }
