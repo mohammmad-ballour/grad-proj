@@ -2,6 +2,7 @@ package com.grad.social.repository.chat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.TsidUtils;
 import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.common.utils.media.MediaStorageService;
@@ -176,7 +177,7 @@ public class ChattingRepository {
                 }));
     }
 
-    public List<ChatMessageResponse> getChatMessagesByChatId(Long chatId) {
+    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId) {
         // scalar subquery: count how many participants still haven't read
         Field<Integer> unreadCountField = DSL
                 .selectCount()
@@ -202,7 +203,10 @@ public class ChattingRepository {
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
                 .join(cp).on(cp.CHAT_ID.eq(m.CHAT_ID))
                 .join(u).on(m.SENDER_ID.eq(u.ID))
-                .where(m.CHAT_ID.eq(chatId).and(m.SENT_AT.gt(cp.LAST_DELETED_AT)))
+                .where(m.CHAT_ID.eq(chatId)
+                        .and(cp.USER_ID.eq(currentUserId))
+                        .and(m.SENT_AT.gt(DSL.coalesce(cp.LAST_DELETED_AT, DSL.val(AppConstants.DEFAULT_MIN_TIMESTAMP))))
+                )
                 .orderBy(m.SENT_AT.asc())
                 .fetch(mapping((messageId, parentMessageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
                                 mediaId, fileNameHashed, extension, unreadCount, undeliveredCount) -> {

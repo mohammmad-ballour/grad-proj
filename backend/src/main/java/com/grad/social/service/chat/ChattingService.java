@@ -54,8 +54,8 @@ public class ChattingService {
         return chatId;
     }
 
-    public List<ChatMessageResponse> getChatMessagesByChatId(Long chatId) {
-        return this.chattingRepository.getChatMessagesByChatId(chatId);
+    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId) {
+        return this.chattingRepository.getChatMessagesByChatId(currentUserId, chatId);
     }
 
     public List<ChatResponse> getChatListForUserByUserId(Long userId) {

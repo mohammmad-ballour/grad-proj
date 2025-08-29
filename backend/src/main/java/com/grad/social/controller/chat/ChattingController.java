@@ -53,7 +53,8 @@ public class ChattingController {
     @GetMapping("/chats/{chatId}/chat-messages")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
-        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(Long.parseLong(chatId)));
+        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(userId, Long.parseLong(chatId)));
     }
 
     // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
