@@ -1,12 +1,14 @@
 <div class="container-fluid bg-white rounded shadow-sm" style="height: 100%;">
   <div class="row h-100 rounded">
 
-    <!-- Chat List -->
+
     <div class="col-3 border-end d-flex flex-column h-100">
       <!-- Header -->
       <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="m-0">Chats</h5>
         <i class="fas fa-comment-medical cursor-pointer"></i>
+
+        
       </div>
 
       <!-- Search -->
@@ -17,128 +19,236 @@
         </div>
       </div>
 
+
       <!-- Chat List (scrollable) -->
-      <div class="flex-grow-1 overflow-auto">
-        @for (chat of chats(); track chat.chatId) {
-          <div class="d-flex align-items-center justify-content-between border-bottom p-2 cursor-pointer"
-               (click)="chatClicked(chat)">
-            <div class="d-flex gap-2">
-              <img [src]="processImage(chat.chatPicture)" (error)="onImageError($event, 'assets/ProfileAvatar.png')"
-                   class="rounded-circle" width="40" height="40" alt="">
-              <div class="d-flex flex-column">
-                <span>{{ chat.name }}</span>
-                <small class="text-muted">{{ wrapMessage(chat.lastMessage) }}</small>
+      <div class="flex-grow-1 overflow-auto" (click)="closeContextMenu()">
+        @if(chats().length === 0) {
+        <div class="text-center text-muted mt-4">
+          <i class="bi bi-chat-dots" style="font-size: 48px;"></i>
+          <p class="mt-2">No chats available</p>  
+        </div>
+        }
+
+        @for (chat of filteredChats; track chat.chatId) {
+        <div class="chat-item d-flex align-items-center p-2 border-bottom cursor-pointer" (click)="chatClicked(chat)"
+          (contextmenu)="openContextMenu($event, chat)">
+
+          <!-- Left: Avatar -->
+          <div class="me-2">
+            <img [src]="processImage(chat.chatPicture)" (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+              class="rounded-circle" width="50" height="50" alt="">
+          </div>
+
+          <!-- Middle: Chat Info -->
+          <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-semibold text-truncate d-flex align-items-center gap-1" style="max-width: 70%;">
+                {{ chat.name }}
+
+                <!-- Pinned -->
+                @if(chat.pinned) {
+                <i style="color: rgb(26, 81, 175);" class="bi bi-pin-angle-fill"></i>
+                }
+              </span>
+
+              <!-- Time -->
+              <small class="text-muted">{{ chat.lastMessageTime | date:'HH:mm' }}</small>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center">
+              <!-- Last message -->
+              <small class="text-muted text-truncate" style="max-width: 70%;">
+                @if(chat.messageType =='IMAGE'){
+                photo
+                <i class="bi bi-image-fill"></i>
+                }@else{
+                {{ wrapMessage(chat.lastMessage) }}
+                }
+              </small>
+
+              <div class="d-flex align-items-center gap-1">
+                <!-- Unread badge -->
+                @if(chat.unreadCount) {
+                <span class="badge bg-success rounded-pill px-2">{{ chat.unreadCount }}</span>
+                }
+
+                <!-- Muted -->
+                @if(chat.muted) {
+                <mat-icon class="text-muted" style="font-size: 16px;">notifications_off</mat-icon>
+                }
               </div>
             </div>
-            <div class="d-flex flex-column align-items-end">
-              <small>{{ chat.lastMessageTime | date:'HH:mm' }}</small>
-              @if(chat.unreadCount) {
-                <span class="badge bg-success rounded-pill">{{ chat.unreadCount }}</span>
-              }
-            </div>
           </div>
+
+        </div>
         }
+
+        <!-- Context Menu -->
+        @if(contextMenuVisible) {
+        <div class="position-fixed bg-white border rounded shadow p-2" [style.top.px]="contextMenuPosition.y"
+          [style.left.px]="contextMenuPosition.x" style="z-index: 1000; width: 150px;">
+          <button class="dropdown-item" (click)="togglePinChat(contextMenuChat)">
+            {{ contextMenuChat.pinned ? 'Unpin' : 'Pin to Top' }}
+          </button>
+          <button class="dropdown-item" (click)="toggleMuteChat(contextMenuChat)">
+            {{ contextMenuChat.muted ? 'Unmute' : 'Mute' }}
+          </button>
+          <button class="dropdown-item" (click)="deleteChat(contextMenuChat.chatId)">
+            delete
+          </button>
+        </div>
+        }
+
       </div>
+
     </div>
 
     <!-- Chat Content -->
     <div class="col-9 d-flex flex-column h-100">
       @if(isChatSelected()) {
 
-        <!-- Chat Header -->
-        <div class="p-2 border-bottom d-flex align-items-center bg-white sticky-top">
-          <img [src]="processImage(chatSelected().chatPicture)" (error)="onImageError($event, 'assets/ProfileAvatar.png')"
-               class="rounded-circle me-2" width="40" height="40" alt="">
-          <strong>{{ chatSelected().name }}</strong>
+      <!-- Chat Header -->
+      <div class="p-2 border-bottom d-flex align-items-center bg-white sticky-top">
+        <img [src]="processImage(chatSelected().chatPicture)" (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+          class="rounded-circle me-2" width="40" height="40" alt="">
+        <strong>{{ chatSelected().name }}</strong>
+      </div>
+
+      <!-- Messages -->
+      <div #scrollContainer class="overflow-auto p-3 h-100 bg-light chat-scrollbar">
+        @for (m of messagesToSelectedChatt(); track m.messageId) {
+        <div class="d-flex mb-2" [class.justify-content-end]="m.senderAvatar.userId == activeUserId"
+          [class.justify-content-start]="m.senderAvatar.userId != activeUserId">
+          <!-- Avatar (only for received messages) -->
+          @if(m.senderAvatar.userId != activeUserId) {
+          <img class="rounded-circle me-2 align-self-end" width="28" height="28"
+            [src]="processImage(m.senderAvatar.profilePicture)"
+            (error)="onImageError($event,'assets/ProfileAvatar.png')" />
+          }
+
+          <!-- Chat Bubble -->
+          <div #messageElement class="chat-bubble shadow-sm p-2" [ngClass]="{
+          'sent': m.senderAvatar.userId == activeUserId,
+          'received': m.senderAvatar.userId != activeUserId
+        }" [attr.data-message-id]="m.messageId">
+            <!-- Reply preview -->
+            @if(m.parentMessageId) {
+            <div class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
+              (click)="scrollToParentMessage(m.parentMessageId);    ">
+              <small class="text-muted">
+                <strong>
+                  {{
+                  getTheParentMesaage(m.parentMessageId).senderAvatar.userId == activeUserId
+                  ? 'You'
+                  : getTheParentMesaage(m.parentMessageId).senderAvatar.username
+                  }}
+                </strong>
+                <div class="text-truncate">
+                  @if( getTheParentMesaage(m.parentMessageId).media){
+                  <img [src]="processImage(getTheParentMesaage(m.parentMessageId).media)" class="message-media mb-1" />
+
+
+                  }
+
+                </div>
+                <div class="text-truncate">{{ getTheParentMesaage(m.parentMessageId).content }}</div>
+              </small>
+            </div>
+            }
+            <div [matMenuTriggerFor]="msgMenu" #t="matMenuTrigger"
+              (contextmenu)="$event.preventDefault(); t.openMenu()">
+
+
+
+              <!-- Media -->
+              @if(m.media) {
+              <img [src]="processImage(m.media)" class="message-media mb-1" />
+              }
+
+              <!-- Text -->
+              @if(m.content) {
+              <div class="text-content">{{ m.content }}</div>
+              }
+
+              <!-- Meta inside bubble -->
+              <div class="chat-meta text-end mt-1">
+                <small class="text-muted me-1">{{ m.sentAt | date:'shortTime' }}</small>
+                @if(activeUserId == m.senderAvatar.userId) {
+                <i class="bi" [ngClass]="{
+                'bi-check-lg': m.messageStatus === MessageStatus.SENT,
+                'bi-check-all': m.messageStatus === MessageStatus.DELIVERED || m.messageStatus === MessageStatus.READ,
+                'text-primary': m.messageStatus === MessageStatus.READ
+              }"></i>
+                }
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Messages -->
-        <div #scrollContainer class="flex-grow-1 overflow-auto p-3 bg-light chat-scrollbar">
-          @for (m of messagesToSelectedChatt(); track m.messageId) {
-            <div #messageElement class="d-flex mb-2" [attr.data-message-id]="m.messageId"
-                 [class.justify-content-end]="m.senderId == activeUserId"
-                 [class.justify-content-start]="m.senderId != activeUserId">
+        <!-- Context menu -->
+        <mat-menu #msgMenu="matMenu">
+          <ng-template matMenuContent>
+            <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
+            <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
+            <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
+            <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
+            <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
+            <button mat-menu-item (click)=" fetchMessageInfo(m.messageId)">
+              info
+            </button>
+          </ng-template>
+        </mat-menu>
+        }
+      </div>
 
-            <div class="chat-bubble p-2 shadow-sm"
-     [class.bg-white]="m.senderId != activeUserId"
-     >
-                
-                <!-- Reply preview -->
-                @if(m.parentMessageId) {
-                  <div class="replied-message p-2 mb-2 bg-secondary bg-opacity-10 rounded"
-                       (click)="scrollToParentMessage(m.parentMessageId)">
-                    <small class="text-muted">
-                      <strong>{{  m.parentMessageId }}</strong>
-                      <div>{{ m.parentMessageId  }}</div>
-                    </small>
-                  </div>
-                }
 
-                <!-- Text content -->
-                <div  [matMenuTriggerFor]="msgMenu"
-     #t="matMenuTrigger"
-     (contextmenu)="$event.preventDefault(); t.openMenu()" class="message-content">{{ m.content }}</div>
-
-                <!-- File/Image
-                @if(m.fileUrl) {
-                  <div class="mt-1">
-                    @if(m.fileType?.startsWith('image/')) {
-                      <img [src]="m.fileUrl" class="rounded img-fluid" style="max-width: 200px;" alt="image">
-                    } @else {
-                      <a [href]="m.fileUrl" target="_blank" class="text-decoration-none">📎 {{ m.fileName }}</a>
-                    }
-                  </div>
-                } -->
-
-                <!-- Meta -->
-                <div class="chat-meta d-flex align-items-center justify-content-end mt-1">
-                  <span class="me-1 small">{{ m.senderId| date:'shortTime' }}</span>
-                  @if(activeUserId == m.senderId) {
-                    <i class="bi ms-1" [ngClass]="{
-                      'bi-check-lg': m.messageStatus === MessageStatus.SENT,
-                      'bi-check-all': m.messageStatus === MessageStatus.DELIVERED || m.messageStatus === MessageStatus.READ,
-                      'text-primary': m.messageStatus === MessageStatus.READ
-                    }"></i>
-                  }
-                </div>
-              </div>
-
-              <!-- Context menu per message -->
-           <mat-menu #msgMenu="matMenu">
-  <ng-template matMenuContent let-data="matMenuTriggerData">
-                <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
-                <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
-                <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
-                <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
-                <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
-  </ng-template>
-              </mat-menu>
-
-            </div>
+      <!-- Reply Preview -->
+      @if(replyingToMessage()) {
+      <div class="p-2 border-top bg-white d-flex align-items-center">
+        <div class="flex-grow-1">
+          <small class="text-muted">Replying to <strong>{{ replyingToMessage()!.senderAvatar.userId == activeUserId ?
+              'you' : replyingToMessage()!.senderAvatar.username}}</strong></small>
+          <div>{{ replyingToMessage()!.content }}</div>
+        </div>
+        <button class="btn btn-sm btn-light" (click)="cancelReply()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      }
+      <!-- File / Image Preview -->
+      @if (selectedFile) {
+      <div class="p-2 border-top bg-light d-flex align-items-center">
+        <div class="me-2">
+          @if (isImage(selectedFile)) {
+          <img [src]="filePreviewUrl" alt="preview" class="rounded" style="max-height: 80px; max-width: 120px;" />
+          } @else {
+          <span class="fw-bold">{{ selectedFile.name }}</span>
           }
         </div>
+        <button class="btn btn-sm btn-outline-danger ms-auto" (click)="removeAttachment()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      }
 
-        <!-- Reply Preview -->
-        @if(replyingToMessage()) {
-          <div class="p-2 border-top bg-white d-flex align-items-center">
-            <div class="flex-grow-1">
-              <small class="text-muted">Replying to <strong>{{ replyingToMessage()!.senderId }}</strong></small>
-              <div>{{ replyingToMessage()!.content }}</div>
-            </div>
-            <button class="btn btn-sm btn-light" (click)="cancelReply()">
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-        }
+      <!-- Input Area -->
+      <div class="p-2 border-top d-flex bg-white align-items-center">
+        <!-- File Upload -->
+        <button class="btn btn-light me-2" (click)="fileInput.click()">
+          <mat-icon>attach_file</mat-icon>
+        </button>
+        <input type="file" #fileInput hidden (change)="onFileSelected($event)" />
 
-        <!-- Input -->
-        <div class="p-2 border-top d-flex bg-white align-items-center">
-          <input type="text" class="form-control me-2" [(ngModel)]="messageToSent" placeholder="Type a message"
-                 (keyup.enter)="sendMessage()">
-          <button class="btn btn-success" (click)="sendMessage()">
-            <mat-icon>send</mat-icon>
-          </button>
-        </div>
+        <!-- Message Box -->
+        <textarea class="form-control me-2" [(ngModel)]="messageToSent" placeholder="Type a message" rows="1"
+          (input)="autoResize($event)" (keyup.enter)="sendMessage()" style="resize: none; overflow: hidden;"></textarea>
+
+        <!-- Send Button -->
+        <button class="btn btn-success" (click)="sendMessage()">
+          <mat-icon>send</mat-icon>
+        </button>
+      </div>
+
       }
     </div>
   </div>

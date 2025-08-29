@@ -8,10 +8,10 @@ export interface MessageResponse {
   content?: string;
   sentAt: string;
   messageId: number;
-  senderId: string;
   messageStatus: MessageStatus,
   parentMessageId: number;
-  senderAvatar: UserAvatar
+  senderAvatar: UserAvatar;
+  media: string
 }
 
 

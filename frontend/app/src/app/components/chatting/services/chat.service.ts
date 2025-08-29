@@ -5,6 +5,7 @@ import { ChatResponse } from '../models/chat-response';
 import { AuthService } from '../../../core/services/auth.service';
 import { Observable } from 'rxjs';
 import { MessageResponse } from '../models/message-response';
+import { MessageDetailResponse } from '../models/message-detail-response';
 
 
 @Injectable({ providedIn: 'root' })
@@ -12,6 +13,7 @@ export class ChatService extends BaseService {
 
   private readonly ENDPOINTS = {
     chats: '/api/chats/',
+    messages: '/api/messages/',
 
   };
   http: any;
@@ -20,7 +22,7 @@ export class ChatService extends BaseService {
     super();
   }
 
-  getAllUsers() {
+  getAllUsers(): Observable<ChatResponse[]> {
     return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}/chat-list`);
   }
 
@@ -31,7 +33,7 @@ export class ChatService extends BaseService {
   }
 
 
-  get ActiveUserId() {
+  get ActiveUserId(): number {
     return this.authServices.UserId;
   }
 
@@ -39,6 +41,11 @@ export class ChatService extends BaseService {
     return this.httpClient.get<MessageResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`,)
   }
 
+  deleteConversation(chatId: string): Observable<void> {
+    const req$ = this.httpClient.delete<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}`);
+
+    return req$;
+  }
   sendMessage(
     chatId: string,
     content: string,
@@ -68,13 +75,34 @@ export class ChatService extends BaseService {
     return this.httpClient.post<number>(url, formData);
   }
 
-
-
-
   confirmRead(chatId: string) {
     return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});
   }
 
+  // Pin a conversation
+  pinConversation(chatId: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/pin`;
+    return this.httpClient.patch<void>(url, null); // no body needed
+  }
+  UnPinConversation(chatId: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/unpin`;
+    return this.httpClient.patch<void>(url, null); // no body needed
+  }
 
+  // UnMute a conversation
+  MuteConversation(chatId: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/mute`;
+    return this.httpClient.patch<void>(url, null); // no body needed
+  }
+  // Mute a conversation
+  UnMuteConversation(chatId: string): Observable<void> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/unmute`;
+    return this.httpClient.patch<void>(url, null); // no body needed
+  }
 
+  getMessageInfo(messageId: number): Observable<MessageDetailResponse> {
+    return this.httpClient.get<MessageDetailResponse>(
+      `${this.baseUrl}${this.ENDPOINTS.messages}${messageId}/info`
+    );
+  }
 }

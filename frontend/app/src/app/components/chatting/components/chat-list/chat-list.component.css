@@ -365,3 +365,132 @@
     background-color: transparent;
   }
 }
+
+.chat-bubble {
+  max-width: 70%;
+  border-radius: 1rem;
+  word-wrap: break-word;
+}
+
+.chat-bubble.bg-primary {
+  color: #fff;
+  /* ensure white text on sent bubbles */
+}
+
+
+img.rounded-circle {
+  align-self: flex-start;
+  /* ensures avatar stays top-aligned */
+}
+
+.message-bubble {
+  max-width: 65%;
+  padding: 8px 12px;
+  margin: 6px 10px;
+  border-radius: 18px;
+  position: relative;
+  font-size: 14px;
+  line-height: 1.4;
+  display: inline-block;
+  word-wrap: break-word;
+}
+
+/* Sent (you) */
+.message-bubble.sent {
+  margin-left: auto;
+  background: #dcf8c6;
+  /* WhatsApp green */
+  border-top-right-radius: 4px;
+}
+
+.message-bubble.sent::after {
+  content: "";
+  position: absolute;
+  right: -8px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-left: 8px solid #dcf8c6;
+  border-top: 8px solid transparent;
+}
+
+/* Received (others) */
+.message-bubble.received {
+  margin-right: auto;
+  background: #ffffff;
+  border: 1px solid #ececec;
+  border-top-left-radius: 4px;
+}
+
+.message-bubble.received::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-right: 8px solid #ffffff;
+  border-top: 8px solid transparent;
+}
+
+/* Media inside bubble */
+.message-media {
+  max-width: 100%;
+  border-radius: 12px;
+  margin-bottom: 5px;
+  display: block;
+  object-fit: cover;
+}
+
+/* Text inside bubble */
+.text-content {
+  white-space: pre-wrap;
+}
+
+.chat-bubble {
+  max-width: 70%;
+  border-radius: 12px;
+  padding: 6px 8px;
+  position: relative;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-size: 14px;
+}
+
+/* Sent (your messages) */
+.chat-bubble.sent {
+  background-color: #dcf8c6;
+  /* WhatsApp green */
+  border-bottom-right-radius: 0px;
+  margin-left: auto;
+}
+
+/* Received (others' messages) */
+.chat-bubble.received {
+  background-color: #fff;
+  border-bottom-left-radius: 0px;
+  margin-right: auto;
+}
+
+/* Meta inside bubble */
+.chat-meta {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Media inside bubble */
+.message-media {
+  max-width: 200px;
+  border-radius: 8px;
+  display: block;
+}
+
+/* Scrollbar tweak */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}

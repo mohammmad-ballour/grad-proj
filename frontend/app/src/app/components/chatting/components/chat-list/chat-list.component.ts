@@ -10,6 +10,7 @@ import { MessageResponse, MessageStatus } from '../../models/message-response';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from "@angular/material/icon";
 import { ViewChild } from '@angular/core';
+import { MessageDetailResponse } from '../../models/message-detail-response';
 
 @Component({
   selector: 'app-chat-list',
@@ -19,11 +20,11 @@ import { ViewChild } from '@angular/core';
   standalone: true
 })
 export class ChatListComponent {
+
+
   msgMenu = 'msgMenu_';
   searchTerm: any;
-  selectMessage(arg0: any) {
-    throw new Error('Method not implemented.');
-  }
+
   @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
 
   // Signals for state
@@ -33,7 +34,7 @@ export class ChatListComponent {
   chatSelected = signal<ChatResponse>({} as ChatResponse);
   messagesToSelectedChatt = signal<MessageResponse[]>([]);
   messageToSent: string = '';
-  activeUserId: string = '';
+  activeUserId!: number;
   replyingToMessage = signal<MessageResponse | null>(null);
 
   constructor(
@@ -44,24 +45,35 @@ export class ChatListComponent {
   ngOnInit() {
     this.chatService.getAllUsers().subscribe({
       next: (res) => {
-        this.chats.set(res);
-        console.log(res)
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
-          const chat = this.chats().find((c) => c.chatId === chatId);
+          // console.log("chatId:", chatId);
+          const chat = res.find(c => c.chatId === chatId);
+          // console.log("chat found:", chat);
           if (chat) {
+
+
             this.chatClicked(chat);
           }
         }
+        // const filteredChats = res.filter(chat => !chat.deleted);
+        this.chats.set(res);
+        console.log(this.chats())
       },
       error: (err: HttpErrorResponse) => {
         console.error('Backend returned code:', err.status);
         console.error('Error body:', err.error);
+      },
+      complete: () => {
+
+
       }
+
     });
 
     this.activeUserId = this.chatService.ActiveUserId;
   }
+
 
   ngAfterViewInit() {
     this.scrollToUnreadOrBottom();
@@ -84,31 +96,15 @@ export class ChatListComponent {
     this.replyingToMessage.set(null);
     this.messageToSent = '';
   }
-
-  sendMessage(): void {
-    console.log(this.chatSelected())
-    if (!this.messageToSent.trim() || !this.isChatSelected()) return;
-
-    const parentMessageId = this.replyingToMessage()?.messageId
-      ? +this.replyingToMessage()!.messageId
-      : undefined;
-
-    this.chatService
-      .sendMessage(this.chatSelected().chatId, this.messageToSent, undefined, undefined)
-      .subscribe({
-        next: () => {
-          this.messageToSent = '';
-          this.replyingToMessage.set(null);
-          this.getMessagesToSelectedChatt();
-        },
-        error: (err) => console.error('Error sending message', err)
-      });
+  getTheParentMesaage(messageId: number): MessageResponse {
+    return this.messagesToSelectedChatt().find((m) => m.messageId == messageId) as MessageResponse;
   }
 
   chatClicked(chat: ChatResponse) {
     this.chatSelected.set(chat);
     this.replyingToMessage.set(null);
     this.getMessagesToSelectedChatt();
+
     if (chat.unreadCount > 0) {
       this.onOpenChat(chat.chatId);
     }
@@ -119,6 +115,7 @@ export class ChatListComponent {
     this.chatService.getChatMessages(this.chatSelected().chatId).subscribe({
       next: (messages) => {
         this.messagesToSelectedChatt.set(messages);
+        console.log(this.messagesToSelectedChatt())
       },
       error: (err) => console.error('Error fetching messages', err)
     });
@@ -140,6 +137,7 @@ export class ChatListComponent {
   }
 
   scrollToParentMessage(parentMessageId: number): void {
+    console.log('Scrolling to parent message ID:', parentMessageId);
     const parentElement = this.messageElements
       .toArray()
       .find(el => el.nativeElement.getAttribute('data-message-id') === parentMessageId.toString());
@@ -158,7 +156,24 @@ export class ChatListComponent {
     }
   }
 
+  deleteChat(chatId: string) {
 
+
+    this.chatService.deleteConversation(chatId).subscribe({
+      next: () => {
+        console.log('Chat deleted successfully');
+        this.chats().splice(this.chats().findIndex(c => c.chatId === chatId), 1);
+        // If the deleted chat was selected, clear selection and messages
+        if (this.chatSelected().chatId === chatId) {
+          this.chatSelected.set({} as ChatResponse);
+          this.messagesToSelectedChatt.set([]);
+        }
+      },
+      error: (err) => {
+        console.error('Failed to delete chat', err);
+      }
+    });
+  }
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
   }
@@ -170,6 +185,13 @@ export class ChatListComponent {
   isChatSelected(): boolean {
     const chat = this.chatSelected();
     return chat && Object.keys(chat).length > 0;
+  }
+
+  isLastFromSender(index: number): boolean {
+    const msgs = this.messagesToSelectedChatt();
+    const current = msgs[index];
+    const next = msgs[index + 1];
+    return !next || next.senderAvatar.userId !== current.senderAvatar.userId;
   }
 
   wrapMessage(lastMessage: string | undefined): string {
@@ -214,4 +236,180 @@ export class ChatListComponent {
       this.menuTrigger.closeMenu();
     }
   }
+
+
+
+
+
+
+
+
+
+  selectedFile?: File;
+  filePreviewUrl?: string;
+  sendMessage(): void {
+    if ((!this.messageToSent.trim() && !this.selectedFile) || !this.isChatSelected()) return;
+
+    const parentMessageId = this.replyingToMessage()?.messageId
+      ? +this.replyingToMessage()!.messageId
+      : undefined;
+
+    this.chatService
+      .sendMessage(this.chatSelected().chatId, this.messageToSent, this.selectedFile, parentMessageId)
+      .subscribe({
+        next: () => {
+          this.messageToSent = '';
+          this.removeAttachment(); // clear file preview
+
+          // Reset textarea height
+          const textarea = document.querySelector<HTMLTextAreaElement>('textarea');
+          if (textarea) {
+            textarea.style.height = 'auto'; // reset
+          }
+
+          this.replyingToMessage.set(null);
+          this.getMessagesToSelectedChatt();
+        },
+        error: (err) => console.error('Error sending message', err),
+      });
+  }
+
+
+  // Handle file selection
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+
+      // If image, create preview URL
+      if (this.isImage(this.selectedFile)) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.filePreviewUrl = reader.result as string;
+        };
+        reader.readAsDataURL(this.selectedFile);
+      } else {
+        this.filePreviewUrl = undefined;
+      }
+    }
+  }
+
+  // Check if file is an image
+  isImage(file: File): boolean {
+    return file.type.startsWith('image/');
+  }
+
+  // Remove file/preview
+  removeAttachment(): void {
+    this.selectedFile = undefined;
+    this.filePreviewUrl = undefined;
+  }
+
+  // Auto-resize textarea while typing
+  autoResize(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
+  contextMenuVisible = false;
+  contextMenuPosition = { x: 0, y: 0 };
+  contextMenuChat!: ChatResponse; // chat object for which menu opened
+
+  // Open context menu
+  openContextMenu(event: MouseEvent, chat: ChatResponse) {
+    event.preventDefault(); // prevent default browser menu
+    this.contextMenuChat = chat;
+    this.contextMenuPosition = { x: event.clientX, y: event.clientY };
+    this.contextMenuVisible = true;
+  }
+
+  // Close menu when clicking outside
+  closeContextMenu() {
+    this.contextMenuVisible = false;
+  }
+
+  togglePinChat(chat: ChatResponse) {
+    const request$ = chat.pinned
+      ? this.chatService.UnPinConversation(chat.chatId)
+      : this.chatService.pinConversation(chat.chatId);
+
+    request$.subscribe({
+      next: () => {
+        chat.pinned = !chat.pinned;
+        this.closeContextMenu();
+      },
+      error: (err) => console.error(err)
+    });
+  }
+
+  toggleMuteChat(chat: ChatResponse) {
+    const request$ = chat.muted
+      ? this.chatService.UnMuteConversation(chat.chatId)
+      : this.chatService.MuteConversation(chat.chatId);
+
+    request$.subscribe({
+      next: () => {
+        chat.muted = !chat.muted;
+        this.closeContextMenu();
+      },
+      error: (err) => console.error(err)
+    });
+  }
+  get sortedChats() {
+    return this.chats().slice().sort((a, b) => {
+      // 1️⃣ Pinned first
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+
+      // 2️⃣ Sort by lastMessageTime (fallback: 0 if undefined)
+      const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+      const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+
+      return timeB - timeA;
+    });
+  }
+
+  get filteredChats(): ChatResponse[] {
+    const term = this.searchTerm?.trim().toLowerCase();
+
+    if (!term) {
+      return this.sortedChats;
+    }
+
+    return this.sortedChats.filter(chat => {
+      const nameMatch = chat.name?.toLowerCase().includes(term);
+      const lastMsgMatch = chat.lastMessage?.toLowerCase().includes(term);
+      return nameMatch || lastMsgMatch;
+    });
+  }
+  fetchMessageInfo(messageId: number): void {
+    this.chatService.getMessageInfo(messageId).subscribe({
+      next: (info: MessageDetailResponse) => {
+        console.log("Delivered:", info.delivered);
+        console.log("Read:", info.read);
+
+        // DeliveredByAt
+        if (info.deliveredByAt) {
+          for (const userId in info.deliveredByAt) {
+            const deliveredTime = new Date(info.deliveredByAt[userId]);
+            console.log(`User ${userId} delivered at:`, deliveredTime.toLocaleString());
+          }
+        }
+
+        // ReadByAt
+        if (info.readByAt) {
+          for (const userId in info.readByAt) {
+            const readTime = new Date(info.readByAt[userId]);
+            console.log(`User ${userId} read at:`, readTime.toLocaleString());
+          }
+        }
+      },
+      error: (err) => {
+        console.error("Failed to fetch message info:", err);
+      }
+    });
+  }
+
+
+
 }
