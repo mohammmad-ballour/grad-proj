@@ -12,7 +12,13 @@ import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.enums.MediaType;
 import com.grad.social.model.shared.UserAvatar;
-import com.grad.social.model.tables.*;
+import com.grad.social.model.tables.Users;
+import com.grad.social.model.tables.MediaAsset;
+import com.grad.social.model.tables.Chats;
+import com.grad.social.model.tables.ChatParticipants;
+import com.grad.social.model.tables.Messages;
+import com.grad.social.model.tables.MessageStatus;
+
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import io.hypersistence.tsid.TSID;
@@ -54,9 +60,6 @@ public class ChattingRepository {
     private final ChatParticipants cp2 = ChatParticipants.CHAT_PARTICIPANTS.as("cp2");
     private final Users u = Users.USERS;
     private final MediaAsset ma = MediaAsset.MEDIA_ASSET;
-    private final UserFollowers uf1 = UserFollowers.USER_FOLLOWERS.as("uf1");
-    private final UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
-    private final UserFollowers uf3 = UserFollowers.USER_FOLLOWERS.as("uf3");
 
     // chats
     @Retryable(retryFor = {DuplicateKeyException.class}, maxAttempts = 5, backoff = @Backoff(delay = 500))
@@ -124,10 +127,7 @@ public class ChattingRepository {
                 .asTable("uc");
 
         var cpOther = cp.as("cp_other");
-        return dsl.selectDistinct(
-                        c.CHAT_ID,
-                        c.IS_GROUP_CHAT,
-                        cp.LAST_DELETED_AT,
+        return dsl.selectDistinct(c.CHAT_ID, c.IS_GROUP_CHAT, cp.LAST_DELETED_AT,
                         DSL.case_()
                                 .when(c.IS_GROUP_CHAT.isTrue(), c.NAME)
                                 .otherwise(u.DISPLAY_NAME).as("chat_name"),
@@ -169,12 +169,14 @@ public class ChattingRepository {
                     if (isGroup && (lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt))) {
                         res.setLastMessage(null);
                         res.setLastMessageTime(null);
+                        res.setUnreadCount(0L);
+                        res.setMessageType(null);
                     } else {
                         res.setLastMessage(lastMessage);
                         res.setLastMessageTime(lastMessageSentAt);
+                        res.setUnreadCount(unreadCount);
+                        res.setMessageType(lastMessageType == null ? null : lastMessageType.name());
                     }
-                    res.setMessageType(lastMessageType == null ? null : lastMessageType.name());
-                    res.setUnreadCount(unreadCount);
                     res.setPinned(isPinned);
                     res.setMuted(isMuted);
                     res.setChatMembersNumber(participants.size());
@@ -208,7 +210,7 @@ public class ChattingRepository {
                 .asField("undelivered_count");
 
         return dsl.selectDistinct(m.MESSAGE_ID, m.PARENT_MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, m.CONTENT, m.SENT_AT,
-                        ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION, unreadCountField, undeliveredCountField)
+                        m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION, unreadCountField, undeliveredCountField)
                 .from(m)
                 .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
@@ -220,7 +222,7 @@ public class ChattingRepository {
                 )
                 .orderBy(m.SENT_AT.asc())
                 .fetch(mapping((messageId, parentMessageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
-                                mediaId, fileNameHashed, extension, unreadCount, undeliveredCount) -> {
+                                messageType, mediaId, fileNameHashed, extension, unreadCount, undeliveredCount) -> {
                     com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
                     if (unreadCount == 0) {
                         messageStatus = READ;
@@ -235,7 +237,8 @@ public class ChattingRepository {
                             throw new RuntimeException(e);
                         }
                     }
-                    return new ChatMessageResponse(messageId, parentMessageId, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture), content, media, sentAt, messageStatus);
+                    return new ChatMessageResponse(messageId, parentMessageId, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
+                            content, media, messageType == null ? null : messageType.name(), sentAt, messageStatus);
                 }));
     }
 
@@ -290,8 +293,18 @@ public class ChattingRepository {
                     res.setDelivered(isDelivered);
                     res.setRead(isRead);
                     try {
-                        Map<String, Object> readByAtMap = this.objectMapper.readValue(readByAt.data(), Map.class);
+                        Map<String, Object> readByAtMap;
+                        if (deliveredByAt == null) {
+                            res.setReadByAt(Collections.emptyMap());
+                            res.setDeliveredByAt(Collections.emptyMap());
+                            return res;
+                        }
                         Map<String, Object> deliveredByAtMap = this.objectMapper.readValue(deliveredByAt.data(), Map.class);
+                        if (readByAt == null) {
+                            readByAtMap = Collections.emptyMap();
+                        } else {
+                            readByAtMap = this.objectMapper.readValue(readByAt.data(), Map.class);
+                        }
 
                         Map<Long, Instant> realReadMap = new HashMap<>();
                         Map<Long, Instant> realDeliveredMap = new HashMap<>();
