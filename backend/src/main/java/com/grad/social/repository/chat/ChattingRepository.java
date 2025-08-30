@@ -156,9 +156,6 @@ public class ChattingRepository {
                 .leftJoin(lateral(lm)).on(DSL.trueCondition())
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
                 .where(cp.USER_ID.eq(currentUserId))
-                .and(c.IS_GROUP_CHAT.isTrue().or(
-                        (lm.field(m.SENT_AT).isNull().or(lm.field(m.SENT_AT).gt(DSL.coalesce(cp.LAST_DELETED_AT, DSL.val(AppConstants.DEFAULT_MIN_TIMESTAMP)))))
-                ))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
                 .fetch(mapping((chatId, isGroup, lastDeletedAt, chatName, chatPicture, isMuted, isPinned, lastMessage,
                                 lastMessageSentAt, lastMessageType, unreadCount, participants) -> {
@@ -166,7 +163,7 @@ public class ChattingRepository {
                     res.setChatId(chatId);
                     res.setName(chatName);
                     res.setChatPicture(chatPicture);
-                    if (isGroup && (lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt))) {
+                    if ((lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt))) {
                         res.setLastMessage(null);
                         res.setLastMessageTime(null);
                         res.setUnreadCount(0L);
