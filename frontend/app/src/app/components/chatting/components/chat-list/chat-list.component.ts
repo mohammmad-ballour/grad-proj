@@ -11,6 +11,8 @@ import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from "@angular/material/icon";
 import { ViewChild } from '@angular/core';
 import { MessageDetailResponse } from '../../models/message-detail-response';
+import { MediaPreviewDialogComponent } from '../media-preview-dialog/media-preview-dialog.component';
+import { MatDialog } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-chat-list',
@@ -39,7 +41,9 @@ export class ChatListComponent {
 
   constructor(
     private chatService: ChatService,
-    private activatedRoute: ActivatedRoute
+    private activatedRoute: ActivatedRoute,
+    private dialog: MatDialog     // ✅ Add this
+
   ) { }
 
   ngOnInit() {
@@ -47,12 +51,10 @@ export class ChatListComponent {
       next: (res) => {
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
-          // console.log("chatId:", chatId);
+          console.log("chatId:", chatId);
           const chat = res.find(c => c.chatId === chatId);
-          // console.log("chat found:", chat);
+          console.log("chat found:", chat);
           if (chat) {
-
-
             this.chatClicked(chat);
           }
         }
@@ -122,10 +124,10 @@ export class ChatListComponent {
   }
 
   onOpenChat(chatId: string) {
-    // this.chatService.confirmRead(chatId).subscribe({
-    //   next: () => this.chatSelected().unreadCount = 0,
-    //   error: (err) => console.error('Failed to confirm read', err)
-    // });
+    this.chatService.confirmRead(chatId).subscribe({
+      next: () => this.chatSelected().unreadCount = 0,
+      error: (err) => console.error('Failed to confirm read', err)
+    });
   }
 
   getParentMessageContent(parentMessageId: number | undefined): string {
@@ -215,9 +217,17 @@ export class ChatListComponent {
   MessageStatus = MessageStatus;
 
   // Placeholder menu actions
-  reply(m: any) { }
-  copy(m: any) { }
-  replyPrivately(m: any) { }
+  copy(m: any) {
+    if (!m) return;
+    navigator.clipboard.writeText(m).then(() => {
+      console.log('Text copied to clipboard');
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+    }
+    );
+
+
+  }
   forward(m: any) { }
   star(m: any) { }
   pin(m: any) { }
@@ -277,6 +287,11 @@ export class ChatListComponent {
 
   // Handle file selection
   onFileSelected(event: Event): void {
+    // just allow select one image or video
+
+
+
+
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       this.selectedFile = input.files[0];
@@ -298,6 +313,24 @@ export class ChatListComponent {
   isImage(file: File): boolean {
     return file.type.startsWith('image/');
   }
+  // Detect media type dynamically
+
+  openMediaPreview(message: MessageResponse) {
+    if (!message.media) return;
+
+    const mediaUrl = this.processImage(message.media); // Base64
+    message.media = mediaUrl;
+    this.dialog.open(MediaPreviewDialogComponent, {
+      data: message,
+      panelClass: 'full-screen-dialog',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+      hasBackdrop: true,
+      backdropClass: 'dark-backdrop'
+    });
+  }
+
+
 
   // Remove file/preview
   removeAttachment(): void {
@@ -400,6 +433,9 @@ export class ChatListComponent {
         this.readKeys = info.readByAt ? Object.keys(info.readByAt) : [];
       },
       error: (err) => {
+        this.deliveredKeys = [];
+        this.readKeys = [];
+        this.messageInfoData = null;
         console.error("Failed to fetch message info:", err);
       }
     });
@@ -423,6 +459,40 @@ export class ChatListComponent {
       });
     }, 440);
   }
+
+
+
+
+
+  processMediaUnified(media: string, type: 'IMAGE' | 'VIDEO'): string {
+    if (!media) return '';
+
+    // If type is provided, use it
+    if (type === 'IMAGE') return `data:image/png;base64,${media}`;
+    if (type === 'VIDEO') return `data:video/mp4;base64,${media}`;
+
+    return media; // fallback
+  }
+
+  getMessageType(message: MessageResponse): 'IMAGE' | 'VIDEO' | 'UNKNOWN' {
+    if (!message.media || typeof message.media !== 'string') {
+      return 'UNKNOWN';
+    }
+
+    const parts = message.media.split('.');
+    if (parts.length < 2) return 'UNKNOWN'; // No extension found
+
+    const ext = parts.pop()!.toLowerCase(); // non-null assertion is safe here
+    const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'];
+    const videoExts = ['mp4', 'mov', 'webm', 'avi', 'mkv'];
+
+    if (imageExts.includes(ext)) return 'IMAGE';
+    if (videoExts.includes(ext)) return 'VIDEO';
+
+    return 'UNKNOWN';
+  }
+
+
 
 
 }

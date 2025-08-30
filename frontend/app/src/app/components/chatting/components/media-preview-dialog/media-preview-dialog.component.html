@@ -1,0 +1,25 @@
+<mat-menu #menu="matMenu">
+  <button mat-menu-item  >
+    <mat-icon>download</mat-icon>
+    <span>Download</span>
+  </button>
+    <button mat-menu-item (click)="close()">
+        <mat-icon>close</mat-icon>
+        <span>Close</span>
+    </button>
+</mat-menu>
+
+<div class="media-dialog">
+  <button class="close-btn" (click)="close()">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <!-- Image Preview -->
+  <img *ngIf="data.media.startsWith('data:image')" [src]="data.media" class="media-full" />
+
+  <!-- Video Preview -->
+  <video *ngIf="data.media.startsWith('data:video')" controls autoplay class="media-full">
+    <source [src]="data.media" type="video/mp4" />
+    Your browser does not support the video tag.
+  </video>
+</div>

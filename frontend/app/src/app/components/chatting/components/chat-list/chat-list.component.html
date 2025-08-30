@@ -8,7 +8,7 @@
         <h5 class="m-0">Chats</h5>
         <i class="fas fa-comment-medical cursor-pointer"></i>
 
-        
+
       </div>
 
       <!-- Search -->
@@ -25,7 +25,7 @@
         @if(chats().length === 0) {
         <div class="text-center text-muted mt-4">
           <i class="bi bi-chat-dots" style="font-size: 48px;"></i>
-          <p class="mt-2">No chats available</p>  
+          <p class="mt-2">No chats available</p>
         </div>
         }
 
@@ -58,12 +58,16 @@
             <div class="d-flex justify-content-between align-items-center">
               <!-- Last message -->
               <small class="text-muted text-truncate" style="max-width: 70%;">
-                @if(chat.messageType =='IMAGE'){
-                photo
-                <i class="bi bi-image-fill"></i>
-                }@else{
-                {{ wrapMessage(chat.lastMessage) }}
-                }
+                <small class="text-muted text-truncate" style="max-width: 70%;">
+  @if(chat.messageType == 'IMAGE') {
+    photo <i class="bi bi-image-fill"></i>
+  } @else if(chat.messageType == 'VIDEO') {
+    video <i class="bi bi-camera-video-fill"></i>
+  } @else {
+    {{ wrapMessage(chat.lastMessage) }}
+  }
+</small>
+
               </small>
 
               <div class="d-flex align-items-center gap-1">
@@ -155,15 +159,29 @@
               </small>
             </div>
             }
-    <div [matMenuTriggerFor]="msgMenu"
-     #menuTrigger="matMenuTrigger"
-     (contextmenu)="$event.preventDefault(); menuTrigger.openMenu(); selectedMessageForMenu = m">
+            <div [matMenuTriggerFor]="msgMenu" #menuTrigger="matMenuTrigger"
+              (contextmenu)="$event.preventDefault(); menuTrigger.openMenu()">
+
 
 
               <!-- Media -->
               @if(m.media) {
-              <img [src]="processImage(m.media)" class="message-media mb-1" />
-              }
+              <div class="message-media-wrapper mb-1" (click)="openMediaPreview(m)">
+                <!-- IMAGE -->
+                @if(getMessageType(m) == 'IMAGE') {
+                <div>Test</div>
+                <img [src]="processMediaUnified(m.media, 'IMAGE')" class="message-media" />
+                }
+                <!-- VIDEO -->
+                <video [src]="processMediaUnified(m.media, 'VIDEO')" muted controls class="message-media rounded"></video>
+                <!-- UNKNOWN -->
+                @if(getMessageType(m) == 'UNKNOWN') {
+                  <span>Unsupported media</span>
+                }
+
+            </div>
+            }
+
 
               <!-- Text -->
               @if(m.content) {
@@ -184,79 +202,83 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Context menu -->
-      <mat-menu #msgMenu="matMenu">
-  <ng-template matMenuContent let-data="matMenuTriggerData">
+        <mat-menu #msgMenu="matMenu">
+          <ng-template matMenuContent let-data="matMenuTriggerData">
             <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
             <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
             <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
-            <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
             <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
-             <!-- Info button -->
- <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, selectedMessageForMenu)">
-  <mat-icon>info</mat-icon><span>Info</span>
-</button>
+            @if(m.senderAvatar.userId == activeUserId) {
+              <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
+
+              <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, m)">
+                <mat-icon>info</mat-icon><span>Info</span>
+              </button>
+            }
+
 
           </ng-template>
         </mat-menu>
- <!-- Component.html -->
-  <mat-menu #infoMenu="matMenu">
-    <ng-template matMenuContent>
-      <div style="width: 140px;   max-height: 200px; overflow-y: auto; padding: 12px; font-family: Arial, sans-serif;">
-        <h6 style="margin-bottom: 8px; font-weight: 600;">Message Info</h6>
+        <!-- Component.html -->
+        <mat-menu #infoMenu="matMenu">
+          <ng-template matMenuContent>
+            <div
+              style="width: 140px;   max-height: 200px; overflow-y: auto; padding: 12px; font-family: Arial, sans-serif;">
+              <h6 style="margin-bottom: 8px; font-weight: 600;">Message Info</h6>
 
-        <!-- Delivered / Read Status -->
-        <p style="margin: 4px 0; color: gray;">
-          <strong>Delivered:</strong>
-                
-           <i class="bi" [ngClass]="{
+              <!-- Delivered / Read Status -->
+              <p style="margin: 4px 0; color: gray;">
+                <strong>Delivered:</strong>
+
+                <i class="bi" [ngClass]="{
                 'bi-check-lg': !messageInfoData?.delivered ,
                 'bi-check-all': messageInfoData?.delivered 
-               }"></i>   
-        </p>
-        <p style="margin: 4px 0; color: gray;">
-          <strong>Read:</strong> 
-            <i class="bi bi-check-all" [ngClass]="{
+               }"></i>
+              </p>
+              <p style="margin: 4px 0; color: gray;">
+                <strong>Read:</strong>
+                <i class="bi bi-check-all" [ngClass]="{
                   'text-primary': messageInfoData?.read 
                 }"></i>
-           
-        </p>
 
-    <!-- Delivered By -->
-  @if(deliveredKeys.length > 0) {
-    <h6 style="margin-top: 12px; margin-bottom: 4px; font-weight: 500; color: #555;">Delivered By</h6>
-    <ul style="list-style: none; padding-left: 0; margin: 0;">
-      @for(userId of deliveredKeys ; track userId) {
-        <li style="padding: 4px 0; font-size: 14px; color: #333;">
-          <strong>User {{ userId }}</strong>
-          <span style="float: right; color: gray; font-size: 12px;">
-            {{ messageInfoData!.deliveredByAt[userId] | date:'shortTime' }}
-          </span>
-        </li>
-      }
-    </ul>
-  }
+              </p>
 
-  <!-- Read By -->
-  @if(readKeys.length > 0) {
-    <h6 style="margin-top: 12px; margin-bottom: 4px; font-weight: 500; color: #555;">Read By</h6>
-    <ul style="list-style: none; padding-left: 0; margin: 0;">
-      @for(userId of readKeys ;track userId) {
-        <li style="padding: 4px 0; font-size: 14px; color: #333;">
-          <strong>User {{ userId }}</strong>
-          <span style="float: right; color: gray; font-size: 12px;">
-            {{ messageInfoData!.readByAt[userId] | date:'shortTime' }}
-          </span>
-        </li>
-      }
-    </ul>
-  }
+              <!-- Delivered By -->
+              @if(deliveredKeys.length > 0) {
+              <h6 style="margin-top: 12px; margin-bottom: 4px; font-weight: 500; color: #555;">Delivered By</h6>
+              <ul style="list-style: none; padding-left: 0; margin: 0;">
+                @for(userId of deliveredKeys ; track userId) {
+                <li style="padding: 4px 0; font-size: 14px; color: #333;">
+                  <strong>User {{ userId }}</strong>
+                  <span style="float: right; color: gray; font-size: 12px;">
+                    {{ messageInfoData!.deliveredByAt[userId] | date:'shortTime' }}
+                  </span>
+                </li>
+                }
+              </ul>
+              }
+
+              <!-- Read By -->
+              @if(readKeys.length > 0) {
+              <h6 style="margin-top: 12px; margin-bottom: 4px; font-weight: 500; color: #555;">Read By</h6>
+              <ul style="list-style: none; padding-left: 0; margin: 0;">
+                @for(userId of readKeys ;track userId) {
+                <li style="padding: 4px 0; font-size: 14px; color: #333;">
+                  <strong>User {{ userId }}</strong>
+                  <span style="float: right; color: gray; font-size: 12px;">
+                    {{ messageInfoData!.readByAt[userId] | date:'shortTime' }}
+                  </span>
+                </li>
+                }
+              </ul>
+              }
 
 
-      </div>
-    </ng-template>
-  </mat-menu>
+            </div>
+          </ng-template>
+        </mat-menu>
 
 
 
