@@ -22,12 +22,36 @@
 
       <!-- Chat List (scrollable) -->
       <div class="flex-grow-1 overflow-auto" (click)="closeContextMenu()">
-        @if(chats().length === 0) {
+      
         <div class="text-center text-muted mt-4">
+            @if(!loadingChats()) {
+          <svg width="96" height="64" viewBox="0 0 96 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin: 0 auto; display: block;">
+            <!-- chat bubble -->
+            <rect x="8" y="4" rx="12" ry="12" width="80" height="44" fill="#f1f3f5"/>
+            <!-- tail -->
+            <path d="M32 48 L38 40 L36 48 Z" fill="#f1f3f5"/>
+            <!-- animated dots -->
+            <g transform="translate(18,18)" fill="#6c757d">
+              <circle cx="6" cy="8" r="4">
+                <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0s"/>
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0s"/>
+              </circle>
+              <circle cx="22" cy="8" r="4">
+                <animate attributeName="cy" values="8;2;8" dur="1s" repeatCount="indefinite" begin="0.12s"/>
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.12s"/>
+              </circle>
+              <circle cx="38" cy="8" r="4">
+                <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0.24s"/>
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.24s"/>
+              </circle>
+            </g>
+          </svg>
+          } @else if(chats().length === 0) {
           <i class="bi bi-chat-dots" style="font-size: 48px;"></i>
           <p class="mt-2">No chats available</p>
+          }
         </div>
-        }
+        
 
         @for (chat of filteredChats; track chat.chatId) {
         <div class="chat-item d-flex align-items-center p-2 border-bottom cursor-pointer" (click)="chatClicked(chat)"
@@ -120,6 +144,35 @@
 
       <!-- Messages -->
       <div #scrollContainer class="overflow-auto p-3 h-100 bg-light chat-scrollbar">
+
+      @if(!loadingMessages()) {
+       
+      <div class="d-flex align-items-center justify-content-center p-4">
+        <svg width="96" height="64" viewBox="0 0 96 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="8" y="4" rx="12" ry="12" width="80" height="44" fill="#f1f3f5"/>
+          <path d="M32 48 L38 40 L36 48 Z" fill="#f1f3f5"/>
+          <g transform="translate(18,18)" fill="#6c757d">
+        <circle cx="6" cy="8" r="4">
+          <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0s"/>
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0s"/>
+        </circle>
+        <circle cx="22" cy="8" r="4">
+          <animate attributeName="cy" values="8;2;8" dur="1s" repeatCount="indefinite" begin="0.12s"/>
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.12s"/>
+        </circle>
+        <circle cx="38" cy="8" r="4">
+          <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0.24s"/>
+          <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.24s"/>
+        </circle>
+          </g>
+        </svg>
+      </div>
+      } @else if (messagesToSelectedChatt().length === 0) {
+      <div class="text-center text-muted mt-4">
+        <i class="bi bi-chat-dots" style="font-size: 48px;"></i>
+        <p class="mt-2 mb-0">No messages yet. Send the first message to start the conversation.</p>
+      </div>
+      }@else {
         @for (m of messagesToSelectedChatt(); track m.messageId) {
         <div class="d-flex mb-2" [class.justify-content-end]="m.senderAvatar.userId == activeUserId"
           [class.justify-content-start]="m.senderAvatar.userId != activeUserId">
@@ -277,6 +330,7 @@
           </ng-template>
         </mat-menu>
         }
+      }
       </div>
 
 
