@@ -11,7 +11,6 @@ import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from "@angular/material/icon";
 import { ViewChild } from '@angular/core';
 import { MessageDetailResponse } from '../../models/message-detail-response';
-import { MediaPreviewDialogComponent } from '../media-preview-dialog/media-preview-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 
 @Component({
@@ -312,6 +311,7 @@ export class ChatListComponent {
     }
   }
 
+
   // Check if file is an image
   isImage(file: File): boolean {
     return file.type.startsWith('image/');
@@ -324,20 +324,7 @@ export class ChatListComponent {
 
   // Detect media type dynamically
 
-  openMediaPreview(message: MessageResponse) {
-    if (!message.media) return;
 
-    const mediaUrl = this.processImage(message.media); // Base64
-    message.media = mediaUrl;
-    this.dialog.open(MediaPreviewDialogComponent, {
-      data: message,
-      panelClass: 'full-screen-dialog',
-      maxWidth: '300px',
-      maxHeight: '300px',
-      hasBackdrop: true,
-      backdropClass: 'dark-backdrop'
-    });
-  }
 
 
 

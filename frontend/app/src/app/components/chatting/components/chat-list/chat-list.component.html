@@ -169,12 +169,14 @@
               <div class="message-media-wrapper mb-1"  >
                 <!-- IMAGE -->
                 @if(m.messageType== 'IMAGE') {
+
+                  
                 <img [src]="processImage(m.media)" class="message-media" />
                 }
                 @if(m.messageType== 'VIDEO') {
                 
                 <!-- VIDEO -->
-                <video [src]="processVideo(m.media )"  controls class="message-media rounded"></video>
+                <video [src]="processVideo(m.media )"    controls class="message-media rounded"></video>
                 }
 
             </div>
