@@ -11,7 +11,6 @@ import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from "@angular/material/icon";
 import { ViewChild } from '@angular/core';
 import { MessageDetailResponse } from '../../models/message-detail-response';
-import { MatDialog } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-chat-list',
@@ -41,7 +40,6 @@ export class ChatListComponent {
   constructor(
     private chatService: ChatService,
     private activatedRoute: ActivatedRoute,
-    private dialog: MatDialog     // ✅ Add this
 
   ) { }
 
@@ -57,7 +55,6 @@ export class ChatListComponent {
             this.chatClicked(chat);
           }
         }
-        // const filteredChats = res.filter(chat => !chat.deleted);
         this.chats.set(res);
         console.log(this.chats())
       },
@@ -102,6 +99,7 @@ export class ChatListComponent {
   }
 
   chatClicked(chat: ChatResponse) {
+    history.replaceState(null, '', `/chats/${chat.chatId}`);
     this.chatSelected.set(chat);
     this.replyingToMessage.set(null);
     this.getMessagesToSelectedChatt();
