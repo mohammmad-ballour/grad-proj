@@ -7,42 +7,56 @@
       <div class="p-2 border-bottom d-flex justify-content-between align-items-center">
         <h5 class="m-0">Chats</h5>
         <i class="fas fa-comment-medical cursor-pointer"></i>
-
-
+           <button class="btn btn-success rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+          style="width:40px; height:40px;" title="New chat" aria-label="New chat">
+          <i class="bi bi-chat-dots" style="font-size:18px; color:#fff;"></i>
+        </button>
       </div>
-
-      <!-- Search -->
-      <div class="p-2 border-bottom">
-        <div class="input-group input-group-sm">
+      <div class="p-2 border-bottom d-flex align-items-center justify-content-between">
+        <div class="input-group input-group-sm me-2" style="flex: 1 1 auto;">
           <span class="input-group-text"><i class="fas fa-search"></i></span>
-          <input type="text" class="form-control" placeholder="Search chats" [(ngModel)]="searchTerm">
+          <input #searchInput type="text" class="form-control" placeholder="Search chats" [(ngModel)]="searchTerm"
+            onfocus="if(!this.dataset.bc) this.dataset.bc=getComputedStyle(this).borderColor; this.style.outline='none'; this.style.boxShadow='none'; this.style.borderColor=this.dataset.bc;"
+            onblur="this.style.boxShadow='none';" />
+            @if(searchTerm) {
+                  <button class="btn btn-outline-secondary btn-sm" type="button"
+                  (click)="searchTerm=''; searchInput.focus()" title="Clear search" aria-label="Clear search"
+                  style="outline:none; box-shadow:none; background-color:#80bd7b  ; border:hidden;"
+                  (mousedown)="$event.preventDefault()"> 
+                  <i class="bi bi-x-lg"></i>
+                  </button>
+                }
         </div>
+
+     
       </div>
+
 
 
       <!-- Chat List (scrollable) -->
       <div class="flex-grow-1 overflow-auto" (click)="closeContextMenu()">
-      
+
         <div class="text-center text-muted mt-4">
-            @if(!loadingChats()) {
-          <svg width="96" height="64" viewBox="0 0 96 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin: 0 auto; display: block;">
+          @if(!loadingChats()) {
+          <svg width="96" height="64" viewBox="0 0 96 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+            style="margin: 0 auto; display: block;">
             <!-- chat bubble -->
-            <rect x="8" y="4" rx="12" ry="12" width="80" height="44" fill="#f1f3f5"/>
+            <rect x="8" y="4" rx="12" ry="12" width="80" height="44" fill="#f1f3f5" />
             <!-- tail -->
-            <path d="M32 48 L38 40 L36 48 Z" fill="#f1f3f5"/>
+            <path d="M32 48 L38 40 L36 48 Z" fill="#f1f3f5" />
             <!-- animated dots -->
             <g transform="translate(18,18)" fill="#6c757d">
               <circle cx="6" cy="8" r="4">
-                <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0s"/>
-                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0s"/>
+                <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0s" />
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0s" />
               </circle>
               <circle cx="22" cy="8" r="4">
-                <animate attributeName="cy" values="8;2;8" dur="1s" repeatCount="indefinite" begin="0.12s"/>
-                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.12s"/>
+                <animate attributeName="cy" values="8;2;8" dur="1s" repeatCount="indefinite" begin="0.12s" />
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.12s" />
               </circle>
               <circle cx="38" cy="8" r="4">
-                <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0.24s"/>
-                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.24s"/>
+                <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0.24s" />
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.24s" />
               </circle>
             </g>
           </svg>
@@ -51,7 +65,7 @@
           <p class="mt-2">No chats available</p>
           }
         </div>
-        
+
 
         @for (chat of filteredChats; track chat.chatId) {
         <div class="chat-item d-flex align-items-center p-2 border-bottom cursor-pointer" (click)="chatClicked(chat)"
@@ -83,14 +97,14 @@
               <!-- Last message -->
               <small class="text-muted text-truncate" style="max-width: 70%;">
                 <small class="text-muted text-truncate" style="max-width: 70%;">
-  @if(chat.messageType == 'IMAGE') {
-    photo <i class="bi bi-image-fill"></i>
-  } @else if(chat.messageType == 'VIDEO') {
-    video <i class="bi bi-camera-video-fill"></i>
-  } @else {
-    {{ wrapMessage(chat.lastMessage) }}
-  }
-</small>
+                  @if(chat.messageType == 'IMAGE') {
+                  photo <i class="bi bi-image-fill"></i>
+                  } @else if(chat.messageType == 'VIDEO') {
+                  video <i class="bi bi-camera-video-fill"></i>
+                  } @else {
+                  {{ wrapMessage(chat.lastMessage) }}
+                  }
+                </small>
 
               </small>
 
@@ -145,34 +159,34 @@
       <!-- Messages -->
       <div #scrollContainer class="overflow-auto p-3 h-100 bg-light chat-scrollbar">
 
-      @if(!loadingMessages()) {
-       
-      <div class="d-flex align-items-center justify-content-center p-4">
-        <svg width="96" height="64" viewBox="0 0 96 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="8" y="4" rx="12" ry="12" width="80" height="44" fill="#f1f3f5"/>
-          <path d="M32 48 L38 40 L36 48 Z" fill="#f1f3f5"/>
-          <g transform="translate(18,18)" fill="#6c757d">
-        <circle cx="6" cy="8" r="4">
-          <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0s"/>
-          <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0s"/>
-        </circle>
-        <circle cx="22" cy="8" r="4">
-          <animate attributeName="cy" values="8;2;8" dur="1s" repeatCount="indefinite" begin="0.12s"/>
-          <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.12s"/>
-        </circle>
-        <circle cx="38" cy="8" r="4">
-          <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0.24s"/>
-          <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.24s"/>
-        </circle>
-          </g>
-        </svg>
-      </div>
-      } @else if (messagesToSelectedChatt().length === 0) {
-      <div class="text-center text-muted mt-4">
-        <i class="bi bi-chat-dots" style="font-size: 48px;"></i>
-        <p class="mt-2 mb-0">No messages yet. Send the first message to start the conversation.</p>
-      </div>
-      }@else {
+        @if(!loadingMessages()) {
+
+        <div class="d-flex align-items-center justify-content-center p-4">
+          <svg width="96" height="64" viewBox="0 0 96 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="8" y="4" rx="12" ry="12" width="80" height="44" fill="#f1f3f5" />
+            <path d="M32 48 L38 40 L36 48 Z" fill="#f1f3f5" />
+            <g transform="translate(18,18)" fill="#6c757d">
+              <circle cx="6" cy="8" r="4">
+                <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0s" />
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0s" />
+              </circle>
+              <circle cx="22" cy="8" r="4">
+                <animate attributeName="cy" values="8;2;8" dur="1s" repeatCount="indefinite" begin="0.12s" />
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.12s" />
+              </circle>
+              <circle cx="38" cy="8" r="4">
+                <animate attributeName="cy" values="8;4;8" dur="1s" repeatCount="indefinite" begin="0.24s" />
+                <animate attributeName="opacity" values="0.3;1;0.3" dur="1s" repeatCount="indefinite" begin="0.24s" />
+              </circle>
+            </g>
+          </svg>
+        </div>
+        } @else if (messagesToSelectedChatt().length === 0) {
+        <div class="text-center text-muted mt-4">
+          <i class="bi bi-chat-dots" style="font-size: 48px;"></i>
+          <p class="mt-2 mb-0">No messages yet. Send the first message to start the conversation.</p>
+        </div>
+        }@else {
         @for (m of messagesToSelectedChatt(); track m.messageId) {
         <div class="d-flex mb-2" [class.justify-content-end]="m.senderAvatar.userId == activeUserId"
           [class.justify-content-start]="m.senderAvatar.userId != activeUserId">
@@ -219,21 +233,21 @@
 
               <!-- Media -->
               @if(m.media) {
-              <div class="message-media-wrapper mb-1"  >
+              <div class="message-media-wrapper mb-1">
                 <!-- IMAGE -->
                 @if(m.messageType== 'IMAGE') {
 
-                  
+
                 <img [src]="processImage(m.media)" class="message-media" />
                 }
                 @if(m.messageType== 'VIDEO') {
-                
+
                 <!-- VIDEO -->
-                <video [src]="processVideo(m.media )"    controls class="message-media rounded"></video>
+                <video [src]="processVideo(m.media )" controls class="message-media rounded"></video>
                 }
 
-            </div>
-            }
+              </div>
+              }
 
 
               <!-- Text -->
@@ -264,10 +278,10 @@
             <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
             <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
             @if(m.senderAvatar.userId == activeUserId) {
-              <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
-              <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, m)">
-                <mat-icon>info</mat-icon><span>Info</span>
-              </button>
+            <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
+            <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, m)">
+              <mat-icon>info</mat-icon><span>Info</span>
+            </button>
             }
           </ng-template>
         </mat-menu>
@@ -330,7 +344,7 @@
           </ng-template>
         </mat-menu>
         }
-      }
+        }
       </div>
 
 
@@ -369,7 +383,7 @@
         <button class="btn btn-light me-2" (click)="fileInput.click()">
           <mat-icon>attach_file</mat-icon>
         </button>
-        <input type="file" #fileInput hidden   accept="image/*,video/*" (change)="onFileSelected($event)" />
+        <input type="file" #fileInput hidden accept="image/*,video/*" (change)="onFileSelected($event)" />
 
         <!-- Message Box -->
         <textarea class="form-control me-2" [(ngModel)]="messageToSent" placeholder="Type a message" rows="1"
