@@ -247,14 +247,6 @@ export class ChatListComponent {
     }
   }
 
-
-
-
-
-
-
-
-
   selectedFile?: File;
   filePreviewUrl?: string;
   sendMessage(): void {
@@ -286,23 +278,34 @@ export class ChatListComponent {
 
 
   // Handle file selection
+  // Handle file selection
   onFileSelected(event: Event): void {
-    // just allow select one image or video
-
-
-
-
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
+      const file = input.files[0];
+
+      // Check file type (image or video)
+      if (!this.isImage(file) && !this.isVideo(file)) {
+        alert('Only images and videos are allowed.');
+        return;
+      }
+
+      // Check file size (max 25 MB)
+      const maxSize = 25 * 1024 * 1024; // 25MB in bytes
+      if (file.size > maxSize) {
+        alert('File size must be less than 25 MB.');
+        return;
+      }
+
+      this.selectedFile = file;
 
       // If image, create preview URL
-      if (this.isImage(this.selectedFile)) {
+      if (this.isImage(file)) {
         const reader = new FileReader();
         reader.onload = () => {
           this.filePreviewUrl = reader.result as string;
         };
-        reader.readAsDataURL(this.selectedFile);
+        reader.readAsDataURL(file);
       } else {
         this.filePreviewUrl = undefined;
       }
@@ -313,6 +316,12 @@ export class ChatListComponent {
   isImage(file: File): boolean {
     return file.type.startsWith('image/');
   }
+
+  // Check if file is a video
+  isVideo(file: File): boolean {
+    return file.type.startsWith('video/');
+  }
+
   // Detect media type dynamically
 
   openMediaPreview(message: MessageResponse) {
@@ -323,8 +332,8 @@ export class ChatListComponent {
     this.dialog.open(MediaPreviewDialogComponent, {
       data: message,
       panelClass: 'full-screen-dialog',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
+      maxWidth: '300px',
+      maxHeight: '300px',
       hasBackdrop: true,
       backdropClass: 'dark-backdrop'
     });
@@ -464,33 +473,12 @@ export class ChatListComponent {
 
 
 
-  processMediaUnified(media: string, type: 'IMAGE' | 'VIDEO'): string {
+  processVideo(media: string): string {
     if (!media) return '';
+    return `data:video/mp4;base64,${media}`;
 
-    // If type is provided, use it
-    if (type === 'IMAGE') return `data:image/png;base64,${media}`;
-    if (type === 'VIDEO') return `data:video/mp4;base64,${media}`;
-
-    return media; // fallback
   }
 
-  getMessageType(message: MessageResponse): 'IMAGE' | 'VIDEO' | 'UNKNOWN' {
-    if (!message.media || typeof message.media !== 'string') {
-      return 'UNKNOWN';
-    }
-
-    const parts = message.media.split('.');
-    if (parts.length < 2) return 'UNKNOWN'; // No extension found
-
-    const ext = parts.pop()!.toLowerCase(); // non-null assertion is safe here
-    const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'];
-    const videoExts = ['mp4', 'mov', 'webm', 'avi', 'mkv'];
-
-    if (imageExts.includes(ext)) return 'IMAGE';
-    if (videoExts.includes(ext)) return 'VIDEO';
-
-    return 'UNKNOWN';
-  }
 
 
 

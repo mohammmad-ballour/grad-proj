@@ -168,15 +168,13 @@
               @if(m.media) {
               <div class="message-media-wrapper mb-1" (click)="openMediaPreview(m)">
                 <!-- IMAGE -->
-                @if(getMessageType(m) == 'IMAGE') {
-                <div>Test</div>
-                <img [src]="processMediaUnified(m.media, 'IMAGE')" class="message-media" />
+                @if(m.messageType== 'IMAGE') {
+                <img [src]="processImage(m.media)" class="message-media" />
                 }
+                @if(m.messageType== 'VIDEO') {
+                
                 <!-- VIDEO -->
-                <video [src]="processMediaUnified(m.media, 'VIDEO')" muted controls class="message-media rounded"></video>
-                <!-- UNKNOWN -->
-                @if(getMessageType(m) == 'UNKNOWN') {
-                  <span>Unsupported media</span>
+                <video [src]="processVideo(m.media )" muted controls class="message-media rounded"></video>
                 }
 
             </div>

@@ -11,9 +11,9 @@ export interface MessageResponse {
   messageStatus: MessageStatus,
   parentMessageId: number;
   senderAvatar: UserAvatar;
-  media: string
+  media: string;
+  messageType: string;
 }
-
 
 
 

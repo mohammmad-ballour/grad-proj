@@ -23,6 +23,8 @@ export class MediaPreviewDialogComponent {
   }
 
   close() {
+    this.data.media = this.data.media.split('base64,')[1]; // Strip the prefix
+
     this.dialogRef.close();
   }
 }
