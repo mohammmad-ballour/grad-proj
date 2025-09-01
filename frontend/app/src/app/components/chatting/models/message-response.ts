@@ -12,16 +12,30 @@ export interface MessageResponse {
   parentMessageId: number;
   senderAvatar: UserAvatar;
   media: string;
-  messageType: string;
+  messageType: MediaType;
+
 }
 
 
-
-
-
+export interface ParentMessageSnippet {
+  parentMessageId: number;
+  content: string;
+  senderDisplayName: string;
+  messageType: MediaType;
+  media?: string;
+}
 
 export enum MessageStatus {
   SENT = 'SENT', DELIVERED = 'DELIVERED', READ = 'READ'
 }
+export type MediaType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'OTHER';
+
+// ParentMessageSnippet parentMessageSnippet, UserAvatar  , String  ,
+//                                   ,MediaType messageType, ) {
+
+
+
+
+
 
 

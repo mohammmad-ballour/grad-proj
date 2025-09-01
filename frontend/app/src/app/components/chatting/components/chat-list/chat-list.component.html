@@ -441,7 +441,7 @@
           <p class="mt-2 mb-0">No messages yet. Send the first message to start the conversation.</p>
         </div>
         }@else {
-        @for (m of messagesToSelectedChatt(); track m.messageId) {
+        @for (m of messagesToSelectedChatt() ; track m.messageId) {
         <div class="d-flex mb-2" [class.justify-content-end]="m.senderAvatar.userId == activeUserId"
           [class.justify-content-start]="m.senderAvatar.userId != activeUserId">
           <!-- Avatar (only for received messages) -->

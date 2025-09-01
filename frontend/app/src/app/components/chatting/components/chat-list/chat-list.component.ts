@@ -56,7 +56,9 @@ export class ChatListComponent {
     private dialog: MatDialog,
     private router: Router
   ) { }
-
+  reverceMessages(): MessageResponse[] {
+    return this.messagesToSelectedChatt().reverse()
+  }
   ngOnInit() {
     this.loadingChats.set(false);
     this.chatService.getAllUsers().subscribe({
@@ -130,7 +132,7 @@ export class ChatListComponent {
 
     this.chatService.getChatMessages(this.chatSelected().chatId).subscribe({
       next: (messages) => {
-        this.messagesToSelectedChatt.set(messages);
+        this.messagesToSelectedChatt.set(messages.reverse());
         console.log(this.messagesToSelectedChatt())
       },
       error: (err) => {
@@ -537,9 +539,12 @@ export class ChatListComponent {
     );
     console.log(this.selectedFile)
     console.log(this.participantIds())
-    this.chatService.createGroupChat(this.activeUserId, this.groupName, this.participantIds(), this.selectedFile)
+    this.chatService.createGroupChat(this.groupName, this.participantIds(), this.selectedFile)
       .subscribe({
-        next: res => console.log('Group created with ID:', res),
+        next: res => {
+          console.log('Group created with ID:', res)
+          this.router.navigate([AppRoutes.MESSAGES, res])
+        },
         error: err => console.error(err)
       });
   }

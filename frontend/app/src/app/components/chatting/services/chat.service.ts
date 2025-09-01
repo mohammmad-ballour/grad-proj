@@ -114,27 +114,26 @@ export class ChatService extends BaseService {
     const url = `${this.baseUrl}${this.ENDPOINTS.chats}candidate-users/${encodeURIComponent(nameToSearch)}`;
     return this.httpClient.get<UserResponse[]>(url, { params: { page: page.toString() } });
   }
+  createGroupChat(groupName: string, participantIds: number[], groupPicture?: File) {
+    const formData = new FormData();
 
-  createGroupChat(
-    creatorId: number,
-    groupName: string,
-    participantIds: number[],
-    groupPicture?: File
-  ) {
-    // 🚨 Backend won't accept multipart, so we send pure JSON
-    const body = {
-      creatorId,
-      groupName,
-      participantIds,
-      groupPicture: null // can't send file without backend change
-    };
+    // simple text field
+    formData.append('groupName', groupName);
+
+    // backend expects @RequestPart("users") → JSON array
+    formData.append('users', new Blob([JSON.stringify(participantIds)], { type: 'application/json' }));
+
+    // optional file
+    if (groupPicture) {
+      formData.append('groupPicture', groupPicture);
+    }
 
     return this.httpClient.post<string>(
       `${this.baseUrl}${this.ENDPOINTS.chats}group`,
-      body,
-      { headers: { 'Content-Type': 'application/json' } }
+      formData
     );
   }
+
 
 
 
