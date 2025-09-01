@@ -45,7 +45,7 @@ export class AuthService {
     }
 
     // Get the username claim
-    get UserName(): string | null {
+    get UserName(): string {
         const decoded = this.decodeToken();
         return decoded?.preferred_username || null;
     }

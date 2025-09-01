@@ -1,9 +1,9 @@
-import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren } from '@angular/core';
+import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, TemplateRef, Signal } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { ChatResponse } from '../../models/chat-response';
 import { CommonModule, DatePipe } from '@angular/common';
 import { UserResponse } from '../../models/user-response';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MessageResponse, MessageStatus } from '../../models/message-response';
@@ -12,12 +12,16 @@ import { MatIconModule } from "@angular/material/icon";
 import { ViewChild } from '@angular/core';
 import { MessageDetailResponse } from '../../models/message-detail-response';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialogModule, MatDialog } from "@angular/material/dialog";
+import { MatInputModule } from "@angular/material/input";
+import { AppRoutes } from '../../../../config/app-routes.enum';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-chat-list',
   templateUrl: 'chat-list.component.html',
   styleUrls: ['chat-list.component.css'],
-  imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule],
+  imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule, MatDialogModule, MatInputModule],
   standalone: true
 })
 export class ChatListComponent {
@@ -30,8 +34,11 @@ export class ChatListComponent {
 
   // Signals for state
   chats = signal<ChatResponse[]>([]);
+
+
   contacts = signal<UserResponse[]>([]);
-  searchNewContact = signal(false);
+
+
   chatSelected = signal<ChatResponse>({} as ChatResponse);
   messagesToSelectedChatt = signal<MessageResponse[]>([]);
   messageToSent: string = '';
@@ -39,13 +46,15 @@ export class ChatListComponent {
   replyingToMessage = signal<MessageResponse | null>(null);
   loadingChats = signal(false);
   loadingMessages = signal(false);
+  groupSearchTerm: string = '';
+  groupName: any;
 
   constructor(
     private chatService: ChatService,
     private activatedRoute: ActivatedRoute,
     private snackBar: MatSnackBar,
-
-
+    private dialog: MatDialog,
+    private router: Router
   ) { }
 
   ngOnInit() {
@@ -288,7 +297,7 @@ export class ChatListComponent {
 
   // Handle file selection
   // Handle file selection
-  onFileSelected(event: Event): void {
+  onFileSelected(event: Event,): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
@@ -472,8 +481,90 @@ export class ChatListComponent {
 
   }
 
+  getGroupCandidates(): void {
+    this.chatService.getGroupCandidates(this.groupSearchTerm).subscribe({
+      next: (res: UserResponse[]) => {
+
+        const filterdRes = this.isGroupMode ? res.filter(u => u.canBeAddedToGroupByCurrentUser) : res.filter(u => u.canBeMessagedByCurrentUser)
+        this.contacts.set(filterdRes);
+        console.log('Group candidates:', res);
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Failed to load group candidates', err);
+        this.snackBar.open('Failed to load users for group', 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  openNewChatDialog(templateRef: TemplateRef<any>, isGroupMode: boolean): void {
+    if (!this.dialog) {
+      console.error('Dialog service not available');
+      return;
+    }
+    this.isGroupMode = isGroupMode;
+    this.dialog.open(templateRef);
+  }
+
+  openChat(userId: number): void {
+    this.chatService.createOneOnOneChat(userId).subscribe({
+      next: (chatId: string) => {
+        // Close any open dialogs (the new-chat dialog) then navigate to the chat
+        this.closeDialog();
+        this.router.navigate([`${AppRoutes.MESSAGES}`, chatId]);
+        this.ngOnInit();
+      },
+      error: (err) => {
+        this.snackBar.open('Failed to open chat. Please try again later.');
+      }
+    });
+  }
+
+  closeDialog() {
+    this.dialog.closeAll();
+  }
+  participantIds = signal<number[]>([]);
+  isGroupMode = false;
+  selectedUsers = signal<string[]>([]);
 
 
+  // Check if group creation is valid
+  canCreateGroup(): boolean {
+    return true;
+  }
+  createGroupChat() {
+    this.participantIds.set(
+      this.contacts().filter(c => !c.canBeAddedToGroupByCurrentUser).map(c => c.userAvatar.userId)
+    );
+    console.log(this.selectedFile)
+    console.log(this.participantIds())
+    this.chatService.createGroupChat(this.activeUserId, this.groupName, this.participantIds(), this.selectedFile)
+      .subscribe({
+        next: res => console.log('Group created with ID:', res),
+        error: err => console.error(err)
+      });
+  }
+
+
+  groupAvatarPreview: string | null = null;
+
+
+
+  onGroupAvatarSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = e => this.groupAvatarPreview = e.target?.result as string;
+      reader.readAsDataURL(file);
+    }
+  }
+
+  goToAddMembers() {
+    // Logic to continue to members selection step
+  }
 
 
 }
+
+

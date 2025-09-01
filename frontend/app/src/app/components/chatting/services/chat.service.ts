@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Observable } from 'rxjs';
 import { MessageResponse } from '../models/message-response';
 import { MessageDetailResponse } from '../models/message-detail-response';
+import { UserResponse } from '../models/user-response';
 
 
 @Injectable({ providedIn: 'root' })
@@ -35,6 +36,9 @@ export class ChatService extends BaseService {
 
   get ActiveUserId(): number {
     return this.authServices.UserId;
+  }
+  get ActiveUserName(): string {
+    return this.authServices.UserName;
   }
 
   getChatMessages(chatId: string): Observable<MessageResponse[]> {
@@ -105,4 +109,33 @@ export class ChatService extends BaseService {
       `${this.baseUrl}${this.ENDPOINTS.messages}${messageId}/info`
     );
   }
+
+  getGroupCandidates(nameToSearch: string, page: number = 0): Observable<UserResponse[]> {
+    const url = `${this.baseUrl}${this.ENDPOINTS.chats}candidate-users/${encodeURIComponent(nameToSearch)}`;
+    return this.httpClient.get<UserResponse[]>(url, { params: { page: page.toString() } });
+  }
+
+  createGroupChat(
+    creatorId: number,
+    groupName: string,
+    participantIds: number[],
+    groupPicture?: File
+  ) {
+    // 🚨 Backend won't accept multipart, so we send pure JSON
+    const body = {
+      creatorId,
+      groupName,
+      participantIds,
+      groupPicture: null // can't send file without backend change
+    };
+
+    return this.httpClient.post<string>(
+      `${this.baseUrl}${this.ENDPOINTS.chats}group`,
+      body,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+
+
 }
