@@ -3,5 +3,3 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO mohbalor;
 GRANT ALL ON SCHEMA public TO public;
 
-ALTER SEQUENCE users_id_seq RESTART WITH 1;
-

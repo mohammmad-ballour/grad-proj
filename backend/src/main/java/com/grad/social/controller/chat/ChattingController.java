@@ -40,8 +40,9 @@ public class ChattingController {
     @PostMapping("/chats/group")
     @PreAuthorize("@SecurityService.isPermittedToAddToGroup(#jwt, #participantIds)")
     @SneakyThrows
-    public ResponseEntity<String> createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long creatorId, @RequestParam String groupName,
-                                                  @RequestBody Set<Long> participantIds, @RequestParam(required = false) MultipartFile groupPicture) {
+    public ResponseEntity<String> createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam String groupName, @RequestPart("users") Set<Long> participantIds,
+                                                  @RequestParam(value = "groupPicture", required = false) MultipartFile groupPicture) {
+        long creatorId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.status(HttpStatus.CREATED).body(String.valueOf(this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds)));
     }
 
@@ -57,7 +58,7 @@ public class ChattingController {
     @GetMapping("/chats/{chatId}/chat-messages")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId,
-                                                                            @RequestParam(defaultValue = "UP") ScrollDirection scrollDirection, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+                                                                             @RequestParam(defaultValue = "UP") ScrollDirection scrollDirection, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(userId, Long.parseLong(chatId), scrollDirection, seekRequest));
     }
