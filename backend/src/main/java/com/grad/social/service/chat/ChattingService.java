@@ -7,7 +7,10 @@ import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
+import com.grad.social.model.chat.response.ParentMessageWithNeighbours;
 import com.grad.social.model.enums.MediaType;
+import com.grad.social.model.shared.ScrollDirection;
+import com.grad.social.model.shared.TimestampSeekRequest;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.chat.ChattingRepository;
 import com.grad.social.repository.media.MediaRepository;
@@ -54,12 +57,13 @@ public class ChattingService {
         return chatId;
     }
 
-    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId) {
-        return this.chattingRepository.getChatMessagesByChatId(currentUserId, chatId);
+    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId, ScrollDirection scrollDirection, TimestampSeekRequest seekRequest) {
+        return this.chattingRepository.getChatMessagesByChatId(currentUserId, chatId, scrollDirection,
+                seekRequest == null ? null : seekRequest.lastEntityId(), seekRequest == null ? null : seekRequest.lastHappenedAt());
     }
 
-    public List<ChatResponse> getChatListForUserByUserId(Long userId) {
-        return this.chattingRepository.getChatListForUserByUserId(userId);
+    public List<ChatResponse> getChatListForUserByUserId(Long userId, int offset) {
+        return this.chattingRepository.getChatListForUserByUserId(userId, offset);
     }
 
     public void deleteConversation(Long chatId, Long currentUserId) {
@@ -112,6 +116,10 @@ public class ChattingService {
             mediaAssetId = this.mediaRepository.insertMediaAsset(toSave);
         }
         return mediaAssetId;
+    }
+
+    public ParentMessageWithNeighbours getParentMessageWithNeighboursInChat(Long chatId, Long messageId, Long lastFetchedMessageIdInPage) {
+        return this.chattingRepository.getParentMessageWithNeighboursInChat(chatId, messageId, lastFetchedMessageIdInPage);
     }
 
     public MessageDetailResponse getMessageDetails(Long messageId) {

@@ -10,7 +10,9 @@ import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
+import com.grad.social.model.chat.response.ParentMessageWithNeighbours;
 import com.grad.social.model.enums.MediaType;
+import com.grad.social.model.shared.ScrollDirection;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.Users;
 import com.grad.social.model.tables.MediaAsset;
@@ -23,8 +25,7 @@ import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import io.hypersistence.tsid.TSID;
 import lombok.RequiredArgsConstructor;
-import org.jooq.DSLContext;
-import org.jooq.Field;
+import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -38,8 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.grad.social.model.chat.response.MessageStatus.*;
 import static org.jooq.Records.mapping;
-import static org.jooq.impl.DSL.lateral;
-import static org.jooq.impl.DSL.row;
+import static org.jooq.impl.DSL.*;
 
 @Repository
 @RequiredArgsConstructor
@@ -54,12 +54,15 @@ public class ChattingRepository {
 
     // Aliases for subqueries
     private final Messages m = Messages.MESSAGES;
+    private final Messages m2 = Messages.MESSAGES.as("m2");
     private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
     private final Chats c = Chats.CHATS;
     private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS.as("cp");
     private final ChatParticipants cp2 = ChatParticipants.CHAT_PARTICIPANTS.as("cp2");
     private final Users u = Users.USERS;
+    private final Users u2 = Users.USERS.as("u2");
     private final MediaAsset ma = MediaAsset.MEDIA_ASSET;
+    private final MediaAsset ma2 = MediaAsset.MEDIA_ASSET.as("ma2");
 
     // chats
     @Retryable(retryFor = {DuplicateKeyException.class}, maxAttempts = 5, backoff = @Backoff(delay = 500))
@@ -109,7 +112,7 @@ public class ChattingRepository {
         return this.userUserInteractionRepository.searchOtherUsers(currentUserId, nameToSearch, offset);
     }
 
-    public List<ChatResponse> getChatListForUserByUserId(Long currentUserId) {
+    public List<ChatResponse> getChatListForUserByUserId(Long currentUserId, int offset) {
         // LATERAL: last message per chat
         var lm = dsl.select(m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE)
                 .from(m)
@@ -119,7 +122,7 @@ public class ChattingRepository {
                 .asTable("lm");
 
         // unread count per chat
-        var uc = dsl.select(m.CHAT_ID, DSL.count().as("unread_count"))
+        var uc = dsl.select(m.CHAT_ID, count().as("unread_count"))
                 .from(m)
                 .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
                 .where(ms.USER_ID.eq(currentUserId).and(ms.READ_AT.isNull()))
@@ -127,7 +130,11 @@ public class ChattingRepository {
                 .asTable("uc");
 
         var cpOther = cp.as("cp_other");
-        return dsl.selectDistinct(c.CHAT_ID, c.IS_GROUP_CHAT, cp.LAST_DELETED_AT,
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        return dsl.selectDistinct(
+                        c.CHAT_ID,
+                        c.IS_GROUP_CHAT,
+                        cp.LAST_DELETED_AT,
                         DSL.case_()
                                 .when(c.IS_GROUP_CHAT.isTrue(), c.NAME)
                                 .otherwise(u.DISPLAY_NAME).as("chat_name"),
@@ -157,13 +164,15 @@ public class ChattingRepository {
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
                 .where(cp.USER_ID.eq(currentUserId))
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
+                .offset(offset * pageSize)
+                .limit(pageSize)
                 .fetch(mapping((chatId, isGroup, lastDeletedAt, chatName, chatPicture, isMuted, isPinned, lastMessage,
                                 lastMessageSentAt, lastMessageType, unreadCount, participants) -> {
                     ChatResponse res = new ChatResponse();
                     res.setChatId(chatId);
                     res.setName(chatName);
                     res.setChatPicture(chatPicture);
-                    if ((lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt))) {
+                    if (isGroup && (lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt))) {
                         res.setLastMessage(null);
                         res.setLastMessageTime(null);
                         res.setUnreadCount(0L);
@@ -187,7 +196,18 @@ public class ChattingRepository {
                 }));
     }
 
-    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId) {
+    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId, ScrollDirection scrollDirection, Long lastMessageId, Instant lastMessageSentAt) {
+        if (lastMessageSentAt == null) { // this is the first page
+            lastMessageSentAt = AppConstants.DEFAULT_MAX_TIMESTAMP;
+        }
+
+        OrderField<Instant> sentAtOrderByField = m.SENT_AT.desc();
+        OrderField<Long> messageIdOrderByField = m.MESSAGE_ID.desc();
+        if (scrollDirection == ScrollDirection.DOWN) {
+            sentAtOrderByField = m.SENT_AT.asc();
+            messageIdOrderByField = m.MESSAGE_ID.asc();
+        }
+
         // scalar subquery: count how many participants still haven't read
         Field<Integer> unreadCountField = DSL
                 .selectCount()
@@ -206,37 +226,141 @@ public class ChattingRepository {
                         .and(ms.DELIVERED_AT.isNull()))
                 .asField("undelivered_count");
 
-        return dsl.selectDistinct(m.MESSAGE_ID, m.PARENT_MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, m.CONTENT, m.SENT_AT,
-                        m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION, unreadCountField, undeliveredCountField)
+        return dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, m.CONTENT, m.SENT_AT,
+                        m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION, unreadCountField, undeliveredCountField,
+                        m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
+                        u2.DISPLAY_NAME.as("parent_display_name"), u2.PROFILE_PICTURE.as("parent_profile_picture"),
+                        ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
+                        ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
                 .from(m)
                 .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
-                .join(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
-                .join(cp).on(cp.CHAT_ID.eq(m.CHAT_ID))
-                .join(u).on(m.SENDER_ID.eq(u.ID))
+                .leftJoin(m2).on(m.PARENT_MESSAGE_ID.eq(m2.MESSAGE_ID))
+                .leftJoin(ma2).on(m2.MEDIA_ID.eq(ma2.MEDIA_ID))
+                .leftJoin(ms).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .leftJoin(cp).on(cp.CHAT_ID.eq(m.CHAT_ID))
+                .leftJoin(u).on(m.SENDER_ID.eq(u.ID))
+                .leftJoin(u2).on(m2.SENDER_ID.eq(u2.ID))
                 .where(m.CHAT_ID.eq(chatId)
                         .and(cp.USER_ID.eq(currentUserId))
                         .and(m.SENT_AT.gt(DSL.coalesce(cp.LAST_DELETED_AT, DSL.val(AppConstants.DEFAULT_MIN_TIMESTAMP))))
                 )
-                .orderBy(m.SENT_AT.asc())
-                .fetch(mapping((messageId, parentMessageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
-                                messageType, mediaId, fileNameHashed, extension, unreadCount, undeliveredCount) -> {
+                .orderBy(sentAtOrderByField, messageIdOrderByField)
+                .seek(lastMessageSentAt, lastMessageId)
+                .limit(AppConstants.DEFAULT_PAGE_SIZE)
+                .fetch(mapping((messageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
+                                messageType, mediaId, fileNameHashed, extension, unreadCount, undeliveredCount,
+                                parentMessageId, parentContent, parentSenderDisplayName, parentSenderProfilePicture,
+                                parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
                     com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
                     if (unreadCount == 0) {
                         messageStatus = READ;
                     } else if (undeliveredCount == 0) {
                         messageStatus = DELIVERED;
                     }
-                    byte[] media = null;
-                    if (mediaId != null) {
-                        try {
-                            media = this.mediaStorageService.loadFile(fileNameHashed, extension).readAllBytes();
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                    return new ChatMessageResponse(messageId, parentMessageId, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
-                            content, media, messageType == null ? null : messageType.name(), sentAt, messageStatus);
+                    byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
+                    byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
+                    var parentMessageSnippet = parentMessageId == null ? null :
+                            new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent, parentSenderDisplayName, parentMessageType, parentMedia);
+                    return new ChatMessageResponse(messageId, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
+                            content, media, messageType, sentAt, messageStatus);
                 }));
+    }
+
+    public ParentMessageWithNeighbours getParentMessageWithNeighboursInChat(Long chatId, Long messageId, Long lastFetchedMessageIdInPage) {
+        int neighboursWindow = 3;
+
+        // 1. Fetch the parent message
+        ChatMessageResponse parent = dsl.select(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
+                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
+                        m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
+                        u2.DISPLAY_NAME.as("parent_display_name"),
+                        ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
+                        ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
+                .from(m)
+                .leftJoin(m2).on(m.PARENT_MESSAGE_ID.eq(m2.MESSAGE_ID))
+                .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
+                .leftJoin(ma2).on(m2.MEDIA_ID.eq(ma2.MEDIA_ID))
+                .leftJoin(u).on(m.SENDER_ID.eq(u.ID))
+                .leftJoin(u2).on(m2.SENDER_ID.eq(u2.ID))
+                .where(m.MESSAGE_ID.eq(messageId))
+                .fetchOne(mapRowToChatMessage());
+
+        if (parent == null) {
+//            throw new ModelNotFoundException(Model.MESSAGE, messageId);
+        }
+
+        // 2. Fetch 5 previous neighbours
+        List<ChatMessageResponse> previousMessages = dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
+                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
+                        m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
+                        u2.DISPLAY_NAME.as("parent_display_name"),
+                        ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
+                        ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
+                .from(m)
+                .leftJoin(m2).on(m.PARENT_MESSAGE_ID.eq(m2.MESSAGE_ID))
+                .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
+                .leftJoin(ma2).on(m2.MEDIA_ID.eq(ma2.MEDIA_ID))
+                .leftJoin(u).on(m.SENDER_ID.eq(u.ID))
+                .leftJoin(u2).on(m2.SENDER_ID.eq(u2.ID))
+                .where(m.CHAT_ID.eq(chatId))
+                .and(m.SENT_AT.lt(parent.sentAt()))
+                .orderBy(m.SENT_AT.desc())
+                .limit(neighboursWindow)
+                .fetch(mapRowToChatMessage());
+
+        // 3. Fetch 5 next neighbours
+        List<ChatMessageResponse> nextMessages = dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
+                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
+                        m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
+                        u2.DISPLAY_NAME.as("parent_display_name"),
+                        ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
+                        ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
+                .from(m)
+                .leftJoin(m2).on(m.PARENT_MESSAGE_ID.eq(m2.MESSAGE_ID))
+                .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
+                .leftJoin(ma2).on(m2.MEDIA_ID.eq(ma2.MEDIA_ID))
+                .leftJoin(u).on(m.SENDER_ID.eq(u.ID))
+                .leftJoin(u2).on(m2.SENDER_ID.eq(u2.ID))
+                .where(m.CHAT_ID.eq(chatId))
+                .and(m.SENT_AT.gt(parent.sentAt()).and(m.MESSAGE_ID.lt(lastFetchedMessageIdInPage)))
+                .orderBy(m.SENT_AT.asc())
+                .limit(neighboursWindow)
+                .fetch(mapRowToChatMessage());
+
+        // 4. Gap logic (count total messages before/after to detect gaps)
+        Field<Integer> totalBeforeField = count().filterWhere(m.SENT_AT.lt(parent.sentAt())).as("totalBefore");
+        Field<Integer> totalAfterField = count().filterWhere(m.SENT_AT.gt(parent.sentAt()).and(m.MESSAGE_ID.lt(lastFetchedMessageIdInPage))).as("totalAfter");
+
+        // Execute a single query to get both counts
+        Record2<Integer, Integer> counts = dsl.select(totalBeforeField, totalAfterField)
+                .from(m)
+                .where(m.CHAT_ID.eq(chatId))
+                .fetchOne();
+
+        int totalBefore = counts.value1();
+        int totalAfter = counts.value2();
+
+        ParentMessageWithNeighbours.GapInfo gapBefore = new ParentMessageWithNeighbours.GapInfo(
+                totalBefore > previousMessages.size(),
+                Math.max(totalBefore - previousMessages.size(), 0),
+                previousMessages.isEmpty() ? null : previousMessages.get(previousMessages.size() - 1).messageId(),
+                previousMessages.isEmpty() ? null : previousMessages.get(previousMessages.size() - 1).sentAt()
+        );
+
+        ParentMessageWithNeighbours.GapInfo gapAfter = new ParentMessageWithNeighbours.GapInfo(
+                totalAfter > nextMessages.size(),
+                Math.max(totalAfter - nextMessages.size(), 0),
+                nextMessages.isEmpty() ? null : nextMessages.get(nextMessages.size() - 1).messageId(),
+                nextMessages.isEmpty() ? null : nextMessages.get(nextMessages.size() - 1).sentAt()
+        );
+
+        // 5. Assemble ordered list: prev (oldest → newest), parent, next (newest → oldest)
+        List<ChatMessageResponse> allMessages = new ArrayList<>();
+        allMessages.addAll(previousMessages.reversed()); // chronological
+        allMessages.add(parent);
+        allMessages.addAll(nextMessages);
+
+        return new ParentMessageWithNeighbours(allMessages, gapBefore, gapAfter);
     }
 
     public void deleteConversation(Long chatId, Long userId) {
@@ -423,6 +547,32 @@ public class ChattingRepository {
                         .from(m)
                         .where(m.MESSAGE_ID.eq(messageId).and(m.SENDER_ID.eq(userId)))
         );
+    }
+
+    private RecordMapper<Record18<Long, Long, String, String, byte[], String, Instant, MediaType, Long, String, String, Long, String, String, Long, MediaType, String, String>, ChatMessageResponse> mapRowToChatMessage() {
+        return mapping((messageId2, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
+                        messageType, mediaId, fileNameHashed, extension,
+                        parentMessageId, parentContent, parentSenderDisplayName, parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
+            byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
+            ChatMessageResponse.ParentMessageSnippet parentMessageSnippet = null;
+            if (parentMessageId != null) {
+                byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
+                parentMessageSnippet = new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent, parentSenderDisplayName, parentMessageType, parentMedia);
+            }
+            return new ChatMessageResponse(messageId2, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
+                    content, media, messageType, sentAt, READ);
+        });
+    }
+
+    private byte[] loadMedia(Long mediaId, String fileNameHashed, String extension) {
+        if (mediaId == null) {
+            return null;
+        }
+        try {
+            return this.mediaStorageService.loadFile(fileNameHashed, extension).readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

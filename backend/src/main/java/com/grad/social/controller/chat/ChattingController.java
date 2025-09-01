@@ -4,6 +4,9 @@ import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
 import com.grad.social.model.chat.response.MessageDetailResponse;
+import com.grad.social.model.chat.response.ParentMessageWithNeighbours;
+import com.grad.social.model.shared.ScrollDirection;
+import com.grad.social.model.shared.TimestampSeekRequest;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.service.chat.ChattingService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Set;
 
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -29,15 +33,16 @@ public class ChattingController {
     // chats
     @GetMapping("/chats/{userId}/chat-list")
     @PreAuthorize("@SecurityService.hasUserLongId(authentication, #userId)")
-    public ResponseEntity<List<ChatResponse>> getChatListForUserByUserId(@PathVariable Long userId) {
-        return ResponseEntity.ok(this.chattingService.getChatListForUserByUserId(userId));
+    public ResponseEntity<List<ChatResponse>> getChatListForUserByUserId(@PathVariable Long userId, @RequestParam(defaultValue = "0") int page) {
+        return ResponseEntity.ok(this.chattingService.getChatListForUserByUserId(userId, page));
     }
 
     @PostMapping("/chats/group")
     @PreAuthorize("@SecurityService.isPermittedToAddToGroup(#jwt, #participantIds)")
     @SneakyThrows
-    public ResponseEntity<String> createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam Long creatorId, @RequestParam String groupName,
-                                                @RequestBody Set<Long> participantIds, @RequestParam(required = false) MultipartFile groupPicture) {
+    public ResponseEntity<String> createGroupChat(@AuthenticationPrincipal Jwt jwt, @RequestParam String groupName, @RequestPart("users") Set<Long> participantIds,
+                                                  @RequestParam(value = "groupPicture", required = false) MultipartFile groupPicture) {
+        long creatorId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.status(HttpStatus.CREATED).body(String.valueOf(this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds)));
     }
 
@@ -52,9 +57,10 @@ public class ChattingController {
     // when the user/group avatar in the chat list is clicked, this method is called
     @GetMapping("/chats/{chatId}/chat-messages")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
+    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId,
+                                                                             @RequestParam(defaultValue = "UP") ScrollDirection scrollDirection, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(userId, Long.parseLong(chatId)));
+        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(userId, Long.parseLong(chatId), scrollDirection, seekRequest));
     }
 
     // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
@@ -120,6 +126,14 @@ public class ChattingController {
                                             @RequestPart("request") CreateMessageRequest createMessage, @RequestPart(value = "attachment", required = false) MultipartFile mediaFile) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));    // User ID from JWT
         return ResponseEntity.status(HttpStatus.CREATED).body(this.chattingService.saveMessage(Long.parseLong(chatId), senderId, parentMessageId, createMessage, mediaFile));
+    }
+
+
+    @GetMapping("/chats/{chatId}/messages/{messageId}")
+    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
+    public ResponseEntity<ParentMessageWithNeighbours> getParentMessageWithNeighboursInChat(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId, @PathVariable Long messageId,
+                                                                                            @RequestParam Long lastFetchedMessageIdInPage) {
+        return ResponseEntity.ok(this.chattingService.getParentMessageWithNeighboursInChat(chatId, messageId, lastFetchedMessageIdInPage));
     }
 
     @GetMapping("/messages/{messageId}/info")
