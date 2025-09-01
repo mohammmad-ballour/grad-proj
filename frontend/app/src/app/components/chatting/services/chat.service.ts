@@ -114,7 +114,8 @@ export class ChatService extends BaseService {
     const url = `${this.baseUrl}${this.ENDPOINTS.chats}candidate-users/${encodeURIComponent(nameToSearch)}`;
     return this.httpClient.get<UserResponse[]>(url, { params: { page: page.toString() } });
   }
-  createGroupChat(groupName: string, participantIds: number[], groupPicture?: File) {
+
+  createGroupChat(groupName: string, participantIds: number[], groupPicture?: File): Observable<string> {
     const formData = new FormData();
 
     // simple text field

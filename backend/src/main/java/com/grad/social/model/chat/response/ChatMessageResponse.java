@@ -7,7 +7,7 @@ import com.grad.social.model.enums.MediaType;
 import java.time.Instant;
 
 public record ChatMessageResponse(Long messageId, ParentMessageSnippet parentMessageSnippet, UserAvatar senderAvatar, String content,
-                                  @JsonIgnore byte[] media,MediaType messageType, Instant sentAt, MessageStatus messageStatus) {
+                               byte[] media,MediaType messageType, Instant sentAt, MessageStatus messageStatus) {
 
     public record ParentMessageSnippet(Long parentMessageId, String content, String senderDisplayName, MediaType messageType, byte[] media) {}
 }

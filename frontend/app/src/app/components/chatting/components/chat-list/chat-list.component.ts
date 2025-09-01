@@ -178,24 +178,6 @@ export class ChatListComponent {
     }
   }
 
-  deleteChat(chatId: string) {
-
-
-    this.chatService.deleteConversation(chatId).subscribe({
-      next: () => {
-        console.log('Chat deleted successfully');
-        this.chats().splice(this.chats().findIndex(c => c.chatId === chatId), 1);
-        // If the deleted chat was selected, clear selection and messages
-        if (this.chatSelected().chatId === chatId) {
-          this.chatSelected.set({} as ChatResponse);
-          this.messagesToSelectedChatt.set([]);
-        }
-      },
-      error: (err) => {
-        console.error('Failed to delete chat', err);
-      }
-    });
-  }
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
   }
@@ -415,6 +397,24 @@ export class ChatListComponent {
     });
   }
 
+  deleteChat(chatId: string) {
+    // remove from chats
+    const index = this.chats().findIndex(c => c.chatId === chatId);
+    if (index !== -1) {
+      this.chats().splice(index, 1);
+    }
+
+    // get deleted chats from localStorage (or empty array if none yet)
+    const deletedChats: string[] = JSON.parse(localStorage.getItem('deletedChats') || '[]');
+
+    // add the new deleted chatId if not already stored
+    if (!deletedChats.includes(chatId)) {
+      deletedChats.push(chatId);
+      localStorage.setItem('deletedChats', JSON.stringify(deletedChats));
+    }
+  }
+
+
   get filteredChats(): ChatResponse[] {
     const term = this.searchTerm?.trim().toLowerCase();
 
@@ -454,6 +454,7 @@ export class ChatListComponent {
     });
   }
   selectedMessageForMenu!: MessageResponse;
+
 
   openInfoFromContext(trigger: MatMenuTrigger, infoMenu: MatMenu, message: MessageResponse) {
     this.fetchMessageInfo(message.messageId);
@@ -541,7 +542,8 @@ export class ChatListComponent {
     console.log(this.participantIds())
     this.chatService.createGroupChat(this.groupName, this.participantIds(), this.selectedFile)
       .subscribe({
-        next: res => {
+        next: (res: string) => {
+
           console.log('Group created with ID:', res)
           this.router.navigate([AppRoutes.MESSAGES, res])
         },
