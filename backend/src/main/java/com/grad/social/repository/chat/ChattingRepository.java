@@ -90,6 +90,7 @@ public class ChattingRepository {
                 .set(c.CHAT_ID, tsidFactory.generate().toLong())
                 .set(c.NAME, groupName)         // custom group name
                 .set(c.PICTURE, groupPicture)   // Custom group picture
+                .set(c.IS_GROUP_CHAT, true)
                 .returning(c.CHAT_ID)
                 .fetchOne()
                 .getChatId();
