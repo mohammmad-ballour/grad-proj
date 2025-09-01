@@ -529,11 +529,8 @@
           <ng-template matMenuContent let-data="matMenuTriggerData">
             <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
             <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
-            <button mat-menu-item (click)="forward(m)"><mat-icon>forward</mat-icon><span>Forward</span></button>
-            <button mat-menu-item (click)="pin(m)"><mat-icon>push_pin</mat-icon><span>Pin</span></button>
-            @if(m.senderAvatar.userId == activeUserId) {
-            <button mat-menu-item (click)="deleteForMe(m)"><mat-icon>delete</mat-icon><span>Delete</span></button>
-            <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, m)">
+              @if(m.senderAvatar.userId == activeUserId) {
+             <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, m)">
               <mat-icon>info</mat-icon><span>Info</span>
             </button>
             }

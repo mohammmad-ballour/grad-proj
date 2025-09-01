@@ -12,18 +12,14 @@ import { UserResponse } from '../models/user-response';
 @Injectable({ providedIn: 'root' })
 export class ChatService extends BaseService {
 
-  private readonly ENDPOINTS = {
-    chats: '/api/chats/',
-    messages: '/api/messages/',
 
-  };
   http: any;
 
   constructor(private httpClient: HttpClient, private authServices: AuthService) {
     super();
   }
 
-  getAllUsers(): Observable<ChatResponse[]> {
+  getAllChats(): Observable<ChatResponse[]> {
     return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}/chat-list`);
   }
 
@@ -34,53 +30,12 @@ export class ChatService extends BaseService {
   }
 
 
-  get ActiveUserId(): number {
-    return this.authServices.UserId;
-  }
-  get ActiveUserName(): string {
-    return this.authServices.UserName;
-  }
 
-  getChatMessages(chatId: string): Observable<MessageResponse[]> {
-    return this.httpClient.get<MessageResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`,)
-  }
 
   deleteConversation(chatId: string): Observable<void> {
     const req$ = this.httpClient.delete<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}`);
 
     return req$;
-  }
-  sendMessage(
-    chatId: string,
-    content: string,
-    file?: File,
-    parentMessageId?: number
-  ): Observable<number> {
-    const formData = new FormData();
-
-    // JSON part ("request")
-    const request = { content };
-    formData.append(
-      "request",
-      new Blob([JSON.stringify(request)], { type: "application/json" })
-    );
-
-    // File part (optional)
-    if (file) {
-      formData.append("attachment", file);
-    }
-
-    // Append parentMessageId as query param (only if defined, including 0)
-    let url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/sendMessage`;
-    if (parentMessageId !== undefined && parentMessageId !== null) {
-      url += `?parentMessageId=${parentMessageId}`;
-    }
-
-    return this.httpClient.post<number>(url, formData);
-  }
-
-  confirmRead(chatId: string) {
-    return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});
   }
 
   // Pin a conversation

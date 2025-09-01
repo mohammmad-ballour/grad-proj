@@ -16,6 +16,8 @@ import { MatDialogModule, MatDialog } from "@angular/material/dialog";
 import { MatInputModule } from "@angular/material/input";
 import { AppRoutes } from '../../../../config/app-routes.enum';
 import { filter } from 'rxjs';
+import { MessageService } from '../../services/message.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-chat-list',
@@ -51,6 +53,8 @@ export class ChatListComponent {
 
   constructor(
     private chatService: ChatService,
+    private messageService: MessageService,
+    private athaService: AuthService,
     private activatedRoute: ActivatedRoute,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
@@ -61,7 +65,7 @@ export class ChatListComponent {
   }
   ngOnInit() {
     this.loadingChats.set(false);
-    this.chatService.getAllUsers().subscribe({
+    this.chatService.getAllChats().subscribe({
       next: (res) => {
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
@@ -87,7 +91,7 @@ export class ChatListComponent {
 
     });
 
-    this.activeUserId = this.chatService.ActiveUserId;
+    this.activeUserId = this.athaService.UserId;
   }
 
 
@@ -130,7 +134,7 @@ export class ChatListComponent {
   getMessagesToSelectedChatt() {
     this.loadingMessages.set(false);
 
-    this.chatService.getChatMessages(this.chatSelected().chatId).subscribe({
+    this.messageService.getChatMessages(this.chatSelected().chatId).subscribe({
       next: (messages) => {
         this.messagesToSelectedChatt.set(messages.reverse());
         console.log(this.messagesToSelectedChatt())
@@ -144,7 +148,7 @@ export class ChatListComponent {
   }
 
   onOpenChat(chatId: string) {
-    this.chatService.confirmRead(chatId).subscribe({
+    this.messageService.confirmRead(chatId).subscribe({
       next: () => this.chatSelected().unreadCount = 0,
       error: (err) => console.error('Failed to confirm read', err)
     });
@@ -230,13 +234,7 @@ export class ChatListComponent {
 
 
   }
-  forward(m: any) { }
-  star(m: any) { }
-  pin(m: any) { }
-  deleteForMe(m: any) { }
-  share(m: any) { }
-  react(emoji: string) { }
-  moreReactions() { }
+
 
 
   @ViewChild('t') menuTrigger!: MatMenuTrigger;
@@ -258,7 +256,7 @@ export class ChatListComponent {
       ? +this.replyingToMessage()!.messageId
       : undefined;
 
-    this.chatService
+    this.messageService
       .sendMessage(this.chatSelected().chatId, this.messageToSent, this.selectedFile, parentMessageId)
       .subscribe({
         next: () => {
