@@ -1,4 +1,4 @@
-import { Component, HostListener, signal, Output, EventEmitter, ViewChild, TemplateRef, } from '@angular/core';
+import { Component, HostListener, signal, Output, EventEmitter, ViewChild, TemplateRef } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { ChatResponse } from '../../models/chat-response';
 import { CommonModule, DatePipe } from '@angular/common';
@@ -6,13 +6,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
-import { MatIconModule } from "@angular/material/icon";
-import { MatDialog, MatDialogModule } from "@angular/material/dialog";
-import { MatInputModule } from "@angular/material/input";
+import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatInputModule } from '@angular/material/input';
 import { MessageService } from '../../services/message.service';
 import { AppRoutes } from '../../../../config/app-routes.enum';
 import { UserResponse } from '../../models/user-response';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'app-chat-list',
@@ -25,25 +26,27 @@ import { MatSnackBar } from '@angular/material/snack-bar';
     MatMenuModule,
     MatIconModule,
     MatDialogModule,
-    MatInputModule
+    MatInputModule,
+    DragDropModule
   ],
   standalone: true
 })
 export class ChatListComponent {
-  groupSearchTerm: string = '';
-  groupName: any;
+  concatesSearchTerm: string = '';
+  groupName: any = '';
   selectedFile?: File;
-
   participantIds = signal<number[]>([]);
   isGroupMode = false;
   contacts = signal<UserResponse[]>([]);
   searchTerm = '';
   chats = signal<ChatResponse[]>([]);
-  selectedChat = signal<ChatResponse | null>(null);   // 🔹 new internal state
+  selectedChat = signal<ChatResponse | null>(null);
   loadingChats = signal(false);
+  selectedGroupMembers = signal<UserResponse[]>([]);
+  groupAvatarPreview: string | null = null;
+  dragging = signal(false); // Track drag state for visual feedback
 
   @Output() chatSelected = new EventEmitter<ChatResponse>();
-
   @ViewChild('t') menuTrigger!: MatMenuTrigger;
 
   constructor(
@@ -52,13 +55,11 @@ export class ChatListComponent {
     private activatedRoute: ActivatedRoute,
     private dialog: MatDialog,
     private router: Router,
-    private snackBar: MatSnackBar,
-
+    private snackBar: MatSnackBar
   ) { }
 
   ngOnInit() {
     this.loadingChats.set(false);
-
     this.chatService.getAllChats().subscribe({
       next: (res) => {
         this.chats.set(res);
@@ -77,7 +78,92 @@ export class ChatListComponent {
     });
   }
 
-  // --- UI Helpers ---
+  // Handle drag-and-drop event
+  drop(event: CdkDragDrop<UserResponse[]>) {
+    this.dragging.set(false);
+    if (event.previousContainer === event.container) {
+      // Reorder within the same list
+      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+    } else {
+      // Prevent dragging if the contact can't be added to a group
+      const draggedUser = event.previousContainer.data[event.previousIndex];
+      if (event.container.id === 'group-members' && !draggedUser.canBeAddedToGroupByCurrentUser) {
+        this.snackBar.open(`${draggedUser.userAvatar.username} cannot be added to groups`, 'Close', { duration: 3000 });
+        return;
+      }
+
+      // Move between lists
+      transferArrayItem(
+        event.previousContainer.data,
+        event.container.data,
+        event.previousIndex,
+        event.currentIndex
+      );
+
+      // Update participantIds
+      this.participantIds.set(this.selectedGroupMembers().map(member => member.userAvatar.userId));
+
+      // Show toast notification
+      const action = event.container.id === 'group-members' ? 'added to' : 'removed from';
+      this.snackBar.open(`${draggedUser.userAvatar.username} ${action} group`, 'Close', { duration: 2000 });
+    }
+  }
+
+  // Clear all selected group members
+  clearGroupMembers() {
+    this.contacts.update(contacts => [...contacts, ...this.selectedGroupMembers()]);
+    this.selectedGroupMembers.set([]);
+    this.participantIds.set([]);
+    this.snackBar.open('Group members cleared', 'Close', { duration: 2000 });
+  }
+
+  // Create group chat
+  createGroupChat() {
+    if (!this.groupName.trim()) {
+      this.snackBar.open('Please provide a group name', 'Close', { duration: 3000 });
+      return;
+    }
+    if (this.selectedGroupMembers().length === 0) {
+      this.snackBar.open('Please add at least one member to the group', 'Close', { duration: 3000 });
+      return;
+    }
+    console.log(this.selectedGroupMembers())
+    this.chatService.createGroupChat(this.groupName, this.participantIds(), this.selectedFile)
+      .subscribe({
+        next: (res: string) => {
+          this.snackBar.open('Group created successfully!', 'Close', { duration: 3000 });
+          this.router.navigate([`${AppRoutes.MESSAGES}`, res]);
+          this.ngOnInit();
+          this.selectedGroupMembers.set([]);
+          this.groupName = '';
+          this.groupAvatarPreview = null;
+          this.closeDialog();
+          this.selectedFile = undefined;
+        },
+        error: err => {
+          this.selectedFile = undefined;
+          this.selectedGroupMembers.set([]);
+          this.groupName = '';
+          this.groupAvatarPreview = null;
+          console.error(err);
+          this.snackBar.open('Failed to create group. Please try again.', 'Close', { duration: 3000 });
+        }
+      });
+  }
+
+  // Handle group avatar selection
+  onGroupAvatarSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = e => this.groupAvatarPreview = e.target?.result as string;
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // UI Helpers
   wrapMessage(lastMessage: string | undefined): string {
     if (!lastMessage) return '';
     return lastMessage.length <= 20 ? lastMessage : lastMessage.substring(0, 17) + '...';
@@ -95,12 +181,11 @@ export class ChatListComponent {
     return !!this.selectedChat();
   }
 
-  // --- Chat Actions ---
+  // Chat Actions
   chatClicked(chat: ChatResponse) {
     history.replaceState(null, '', `/chats/${chat.chatId}`);
     this.selectedChat.set(chat);
     this.chatSelected.emit(chat);
-
     if (chat.unreadCount > 0) {
       this.onOpenChat(chat.chatId);
     }
@@ -119,7 +204,6 @@ export class ChatListComponent {
 
   deleteChat(chatId: string) {
     this.chats.update(chats => chats.filter(c => c.chatId !== chatId));
-
     const deletedChats: string[] = JSON.parse(localStorage.getItem('deletedChats') || '[]');
     if (!deletedChats.includes(chatId)) {
       deletedChats.push(chatId);
@@ -131,7 +215,6 @@ export class ChatListComponent {
     const request$ = chat.pinned
       ? this.chatService.UnPinConversation(chat.chatId)
       : this.chatService.pinConversation(chat.chatId);
-
     request$.subscribe({
       next: () => {
         this.chats.update(chats =>
@@ -147,7 +230,6 @@ export class ChatListComponent {
     const request$ = chat.muted
       ? this.chatService.UnMuteConversation(chat.chatId)
       : this.chatService.MuteConversation(chat.chatId);
-
     request$.subscribe({
       next: () => {
         this.chats.update(chats =>
@@ -159,7 +241,7 @@ export class ChatListComponent {
     });
   }
 
-  // --- Sorting & Filtering ---
+  // Sorting & Filtering
   get sortedChats(): ChatResponse[] {
     return [...this.chats()].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
@@ -172,14 +254,13 @@ export class ChatListComponent {
   get filteredChats(): ChatResponse[] {
     const term = this.searchTerm.trim().toLowerCase();
     if (!term) return this.sortedChats;
-
     return this.sortedChats.filter(chat =>
       chat.name?.toLowerCase().includes(term) ||
       chat.lastMessage?.toLowerCase().includes(term)
     );
   }
 
-  // --- Context Menu ---
+  // Context Menu
   contextMenuVisible = false;
   contextMenuPosition = { x: 0, y: 0 };
   contextMenuChat!: ChatResponse;
@@ -195,7 +276,6 @@ export class ChatListComponent {
     this.contextMenuVisible = false;
   }
 
-  // --- Host Listener ---
   @HostListener('document:click', ['$event'])
   onDocumentClick() {
     if (this.menuTrigger?.menuOpen) {
@@ -203,52 +283,16 @@ export class ChatListComponent {
     }
   }
 
-
-  createGroupChat() {
-    this.participantIds.set(
-      this.contacts().filter(c => !c.canBeAddedToGroupByCurrentUser).map(c => c.userAvatar.userId)
-    );
-    console.log(this.selectedFile)
-    console.log(this.participantIds())
-    this.chatService.createGroupChat(this.groupName, this.participantIds(), this.selectedFile)
-      .subscribe({
-        next: (res: string) => {
-
-          console.log('Group created with ID:', res)
-          this.router.navigate([`${AppRoutes.MESSAGES}`, res]);
-          this.ngOnInit();
-        },
-        error: err => console.error(err)
-      });
-  }
-
-
-  groupAvatarPreview: string | null = null;
-
-
-
-  onGroupAvatarSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      this.selectedFile = file;
-      const reader = new FileReader();
-      reader.onload = e => this.groupAvatarPreview = e.target?.result as string;
-      reader.readAsDataURL(file);
-    }
-  }
-
-
+  // Dialog and Chat Creation
   openChat(userId: number): void {
     this.chatService.createOneOnOneChat(userId).subscribe({
       next: (chatId: string) => {
-        // Close any open dialogs (the new-chat dialog) then navigate to the chat
         this.closeDialog();
         this.router.navigate([`${AppRoutes.MESSAGES}`, chatId]);
         this.ngOnInit();
       },
       error: (err) => {
-        this.snackBar.open('Failed to open chat. Please try again later.');
+        this.snackBar.open('Failed to open chat. Please try again later.', 'Close', { duration: 3000 });
       }
     });
   }
@@ -256,14 +300,21 @@ export class ChatListComponent {
   closeDialog() {
     this.dialog.closeAll();
   }
+  cancelDialog() {
+    this.selectedGroupMembers.set([]);
+    this.groupName = '';
+    this.groupAvatarPreview = null;
+    this.closeDialog();
+    this.selectedFile = undefined;
+  }
 
   getGroupCandidates(): void {
-    this.chatService.getGroupCandidates(this.groupSearchTerm).subscribe({
+    this.chatService.getGroupCandidates(this.concatesSearchTerm).subscribe({
       next: (res: UserResponse[]) => {
-
-        const filterdRes = this.isGroupMode ? res.filter(u => u.canBeAddedToGroupByCurrentUser) : res.filter(u => u.canBeMessagedByCurrentUser)
-        this.contacts.set(filterdRes);
-        console.log('Group candidates:', res);
+        const filteredRes = this.isGroupMode
+          ? res.filter(u => u.canBeAddedToGroupByCurrentUser && !this.selectedGroupMembers().some(m => m.userAvatar.userId === u.userAvatar.userId))
+          : res.filter(u => u.canBeMessagedByCurrentUser);
+        this.contacts.set(filteredRes);
       },
       error: (err: HttpErrorResponse) => {
         console.error('Failed to load group candidates', err);
@@ -278,9 +329,19 @@ export class ChatListComponent {
       return;
     }
     this.isGroupMode = isGroupMode;
-    this.groupSearchTerm = '';
+    this.concatesSearchTerm = '';
     this.contacts.set([]);
+    this.selectedGroupMembers.set([]);
+    this.groupAvatarPreview = null;
     this.dialog.open(templateRef);
   }
 
+  // Track drag state
+  onDragStarted() {
+    this.dragging.set(true);
+  }
+
+  onDragEnded() {
+    this.dragging.set(false);
+  }
 }

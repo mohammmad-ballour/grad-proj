@@ -119,3 +119,116 @@ img.rounded-circle {
 .chat-scrollable::-webkit-scrollbar-thumb:hover {
   background-color: #555;
 }
+
+
+/* chat-list.component.css */
+.drop-zone {
+  background: #f8f9fa;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.drop-zone-active {
+  background: #e6f3ff !important;
+  border-color: #007bff !important;
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  background: white;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  padding: 10px;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+  background: #e9ecef;
+  border-radius: 8px;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .cdk-drag {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.list-group-item {
+
+  border-radius: 8px;
+  margin-bottom: 8px;
+  padding: 10px;
+  background: white;
+  transition: background 0.2s ease;
+}
+
+.list-group-item:hover {
+  background: #f1f3f5;
+}
+
+.list-group-item[cdkDragDisabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #6c757d;
+}
+
+.drop-zone-empty {
+  color: #6c757d;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .d-flex.flex-md-row {
+    flex-direction: column !important;
+  }
+
+  .flex-1 {
+    width: 100%;
+  }
+}
+
+.telegram-primary-btn {
+  background-color: #0088cc;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.telegram-primary-btn:hover {
+  background-color: #006699;
+}
+
+.telegram-primary-btn:disabled {
+  background-color: #b0c4de;
+  cursor: not-allowed;
+}
+
+.btn-outline-danger {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-outline-danger:disabled {
+  border-color: #d3d3d3;
+  color: #d3d3d3;
+  cursor: not-allowed;
+}
+
+.badge {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}

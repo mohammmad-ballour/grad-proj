@@ -18,70 +18,157 @@
         </div>
 
 
-        <ng-template #newChatDialog>
-          <mat-dialog-content class="p-0" style="max-height: 70vh; overflow-y: auto;">
+<ng-template #newChatDialog>
+  <mat-dialog-content class="p-0" style="max-height: 70vh; overflow-y: auto;">
+    
 
-            <!-- Sticky Search Bar -->
-            <div class="p-2 border-bottom position-sticky top-0 bg-white" style="z-index: 10;">
-              <mat-form-field appearance="outline" class="w-100">
-                <mat-icon matPrefix>search</mat-icon>
-                <input matInput placeholder="Search contacts" [(ngModel)]="groupSearchTerm"
-                  (ngModelChange)="($event || '').trim() ? getGroupCandidates() : contacts.set([])"
-                  (keydown.enter)="$event.preventDefault(); groupSearchTerm.trim() && getGroupCandidates()" />
-              </mat-form-field>
-            </div>
+    <!-- Sticky Search Bar -->
+    <div class="p-2 border-bottom position-sticky top-0 bg-white" style="z-index: 10;">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput placeholder="Search contacts" [(ngModel)]="concatesSearchTerm"
+               (ngModelChange)="($event || '').trim() ? getGroupCandidates() : contacts.set([])"
+               (keydown.enter)="$event.preventDefault(); concatesSearchTerm.trim() && getGroupCandidates()"
+               aria-label="Search for contacts to add to chat or group" />
+      </mat-form-field>
+    </div>
 
-            <!-- Contact List (no extra scroll) -->
-            <div class="list-group list-group-flush">
-              @for (c of contacts(); track c.userAvatar?.userId) {
-              @if (c.canBeMessagedByCurrentUser) {
-              <button mat-list-item class="list-group-item list-group-item-action d-flex align-items-center">
-                <img [src]="processImage(c.userAvatar.profilePicture)"
-                  (error)="onImageError($event, 'assets/ProfileAvatar.png')" class="rounded-circle me-2" width="42"
-                  height="42" />
-                <div class="flex-grow-1 text-start">
-                  <div class="fw-semibold">{{ c.userAvatar.username }}</div>
-                  <small class="text-muted">{{ c.profileBio }}</small>
+    <!-- Group Mode: Drag-and-Drop Interface -->
+    @if (isGroupMode) {
+      <div class="d-flex flex-column flex-md-row gap-3 p-2">
+        <!-- Available Contacts -->
+        <div class="flex-1" style="min-height: 200px;">
+          <h6 class="fw-semibold d-flex justify-content-between align-items-center">
+            Available Contacts
+            <span class="badge bg-secondary">{{ contacts().length }}</span>
+          </h6>
+          <div cdkDropList id="available-contacts" [cdkDropListData]="contacts()"
+               [cdkDropListConnectedTo]="['group-members']"
+               (cdkDropListDropped)="drop($event)"
+               class="list-group list-group-flush drop-zone"
+               [ngClass]="{'drop-zone-active': dragging()}"
+               style="min-height: 150px; border: 1px dashed #ccc; border-radius: 8px;">
+            @for (c of contacts(); track c.userAvatar?.userId) {
+              @if (c.canBeAddedToGroupByCurrentUser) {
+                <div cdkDrag class="list-group-item d-flex align-items-center"
+                     [cdkDragDisabled]="!c.canBeAddedToGroupByCurrentUser"
+                     [cdkDragData]="c"
+                     (cdkDragStarted)="onDragStarted()"
+                     (cdkDragEnded)="onDragEnded()"
+                     role="listitem"
+                     [attr.aria-label]="c.userAvatar.username + ' - drag to add to group'">
+                  <img [src]="processImage(c.userAvatar.profilePicture)"
+                       (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+                       class="rounded-circle me-2" width="42" height="42"
+                       [attr.alt]="c.userAvatar.username + ' avatar'" />
+                  <div class="flex-grow-1 text-start">
+                    <div class="fw-semibold">{{ c.userAvatar.username }}</div>
+                    <small class="text-muted">{{ c.profileBio }}</small>
+                  </div>
+                  <mat-icon class="drag-handle" cdkDragHandle>drag_indicator</mat-icon>
                 </div>
-                @if(isGroupMode) {
-                <button type="button" class="btn btn-sm btn-outline-primary ms-2"
-                  (click)="c.canBeAddedToGroupByCurrentUser=!c.canBeAddedToGroupByCurrentUser">
-                  <i class="bi" [ngClass]="{
-              'bi-person-plus-fill': c.canBeAddedToGroupByCurrentUser,
-              'bi-person-dash-fill': !c.canBeAddedToGroupByCurrentUser
-            }"></i>
-                </button>
-                } @else {
-                <button type="button" class="btn btn-sm btn-outline-primary ms-2"
-                  (click)="$event.stopPropagation(); openChat(c.userAvatar.userId)">
-                  <i class="bi bi-chat-dots"></i>
-                </button>
-                }
-              </button>
               }
-              }
-              @if ((contacts() || []).length === 0) {
-              <div class="text-center text-muted p-4">
+            }
+            @if ((contacts() || []).length === 0) {
+              <div class="text-center text-muted p-4 drop-zone-empty">
                 No contacts found
               </div>
-              }
-            </div>
-
-          </mat-dialog-content>
-
-          <mat-dialog-actions align="center" class="d-flex justify-content-evenly p-2">
-            @if (isGroupMode) {
-            <button type="button" class="btn telegram-primary-btn" (click)="closeDialog(); createGroupChat()"
-              style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
-              Create
-            </button>
             }
-            <button type="button" class="btn telegram-primary-btn" (click)="closeDialog()"
-              style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
-              Close
+          </div>
+        </div>
+
+        <!-- Selected Group Members -->
+        <div class="flex-1" style="min-height: 200px;">
+          <h6 class="fw-semibold d-flex justify-content-between align-items-center">
+            Group Members
+            <span class="badge bg-primary">{{ selectedGroupMembers().length }}</span>
+          </h6>
+          <div cdkDropList id="group-members" [cdkDropListData]="selectedGroupMembers()"
+               [cdkDropListConnectedTo]="['available-contacts']"
+               (cdkDropListDropped)="drop($event)"
+               class="list-group list-group-flush drop-zone"
+               [ngClass]="{'drop-zone-active': dragging()}"
+               style="min-height: 150px; border: 1px dashed #ccc; border-radius: 8px;">
+            @for (member of selectedGroupMembers(); track member.userAvatar?.userId) {
+              <div cdkDrag class="list-group-item d-flex align-items-center"
+                   (cdkDragStarted)="onDragStarted()"
+                   (cdkDragEnded)="onDragEnded()"
+                   role="listitem"
+                   [attr.aria-label]="member.userAvatar.username + ' - drag to remove from group'">
+                <img [src]="processImage(member.userAvatar.profilePicture)"
+                     (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+                     class="rounded-circle me-2" width="42" height="42"
+                     [attr.alt]="member.userAvatar.username + ' avatar'" />
+                <div class="flex-grow-1 text-start">
+                  <div class="fw-semibold">{{ member.userAvatar.username }}</div>
+                  <small class="text-muted">{{ member.profileBio }}</small>
+                </div>
+                <mat-icon class="drag-handle" cdkDragHandle>drag_indicator</mat-icon>
+              </div>
+            }
+            @if (selectedGroupMembers().length === 0) {
+              <div class="text-center text-muted p-4 drop-zone-empty">
+                Drag contacts here to add to group
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    } @else {
+      <!-- Non-Group Mode: Contact List -->
+      <div class="list-group list-group-flush">
+        @for (c of contacts(); track c.userAvatar?.userId) {
+          @if (c.canBeMessagedByCurrentUser) {
+            <button mat-list-item class="list-group-item list-group-item-action d-flex align-items-center"
+                     [style.cursor]="isGroupMode ? 'pointer' : 'default'"
+                    [attr.aria-label]="c.userAvatar.username + ' - click to start chat'">
+              <img [src]="processImage(c.userAvatar.profilePicture)"
+                   (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+                   class="rounded-circle me-2" width="42" height="42"
+                   [attr.alt]="c.userAvatar.username + ' avatar'" />
+              <div class="flex-grow-1 text-start">
+                <div class="fw-semibold">{{ c.userAvatar.username }}</div>
+                <small class="text-muted">{{ c.profileBio }}</small>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary ms-2"
+                      (click)="$event.stopPropagation(); openChat(c.userAvatar.userId)"
+                      aria-label="Start chat with ">
+                <mat-icon>chat</mat-icon>
+              </button>
             </button>
-          </mat-dialog-actions>
-        </ng-template>
+          }
+        }
+        @if ((contacts() || []).length === 0) {
+          <div class="text-center text-muted p-4">
+            No contacts found
+          </div>
+        }
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="center" class="d-flex justify-content-evenly p-2">
+    @if (isGroupMode) {
+      <button type="button" class="btn btn-outline-danger me-2" (click)="clearGroupMembers()"
+              [disabled]="selectedGroupMembers().length === 0"
+              style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;"
+              aria-label="Clear all group members">
+        Clear All
+      </button>
+      <button type="button" class="btn telegram-primary-btn" (click)="createGroupChat()"
+              [disabled]="!concatesSearchTerm.trim() || selectedGroupMembers().length === 0"
+              style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;"
+              aria-label="Create group chat">
+        Create
+      </button>
+    }
+    <button type="button" class="btn telegram-primary-btn" (click)="cancelDialog(); "
+            style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;"
+            aria-label="_Close dialog">
+      Close
+    </button>
+  </mat-dialog-actions>
+</ng-template>
 
 
         <ng-template #newGroupDialog>
@@ -89,8 +176,7 @@
             <!-- Header -->
             <h2 class="modal-title m-0" style="font-weight: 600; color: #000;">New Group</h2>
 
-            <!-- Group Avatar + Name -->
-            <div class="d-flex align-items-center gap-3">
+             <div class="d-flex align-items-center gap-3">
               <!-- Avatar upload -->
               <div class="position-relative">
                 @if (groupAvatarPreview) {
@@ -124,13 +210,13 @@
 
           <!-- Footer -->
           <div class="modal-footer justify-content-end p-3 gap-3">
-            <button type="button" class="btn telegram-secondary-btn" (click)="closeDialog()"
+            <button type="button" class="btn telegram-secondary-btn" (click)="cancelDialog();"
               style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
               Cancel
             </button>
             <button type="button" class="btn telegram-primary-btn"
               [disabled]="!groupName?.trim() || groupName.length > 128"
-              (click)=" closeDialog(); openNewChatDialog( newChatDialog ,true)"
+              (click)=" closeDialog(); openNewChatDialog( newChatDialog ,true); "
               style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
               Next
             </button>
