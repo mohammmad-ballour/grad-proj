@@ -9,7 +9,7 @@ import { SignupComponent } from './features/auth/signup/signup.component';
 import { AppRoutes } from './config/app-routes.enum';
 import { AuthGuard } from './core/guards/auth.guard';
 import { LogoutComponent } from './features/auth/logout/logout.component';
-import { ChatListComponent } from './components/chatting/components/chat-list/chat-list.component';
+import { ChatComponent } from './components/chatting/components/chat/chat.component';
 
 export const routes: Routes = [
     { path: AppRoutes.LOGIN, component: LoginComponent },
@@ -23,10 +23,10 @@ export const routes: Routes = [
             { path: AppRoutes.HOME, component: FeedComponent },
             { path: 'explore', component: FeedComponent },
             { path: AppRoutes.NOTIFICATIONS, component: NotificationsComponent },
-            { path: AppRoutes.MESSAGES, component: ChatListComponent },
+            { path: AppRoutes.MESSAGES, component: ChatComponent },
             { path: AppRoutes.MORE, component: MoreComponent },
             // ⚠️ This must be **last** so it doesn't catch other static routes!
-            { path: `${AppRoutes.MESSAGES}/:chatId`, component: ChatListComponent },//is not work
+            { path: `${AppRoutes.MESSAGES}/:chatId`, component: ChatComponent },//is not work
 
             { path: ':username', component: ProfileComponent },
         ],
