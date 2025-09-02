@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, TemplateRef, Signal } from '@angular/core';
+import { Component, HostListener, signal, TemplateRef, Signal } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { ChatResponse } from '../../models/chat-response';
 import { CommonModule, DatePipe } from '@angular/common';
@@ -6,7 +6,7 @@ import { UserResponse } from '../../models/user-response';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { MessageResponse, MessageStatus } from '../../models/message-response';
+import { MessageResponse } from '../../models/message-response';
 import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from "@angular/material/icon";
 import { ViewChild } from '@angular/core';
@@ -15,12 +15,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog } from "@angular/material/dialog";
 import { MatInputModule } from "@angular/material/input";
 import { AppRoutes } from '../../../../config/app-routes.enum';
-import { filter } from 'rxjs';
 import { MessageService } from '../../services/message.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ChatMessagesComponent } from "../chat-messages/chat-messages.component";
 @Component({
   selector: 'app-chat',
-  imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule, MatDialogModule, MatInputModule],
+  imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule, MatDialogModule, MatInputModule, ChatMessagesComponent],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.css'
 })
@@ -28,18 +28,11 @@ import { AuthService } from '../../../../core/services/auth.service';
 export class ChatComponent {
 
 
-  msgMenu = 'msgMenu_';
-  searchTerm: any;
-
-  @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
-
-  // Signals for state
+  searchTerm: string = '';
+  participantIds = signal<number[]>([]);
+  isGroupMode = false;
   chats = signal<ChatResponse[]>([]);
-
-
   contacts = signal<UserResponse[]>([]);
-
-
   chatSelected = signal<ChatResponse>({} as ChatResponse);
   messagesToSelectedChatt = signal<MessageResponse[]>([]);
   messageToSent: string = '';
@@ -49,6 +42,7 @@ export class ChatComponent {
   loadingMessages = signal(false);
   groupSearchTerm: string = '';
   groupName: any;
+  infoMenu!: MatMenu;
 
   constructor(
     private chatService: ChatService,
@@ -59,9 +53,7 @@ export class ChatComponent {
     private dialog: MatDialog,
     private router: Router
   ) { }
-  reverceMessages(): MessageResponse[] {
-    return this.messagesToSelectedChatt().reverse()
-  }
+
   ngOnInit() {
     this.loadingChats.set(false);
     this.chatService.getAllChats().subscribe({
@@ -91,14 +83,6 @@ export class ChatComponent {
     });
 
     this.activeUserId = this.athaService.UserId;
-  }
-
-
-  ngAfterViewInit() {
-    this.scrollToUnreadOrBottom();
-    this.messageElements.changes.subscribe(() => {
-      this.scrollToUnreadOrBottom();
-    });
   }
 
   // ✅ Start replying to a message
@@ -161,25 +145,6 @@ export class ChatComponent {
     return parentMessage?.content || 'Message not found';
   }
 
-  scrollToParentMessage(parentMessageId: number): void {
-    console.log('Scrolling to parent message ID:', parentMessageId);
-    const parentElement = this.messageElements
-      .toArray()
-      .find(el => el.nativeElement.getAttribute('data-message-id') === parentMessageId.toString());
-
-    if (parentElement) {
-      // Scroll smoothly to the parent
-      parentElement.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-      // Add temporary highlight effect
-      parentElement.nativeElement.classList.add('highlight-parent');
-
-      // Remove highlight after 1.5 seconds
-      setTimeout(() => {
-        parentElement.nativeElement.classList.remove('highlight-parent');
-      }, 800);
-    }
-  }
 
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
@@ -206,20 +171,6 @@ export class ChatComponent {
     return lastMessage ? lastMessage.substring(0, 17) + '...' : '';
   }
 
-  private scrollToUnreadOrBottom() {
-    const unreadCount = this.chatSelected().unreadCount;
-    const messages = this.messageElements.toArray();
-    if (!messages.length) return;
-
-    if (unreadCount > 0) {
-      const firstUnreadIndex = Math.max(messages.length - unreadCount, 0);
-      messages[firstUnreadIndex]?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      messages[messages.length - 1].nativeElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }
-
-  MessageStatus = MessageStatus;
 
   // Placeholder menu actions
   copy(m: any) {
@@ -248,77 +199,6 @@ export class ChatComponent {
 
   selectedFile?: File;
   filePreviewUrl?: string;
-  sendMessage(): void {
-    if ((!this.messageToSent.trim() && !this.selectedFile) || !this.isChatSelected()) return;
-
-    const parentMessageId = this.replyingToMessage()?.messageId
-      ? +this.replyingToMessage()!.messageId
-      : undefined;
-
-    this.messageService
-      .sendMessage(this.chatSelected().chatId, this.messageToSent, this.selectedFile, parentMessageId)
-      .subscribe({
-        next: () => {
-          this.messageToSent = '';
-          this.removeAttachment(); // clear file preview
-
-          // Reset textarea height
-          const textarea = document.querySelector<HTMLTextAreaElement>('textarea');
-          if (textarea) {
-            textarea.style.height = 'auto'; // reset
-          }
-
-          this.replyingToMessage.set(null);
-          this.getMessagesToSelectedChatt();
-        },
-        error: (err) => console.error('Error sending message', err),
-      });
-  }
-
-
-  // Handle file selection
-  // Handle file selection
-  onFileSelected(event: Event,): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-
-
-
-      // Check file size (max 25 MB)
-      const maxSize = 25 * 1024 * 1024; // 25MB in bytes
-      if (file.size > maxSize) {
-        this.snackBar.open('File size must be less than 25 MB.', 'Close', { duration: 6000 });
-        return;
-      }
-
-      this.selectedFile = file;
-
-      // If image, create preview URL
-      if (this.isImage(file)) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          this.filePreviewUrl = reader.result as string;
-        };
-        reader.readAsDataURL(file);
-      } else {
-        this.filePreviewUrl = undefined;
-      }
-    }
-  }
-
-
-  // Check if file is an image
-  isImage(file: File): boolean {
-    return file.type.startsWith('image/');
-  }
-
-  // Check if file is a video
-  isVideo(file: File): boolean {
-    return file.type.startsWith('video/');
-  }
-
-  // Detect media type dynamically
 
 
 
@@ -330,12 +210,6 @@ export class ChatComponent {
     this.filePreviewUrl = undefined;
   }
 
-  // Auto-resize textarea while typing
-  autoResize(event: Event): void {
-    const textarea = event.target as HTMLTextAreaElement;
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
-  }
   contextMenuVisible = false;
   contextMenuPosition = { x: 0, y: 0 };
   contextMenuChat!: ChatResponse; // chat object for which menu opened
@@ -502,6 +376,8 @@ export class ChatComponent {
       return;
     }
     this.isGroupMode = isGroupMode;
+    this.groupSearchTerm = '';
+    this.contacts.set([]);
     this.dialog.open(templateRef);
   }
 
@@ -522,15 +398,8 @@ export class ChatComponent {
   closeDialog() {
     this.dialog.closeAll();
   }
-  participantIds = signal<number[]>([]);
-  isGroupMode = false;
-  selectedUsers = signal<string[]>([]);
 
 
-  // Check if group creation is valid
-  canCreateGroup(): boolean {
-    return true;
-  }
   createGroupChat() {
     this.participantIds.set(
       this.contacts().filter(c => !c.canBeAddedToGroupByCurrentUser).map(c => c.userAvatar.userId)
@@ -542,7 +411,8 @@ export class ChatComponent {
         next: (res: string) => {
 
           console.log('Group created with ID:', res)
-          this.router.navigate([AppRoutes.MESSAGES, res])
+          this.router.navigate([`${AppRoutes.MESSAGES}`, res]);
+          this.ngOnInit();
         },
         error: err => console.error(err)
       });
@@ -564,9 +434,7 @@ export class ChatComponent {
     }
   }
 
-  goToAddMembers() {
-    // Logic to continue to members selection step
-  }
+
 
 
 }
