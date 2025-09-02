@@ -84,9 +84,10 @@ export class ChatService extends BaseService {
       formData.append('groupPicture', groupPicture);
     }
 
-    return this.httpClient.post<string>(
+    return this.httpClient.post(
       `${this.baseUrl}${this.ENDPOINTS.chats}group`,
-      formData
+      formData,
+      { responseType: 'text' } // specify response type
     );
   }
 

@@ -24,16 +24,7 @@ export interface UserResponse {
 @Injectable({ providedIn: 'root' })
 export class UserService extends BaseService {
 
-  private readonly ENDPOINTS = {
-    FOLLOW: '/api/users/follow/',
-    UNFOLLOW: '/api/users/unfollow/',
-    BLOCK: '/api/users/block/',
-    UNBLOCK: '/api/users/unblock/',
-    MUTE: '/api/users/mute/',
-    UNMUTE: '/api/users/unmute/',
-    UPDATE_PRIORITY: '/api/users/update-priority/',
-    USERS: '/api/users/' // base for followings/followers/mutual
-  };
+
   http: any;
 
   constructor(private httpClient: HttpClient) {
