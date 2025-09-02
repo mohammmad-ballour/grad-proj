@@ -27,18 +27,8 @@ import { SimpleChanges } from '@angular/core';
   styleUrls: ['./chat-messages.component.css']
 })
 export class ChatMessagesComponent {
-  // @Input() messages: any[] = [];
-  // @Input() chatt!: ChatResponse;
-  // @Input() activeUserId!: number;
-  // @Input() loadingMessages = false;
-  // @Input() messageInfoData: any;
-  // @Input() deliveredKeys: string[] = [];
-  // @Input() readKeys: string[] = [];
 
   @Output() reply = new EventEmitter<any>();
-  // @Output() copyText = new EventEmitter<string>();
-  // @Output() openInfo = new EventEmitter<any>();
-  // @Output() scrollToParent = new EventEmitter<number>();
   @ViewChild('t') menuTrigger!: MatMenuTrigger;
   @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
   selectedMessageForMenu!: MessageResponse;
@@ -63,6 +53,7 @@ export class ChatMessagesComponent {
     private chatService: ChatService,
     private messageService: MessageService,
     private snackBar: MatSnackBar,
+
   ) { }
 
   ngOnInit() {
@@ -334,7 +325,6 @@ export class ChatMessagesComponent {
     return `data:video/mp4;base64,${media}`;
 
   }
-
 
 
 

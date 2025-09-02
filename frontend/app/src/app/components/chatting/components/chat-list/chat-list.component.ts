@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, TemplateRef, Signal } from '@angular/core';
+import { Component, HostListener, signal, Output, EventEmitter, ViewChild, TemplateRef, } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { ChatResponse } from '../../models/chat-response';
 import { CommonModule, DatePipe } from '@angular/common';
@@ -7,70 +7,100 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from "@angular/material/icon";
-import { ViewChild } from '@angular/core';
-import { MatDialogModule } from "@angular/material/dialog";
+import { MatDialog, MatDialogModule } from "@angular/material/dialog";
 import { MatInputModule } from "@angular/material/input";
 import { MessageService } from '../../services/message.service';
+import { AppRoutes } from '../../../../config/app-routes.enum';
+import { UserResponse } from '../../models/user-response';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-chat-list',
   templateUrl: 'chat-list.component.html',
   styleUrls: ['chat-list.component.css'],
-  imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule, MatDialogModule, MatInputModule],
+  imports: [
+    DatePipe,
+    FormsModule,
+    CommonModule,
+    MatMenuModule,
+    MatIconModule,
+    MatDialogModule,
+    MatInputModule
+  ],
   standalone: true
 })
 export class ChatListComponent {
-  searchTerm: string = '';
+  groupSearchTerm: string = '';
+  groupName: any;
+  selectedFile?: File;
+
   participantIds = signal<number[]>([]);
+  isGroupMode = false;
+  contacts = signal<UserResponse[]>([]);
+  searchTerm = '';
   chats = signal<ChatResponse[]>([]);
-  chatSelected = signal<ChatResponse>({} as ChatResponse);
+  selectedChat = signal<ChatResponse | null>(null);   // 🔹 new internal state
   loadingChats = signal(false);
 
+  @Output() chatSelected = new EventEmitter<ChatResponse>();
+
+  @ViewChild('t') menuTrigger!: MatMenuTrigger;
 
   constructor(
     private chatService: ChatService,
     private messageService: MessageService,
     private activatedRoute: ActivatedRoute,
+    private dialog: MatDialog,
+    private router: Router,
+    private snackBar: MatSnackBar,
+
   ) { }
 
   ngOnInit() {
     this.loadingChats.set(false);
+
     this.chatService.getAllChats().subscribe({
       next: (res) => {
+        this.chats.set(res);
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
-          console.log("chatId:", chatId);
           const chat = res.find(c => c.chatId === chatId);
-          console.log("chat found:", chat);
           if (chat) {
             this.chatClicked(chat);
           }
         }
-        this.chats.set(res);
-        console.log(this.chats())
       },
       error: (err: HttpErrorResponse) => {
-        console.error('Backend returned code:', err.status);
-        console.error('Error body:', err.error);
-        this.loadingChats.set(true);
+        console.error('Backend returned code:', err.status, 'body:', err.error);
       },
-      complete: () => {
-
-        this.loadingChats.set(true);
-      }
-
+      complete: () => this.loadingChats.set(true)
     });
-
   }
 
+  // --- UI Helpers ---
   wrapMessage(lastMessage: string | undefined): string {
-    if (lastMessage && lastMessage.length <= 20) return lastMessage;
-    return lastMessage ? lastMessage.substring(0, 17) + '...' : '';
+    if (!lastMessage) return '';
+    return lastMessage.length <= 20 ? lastMessage : lastMessage.substring(0, 17) + '...';
   }
 
+  processImage(image: string): string {
+    return `data:image/png;base64,${image}`;
+  }
+
+  onImageError(event: Event, fallback: string): void {
+    (event.target as HTMLImageElement).src = fallback;
+  }
+
+  isChatSelected(): boolean {
+    return !!this.selectedChat();
+  }
+
+  // --- Chat Actions ---
   chatClicked(chat: ChatResponse) {
     history.replaceState(null, '', `/chats/${chat.chatId}`);
-    this.chatSelected.set(chat);
+    this.selectedChat.set(chat);
+    this.chatSelected.emit(chat);
+
     if (chat.unreadCount > 0) {
       this.onOpenChat(chat.chatId);
     }
@@ -78,49 +108,23 @@ export class ChatListComponent {
 
   onOpenChat(chatId: string) {
     this.messageService.confirmRead(chatId).subscribe({
-      next: () => this.chatSelected().unreadCount = 0,
+      next: () => {
+        this.selectedChat.update(c =>
+          c && c.chatId === chatId ? { ...c, unreadCount: 0 } : c
+        );
+      },
       error: (err) => console.error('Failed to confirm read', err)
     });
   }
 
-  onImageError(event: Event, fallback: string): void {
-    (event.target as HTMLImageElement).src = fallback;
-  }
+  deleteChat(chatId: string) {
+    this.chats.update(chats => chats.filter(c => c.chatId !== chatId));
 
-  processImage(image: string): string {
-    return `data:image/png;base64,${image}`;
-  }
-
-  isChatSelected(): boolean {
-    const chat = this.chatSelected();
-    return chat && Object.keys(chat).length > 0;
-  }
-  @ViewChild('t') menuTrigger!: MatMenuTrigger;
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    // Close menu if click is outside the open menu
-    if (this.menuTrigger?.menuOpen) {
-      this.menuTrigger.closeMenu();
+    const deletedChats: string[] = JSON.parse(localStorage.getItem('deletedChats') || '[]');
+    if (!deletedChats.includes(chatId)) {
+      deletedChats.push(chatId);
+      localStorage.setItem('deletedChats', JSON.stringify(deletedChats));
     }
-  }
-
-  selectedFile?: File;
-  filePreviewUrl?: string;
-  contextMenuVisible = false;
-  contextMenuPosition = { x: 0, y: 0 };
-  contextMenuChat!: ChatResponse; // chat object for which menu opened
-  // Open context menu
-  openContextMenu(event: MouseEvent, chat: ChatResponse) {
-    event.preventDefault(); // prevent default browser menu
-    this.contextMenuChat = chat;
-    this.contextMenuPosition = { x: event.clientX, y: event.clientY };
-    this.contextMenuVisible = true;
-  }
-
-  // Close menu when clicking outside
-  closeContextMenu() {
-    this.contextMenuVisible = false;
   }
 
   togglePinChat(chat: ChatResponse) {
@@ -130,7 +134,9 @@ export class ChatListComponent {
 
     request$.subscribe({
       next: () => {
-        chat.pinned = !chat.pinned;
+        this.chats.update(chats =>
+          chats.map(c => c.chatId === chat.chatId ? { ...c, pinned: !c.pinned } : c)
+        );
         this.closeContextMenu();
       },
       error: (err) => console.error(err)
@@ -144,54 +150,137 @@ export class ChatListComponent {
 
     request$.subscribe({
       next: () => {
-        chat.muted = !chat.muted;
+        this.chats.update(chats =>
+          chats.map(c => c.chatId === chat.chatId ? { ...c, muted: !c.muted } : c)
+        );
         this.closeContextMenu();
       },
       error: (err) => console.error(err)
     });
   }
-  get sortedChats() {
-    return this.chats().slice().sort((a, b) => {
-      // 1️⃣ Pinned first
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
 
-      // 2️⃣ Sort by lastMessageTime (fallback: 0 if undefined)
+  // --- Sorting & Filtering ---
+  get sortedChats(): ChatResponse[] {
+    return [...this.chats()].sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
       const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
-
       return timeB - timeA;
     });
   }
 
-  deleteChat(chatId: string) {
-    // remove from chats
-    const index = this.chats().findIndex(c => c.chatId === chatId);
-    if (index !== -1) {
-      this.chats().splice(index, 1);
-    }
+  get filteredChats(): ChatResponse[] {
+    const term = this.searchTerm.trim().toLowerCase();
+    if (!term) return this.sortedChats;
 
-    // get deleted chats from localStorage (or empty array if none yet)
-    const deletedChats: string[] = JSON.parse(localStorage.getItem('deletedChats') || '[]');
+    return this.sortedChats.filter(chat =>
+      chat.name?.toLowerCase().includes(term) ||
+      chat.lastMessage?.toLowerCase().includes(term)
+    );
+  }
 
-    // add the new deleted chatId if not already stored
-    if (!deletedChats.includes(chatId)) {
-      deletedChats.push(chatId);
-      localStorage.setItem('deletedChats', JSON.stringify(deletedChats));
+  // --- Context Menu ---
+  contextMenuVisible = false;
+  contextMenuPosition = { x: 0, y: 0 };
+  contextMenuChat!: ChatResponse;
+
+  openContextMenu(event: MouseEvent, chat: ChatResponse) {
+    event.preventDefault();
+    this.contextMenuChat = chat;
+    this.contextMenuPosition = { x: event.clientX, y: event.clientY };
+    this.contextMenuVisible = true;
+  }
+
+  closeContextMenu() {
+    this.contextMenuVisible = false;
+  }
+
+  // --- Host Listener ---
+  @HostListener('document:click', ['$event'])
+  onDocumentClick() {
+    if (this.menuTrigger?.menuOpen) {
+      this.menuTrigger.closeMenu();
     }
   }
-  get filteredChats(): ChatResponse[] {
-    const term = this.searchTerm?.trim().toLowerCase();
 
-    if (!term) {
-      return this.sortedChats;
+
+  createGroupChat() {
+    this.participantIds.set(
+      this.contacts().filter(c => !c.canBeAddedToGroupByCurrentUser).map(c => c.userAvatar.userId)
+    );
+    console.log(this.selectedFile)
+    console.log(this.participantIds())
+    this.chatService.createGroupChat(this.groupName, this.participantIds(), this.selectedFile)
+      .subscribe({
+        next: (res: string) => {
+
+          console.log('Group created with ID:', res)
+          this.router.navigate([`${AppRoutes.MESSAGES}`, res]);
+          this.ngOnInit();
+        },
+        error: err => console.error(err)
+      });
+  }
+
+
+  groupAvatarPreview: string | null = null;
+
+
+
+  onGroupAvatarSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = e => this.groupAvatarPreview = e.target?.result as string;
+      reader.readAsDataURL(file);
     }
+  }
 
-    return this.sortedChats.filter(chat => {
-      const nameMatch = chat.name?.toLowerCase().includes(term);
-      const lastMsgMatch = chat.lastMessage?.toLowerCase().includes(term);
-      return nameMatch || lastMsgMatch;
+
+  openChat(userId: number): void {
+    this.chatService.createOneOnOneChat(userId).subscribe({
+      next: (chatId: string) => {
+        // Close any open dialogs (the new-chat dialog) then navigate to the chat
+        this.closeDialog();
+        this.router.navigate([`${AppRoutes.MESSAGES}`, chatId]);
+        this.ngOnInit();
+      },
+      error: (err) => {
+        this.snackBar.open('Failed to open chat. Please try again later.');
+      }
     });
+  }
+
+  closeDialog() {
+    this.dialog.closeAll();
+  }
+
+  getGroupCandidates(): void {
+    this.chatService.getGroupCandidates(this.groupSearchTerm).subscribe({
+      next: (res: UserResponse[]) => {
+
+        const filterdRes = this.isGroupMode ? res.filter(u => u.canBeAddedToGroupByCurrentUser) : res.filter(u => u.canBeMessagedByCurrentUser)
+        this.contacts.set(filterdRes);
+        console.log('Group candidates:', res);
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Failed to load group candidates', err);
+        this.snackBar.open('Failed to load users for group', 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  openNewChatDialog(templateRef: TemplateRef<any>, isGroupMode: boolean): void {
+    if (!this.dialog) {
+      console.error('Dialog service not available');
+      return;
+    }
+    this.isGroupMode = isGroupMode;
+    this.groupSearchTerm = '';
+    this.contacts.set([]);
+    this.dialog.open(templateRef);
   }
 
 }
