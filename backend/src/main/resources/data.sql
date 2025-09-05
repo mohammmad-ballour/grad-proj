@@ -13,56 +13,56 @@ FROM users;
 
 -- users
 INSERT INTO public.users (email, username, display_name, dob, gender, residence, timezone_id, is_protected, is_verified,
-                          account_status, who_can_message, joined_at, profile_picture, profile_cover_photo,
-                          profile_bio)
-VALUES ('mohbalor@gmail.com', 'mohbalor', 'Mohammad Ballour', '2002-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+                          account_status, joined_at, profile_picture, profile_cover_photo,
+                          profile_bio, who_can_message, who_can_add_to_groups)
+VALUES ('mohbalor@gmail.com', 'mohbalor', 'Mohammad Ballour', '2002-01-01', 'MALE', 'Gaza', 'Africa/Cairo', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'FOLLOWERS', 'FOLLOWERS'),
 
-       ('mshukur@gmail.com', 'mshukur', 'Mohammad Shukur', '2003-01-01', 'MALE', 'Köln', 'Europe/Berlin',
-        false, false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshukur@gmail.com', 'mshukur', 'Mohammad Shukur', '2003-01-01', 'MALE', 'Gaza', 'Asia/Jerusalem',
+        false, false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('baraa@gmail.com', 'baraa', 'Baraa Shaat', '2002-05-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('baraa@gmail.com', 'baraa', 'Baraa Shaat', '2002-05-01', 'MALE', 'Gaza', 'Asia/Jerusalem', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'NONE', 'NONE'),
 
        ('sarahhhh@gmail.com', 'sarah', 'Sarah', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
        ('lucy@gmail.com', 'lucy', 'Lucy 💕', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'FRIENDS', 'FRIENDS'),
 
 
-       ('mshokor2006@gmail.com', 'moh5', 'USER 6', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2006@gmail.com', 'moh6', 'USER 6', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2007@gmail.com', 'moh6', 'USER 7', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2007@gmail.com', 'moh7', 'USER 7', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2008@gmail.com', 'moh7', 'USER 8', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        true, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2008@gmail.com', 'moh8', 'USER 8', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        true, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2009@gmail.com', 'moh8', 'USER 9', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2009@gmail.com', 'moh9', 'USER 9', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2010@gmail.com', 'moh9', 'USER 10', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2010@gmail.com', 'moh10', 'USER 10', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2011@gmail.com', 'moh10', 'USER 11', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2011@gmail.com', 'moh11', 'USER 11', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2012@gmail.com', 'mohA', 'USER 12', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2012@gmail.com', 'moh12', 'USER 12', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2013@gmail.com', 'DSADA', 'USER 13', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2013@gmail.com', 'moh13', 'USER 13', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2014@gmail.com', 'FSEDW', 'USER 14', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2014@gmail.com', 'moh14', 'USER 14', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2015@gmail.com', 'SAS', 'USER 15', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
-        false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin'),
+       ('mshokor2015@gmail.com', 'moh15', 'USER 15', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin', false,
+        false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE'),
 
-       ('mshokor2016@gmail.com', 'ADADAW', 'USER 16', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin',
-        false, false, 'ACTIVE', 'EVERYONE', '2025-08-07', null, null, 'System admin');
+       ('mshokor2016@gmail.com', 'moh16', 'USER 16', '1990-01-01', 'MALE', 'Köln', 'Europe/Berlin',
+        false, false, 'ACTIVE', '2025-08-07', null, null, 'System admin', 'EVERYONE', 'EVERYONE');
 
 -- followers
 INSERT INTO public.user_followers (followed_user_id, follower_id, followed_at, following_priority)
