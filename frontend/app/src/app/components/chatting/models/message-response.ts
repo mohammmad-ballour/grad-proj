@@ -9,11 +9,15 @@ export interface MessageResponse {
   sentAt: string;
   messageId: number;
   messageStatus: MessageStatus,
-  parentMessageId: number;
+  parentMessageId: ParentMessageSnippet;
   senderAvatar: UserAvatar;
   media: string;
   messageType: MediaType;
 
+}
+export interface TimestampSeekRequest {
+  lastHappenedAt: string;
+  lastEntityId: number;
 }
 
 

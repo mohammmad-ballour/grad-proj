@@ -1,28 +1,24 @@
-import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, TemplateRef, Signal, EventEmitter, Input, Output, input } from '@angular/core';
+import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, ViewChild, EventEmitter, Input, Output, SimpleChanges } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
-import { ChatResponse } from '../../models/chat-response';
-import { CommonModule, DatePipe } from '@angular/common';
-import { UserResponse } from '../../models/user-response';
-import { ActivatedRoute, Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
-import { MessageResponse, MessageStatus } from '../../models/message-response';
-import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
-import { MatIconModule } from "@angular/material/icon";
-import { ViewChild } from '@angular/core';
-import { MessageDetailResponse } from '../../models/message-detail-response';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialogModule, MatDialog } from "@angular/material/dialog";
-import { MatInputModule } from "@angular/material/input";
-import { AppRoutes } from '../../../../config/app-routes.enum';
-import { filter } from 'rxjs';
 import { MessageService } from '../../services/message.service';
-import { AuthService } from '../../../../core/services/auth.service';
-import { SimpleChanges } from '@angular/core';
+import { ChatResponse } from '../../models/chat-response';
+import { MessageResponse, MessageStatus, MediaType, TimestampSeekRequest } from '../../models/message-response';
+import { MatMenuTrigger, MatMenu, MatMenuPanel } from '@angular/material/menu';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { filter } from 'rxjs';
+import { MessageDetailResponse } from '../../models/message-detail-response';
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+
 @Component({
   selector: 'app-chat-messages',
   standalone: true,
-  imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule, MatDialogModule, MatInputModule],
+  imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule, MatDialogModule, MatInputModule, MatProgressSpinnerModule],
   templateUrl: './chat-messages.component.html',
   styleUrls: ['./chat-messages.component.css']
 })
@@ -31,36 +27,40 @@ export class ChatMessagesComponent {
   @Output() reply = new EventEmitter<any>();
   @ViewChild('t') menuTrigger!: MatMenuTrigger;
   @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
-  selectedMessageForMenu!: MessageResponse;
-  MessageStatus = MessageStatus;
+  @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLElement>;
 
   @Input() chatSelected!: ChatResponse;
   @Input() activeUserId!: number;
+
   messagesToSelectedChatt = signal<MessageResponse[]>([]);
   messageToSent: string = '';
   replyingToMessage = signal<MessageResponse | null>(null);
   loadingMessages = signal(false);
+  loadingOlderMessages = false;
   groupName: any;
   infoMenu!: MatMenu;
   messageInfoData: MessageDetailResponse | null = null;
   selectedFile?: File;
   filePreviewUrl?: string;
 
-  // These will hold the keys for iteration in the template
   deliveredKeys: string[] = [];
   readKeys: string[] = [];
+
+  MessageStatus = MessageStatus;
+  hasMoreMessages = signal(true);
+  oldestMessageTimestamp!: string;
+  oldestMessageId!: number;
+  msgMenu!: MatMenuPanel<any> | null;
+
   constructor(
     private chatService: ChatService,
     private messageService: MessageService,
     private snackBar: MatSnackBar,
-
   ) { }
 
   ngOnInit() {
-    //if chatSelected is changed in parent there is proble the previous message is remide and new chat messages not lodedd
-    this.getMessagesToSelectedChatt()
+    this.getMessagesToSelectedChatt();
   }
-
 
   ngAfterViewInit() {
     this.scrollToUnreadOrBottom();
@@ -69,8 +69,17 @@ export class ChatMessagesComponent {
     });
   }
 
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['chatSelected'] && this.chatSelected) {
+      this.getMessagesToSelectedChatt();
+    }
+  }
+
+  trackByMessageId(index: number, message: MessageResponse) {
+    return message.messageId;
+  }
+
   startReply(message?: MessageResponse): void {
-    console.log(message)
     if (!message) return;
     this.replyingToMessage.set({
       ...message,
@@ -82,31 +91,9 @@ export class ChatMessagesComponent {
     this.replyingToMessage.set(null);
     this.messageToSent = '';
   }
+
   getTheParentMesaage(messageId: number): MessageResponse {
     return this.messagesToSelectedChatt().find((m) => m.messageId == messageId) as MessageResponse;
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes['chatSelected'] && this.chatSelected) {
-      this.getMessagesToSelectedChatt();
-    }
-  }
-
-
-  getMessagesToSelectedChatt() {
-    this.loadingMessages.set(false);
-
-    this.messageService.getChatMessages(this.chatSelected.chatId).subscribe({
-      next: (messages) => {
-        this.messagesToSelectedChatt.update(m => messages.reverse());
-        console.log(this.messagesToSelectedChatt())
-      },
-      error: (err) => {
-        console.error('Error fetching messages', err)
-        this.loadingMessages.set(true)
-      },
-      complete: () => this.loadingMessages.set(true)
-    });
   }
 
   getParentMessageContent(parentMessageId: number | undefined): string {
@@ -118,22 +105,14 @@ export class ChatMessagesComponent {
   }
 
   scrollToParentMessage(parentMessageId: number): void {
-    console.log('Scrolling to parent message ID:', parentMessageId);
     const parentElement = this.messageElements
       .toArray()
       .find(el => el.nativeElement.getAttribute('data-message-id') === parentMessageId.toString());
 
     if (parentElement) {
-      // Scroll smoothly to the parent
       parentElement.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-      // Add temporary highlight effect
       parentElement.nativeElement.classList.add('highlight-parent');
-
-      // Remove highlight after 1.5 seconds
-      setTimeout(() => {
-        parentElement.nativeElement.classList.remove('highlight-parent');
-      }, 800);
+      setTimeout(() => parentElement.nativeElement.classList.remove('highlight-parent'), 800);
     }
   }
 
@@ -143,6 +122,11 @@ export class ChatMessagesComponent {
 
   processImage(image: string): string {
     return `data:image/png;base64,${image}`;
+  }
+
+  processVideo(media: string): string {
+    if (!media) return '';
+    return `data:video/mp4;base64,${media}`;
   }
 
   isChatSelected(): boolean {
@@ -162,65 +146,120 @@ export class ChatMessagesComponent {
     return lastMessage ? lastMessage.substring(0, 17) + '...' : '';
   }
 
+  // ---------------- Scroll / Pagination ----------------
+  onScroll(event: Event) {
+
+    //can detect the scroll is upor down
+    console.log("called from onScroll  ")
+
+    const container = event.target as HTMLElement;
+    if (container.scrollTop < 10 && this.hasMoreMessages() && !this.loadingOlderMessages) {
+      this.loadOlderMessages(container);
+    }
+  }
+
+  loadOlderMessages(container: HTMLElement) {
+    console.log("called from  loadOlderMessages ")
+    if (!this.chatSelected || !this.hasMoreMessages()) return;
+
+    this.loadingOlderMessages = true;
+    const previousScrollHeight = container.scrollHeight;
+
+    const seekRequest: TimestampSeekRequest = {
+      lastHappenedAt: this.oldestMessageTimestamp,
+      lastEntityId: this.oldestMessageId,
+    };
+    console.log(seekRequest);
+
+    this.messageService.getChatMessages(this.chatSelected.chatId, 'UP', seekRequest)
+      .subscribe({
+        next: (msgs) => {
+          console.log(msgs)
+
+          if (msgs.length === 0) {
+            this.hasMoreMessages.set(false);
+            this.loadingOlderMessages = false;
+          } else {
+            //enhance user experince when loded older messages
+            this.messagesToSelectedChatt.update(curr => [...msgs.reverse(), ...curr]);
+            const oldest = msgs[0];
+            this.oldestMessageTimestamp = oldest.sentAt;
+            this.oldestMessageId = oldest.messageId;
+            this.scrollToParentMessage(msgs[5].messageId)
+
+            setTimeout(() => {
+              const newScrollHeight = container.scrollHeight;
+              container.scrollTop = newScrollHeight - previousScrollHeight;
+              this.loadingOlderMessages = false;
+            }, 0);
+          }
+        },
+        error: (err) => {
+          console.error(err);
+          this.loadingOlderMessages = false;
+        },
+        complete: () => {
+          this.scrollToParentMessage(this.messagesToSelectedChatt()[5].messageId)
+        },
+      });
+  }
+
   private scrollToUnreadOrBottom() {
+    const container = this.scrollContainer.nativeElement;
     const unreadCount = this.chatSelected.unreadCount;
     const messages = this.messageElements.toArray();
     if (!messages.length) return;
 
-    if (unreadCount > 0) {
-      const firstUnreadIndex = Math.max(messages.length - unreadCount, 0);
-      messages[firstUnreadIndex]?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      messages[messages.length - 1].nativeElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
+    setTimeout(() => {
+      if (unreadCount > 0) {
+        const firstUnreadIndex = Math.max(messages.length - unreadCount, 0);
+        const element = messages[firstUnreadIndex]?.nativeElement;
+        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        const lastElement = messages[messages.length - 1]?.nativeElement;
+        if (lastElement) lastElement.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }
+    }, 0);
   }
 
+  // ---------------- Fetch Messages ----------------
+  getMessagesToSelectedChatt() {
+    if (!this.chatSelected) return;
 
-  // Placeholder menu actions
-  copy(m: any) {
-    if (!m) return;
-    navigator.clipboard.writeText(m).then(() => {
-      console.log('Text copied to clipboard');
-    }).catch(err => {
-      console.error('Failed to copy text: ', err);
-    }
-    );
+    this.loadingMessages.set(false);
+    this.hasMoreMessages.set(true);
 
-
+    this.messageService.getChatMessages(this.chatSelected.chatId)
+      .subscribe({
+        next: (messages) => {
+          this.messagesToSelectedChatt.update(m => messages.reverse());
+          const oldest = messages[0];
+          console.log(messages)
+          console.log(oldest)
+          if (oldest) {
+            this.oldestMessageTimestamp = oldest.sentAt;
+            this.oldestMessageId = oldest.messageId;
+          }
+        },
+        error: (err) => console.error('Error fetching messages', err),
+        complete: () => this.loadingMessages.set(true)
+      });
   }
 
-
-
-
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
-    // Close menu if click is outside the open menu
-    if (this.menuTrigger?.menuOpen) {
-      this.menuTrigger.closeMenu();
-    }
-  }
-
-
+  // ---------------- Send / Reply / Attach ----------------
   sendMessage(): void {
     if ((!this.messageToSent.trim() && !this.selectedFile) || !this.isChatSelected()) return;
 
-    const parentMessageId = this.replyingToMessage()?.messageId
-      ? +this.replyingToMessage()!.messageId
-      : undefined;
+    const parentMessageId = this.replyingToMessage()?.messageId ? +this.replyingToMessage()!.messageId : undefined;
 
     this.messageService
       .sendMessage(this.chatSelected.chatId, this.messageToSent, this.selectedFile, parentMessageId)
       .subscribe({
         next: () => {
           this.messageToSent = '';
-          this.removeAttachment(); // clear file preview
-
-          // Reset textarea height
+          this.removeAttachment();
           const textarea = document.querySelector<HTMLTextAreaElement>('textarea');
-          if (textarea) {
-            textarea.style.height = 'auto'; // reset
-          }
-
+          if (textarea) textarea.style.height = 'auto';
           this.replyingToMessage.set(null);
           this.getMessagesToSelectedChatt();
         },
@@ -228,30 +267,19 @@ export class ChatMessagesComponent {
       });
   }
 
-
-  // Handle file selection
-  onFileSelected(event: Event,): void {
+  onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
-
-
-
-      // Check file size (max 25 MB)
-      const maxSize = 25 * 1024 * 1024; // 25MB in bytes
+      const maxSize = 25 * 1024 * 1024;
       if (file.size > maxSize) {
         this.snackBar.open('File size must be less than 25 MB.', 'Close', { duration: 6000 });
         return;
       }
-
       this.selectedFile = file;
-
-      // If image, create preview URL
       if (this.isImage(file)) {
         const reader = new FileReader();
-        reader.onload = () => {
-          this.filePreviewUrl = reader.result as string;
-        };
+        reader.onload = () => this.filePreviewUrl = reader.result as string;
         reader.readAsDataURL(file);
       } else {
         this.filePreviewUrl = undefined;
@@ -259,37 +287,40 @@ export class ChatMessagesComponent {
     }
   }
 
-  // Check if file is an image
   isImage(file: File): boolean {
     return file.type.startsWith('image/');
   }
 
-  // Check if file is a video
   isVideo(file: File): boolean {
     return file.type.startsWith('video/');
   }
-  // Remove file/preview
+
   removeAttachment(): void {
     this.selectedFile = undefined;
     this.filePreviewUrl = undefined;
   }
 
-  // Auto-resize textarea while typing
   autoResize(event: Event): void {
     const textarea = event.target as HTMLTextAreaElement;
     textarea.style.height = 'auto';
     textarea.style.height = textarea.scrollHeight + 'px';
   }
-  contextMenuPosition = { x: 0, y: 0 };
-  contextMenuChat!: ChatResponse; // chat object for which menu opened
 
+  copy(m: any) {
+    if (!m) return;
+    navigator.clipboard.writeText(m).then(() => console.log('Text copied')).catch(err => console.error(err));
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.menuTrigger?.menuOpen) this.menuTrigger.closeMenu();
+  }
+
+  // ---------------- Message Info ----------------
   fetchMessageInfo(messageId: number): void {
     this.chatService.getMessageInfo(messageId).subscribe({
       next: (info: MessageDetailResponse) => {
         this.messageInfoData = info;
-        console.log("Fetched message info:", this.messageInfoData);
-
-        // Precompute keys for template
         this.deliveredKeys = info.deliveredByAt ? Object.keys(info.deliveredByAt) : [];
         this.readKeys = info.readByAt ? Object.keys(info.readByAt) : [];
       },
@@ -297,18 +328,15 @@ export class ChatMessagesComponent {
         this.deliveredKeys = [];
         this.readKeys = [];
         this.messageInfoData = null;
-        console.error("Failed to fetch message info:", err);
+        console.error(err);
       }
     });
   }
 
   openInfoFromContext(trigger: MatMenuTrigger, infoMenu: MatMenu, message: MessageResponse) {
     this.fetchMessageInfo(message.messageId);
-
     const originalMenu = trigger.menu;
     trigger.closeMenu();
-
-    // Temporarily switch the trigger to open the info menu
     trigger.menu = infoMenu;
 
     setTimeout(() => {
@@ -319,13 +347,6 @@ export class ChatMessagesComponent {
       });
     }, 440);
   }
-
-  processVideo(media: string): string {
-    if (!media) return '';
-    return `data:video/mp4;base64,${media}`;
-
-  }
-
-
-
 }
+
+
