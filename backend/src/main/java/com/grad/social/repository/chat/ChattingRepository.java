@@ -230,7 +230,7 @@ public class ChattingRepository {
         return dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, m.CONTENT, m.SENT_AT,
                         m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION, unreadCountField, undeliveredCountField,
                         m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
-                        u2.DISPLAY_NAME.as("parent_display_name"), u2.PROFILE_PICTURE.as("parent_profile_picture"),
+                        u2.ID.as("parent_owner_id"), u2.DISPLAY_NAME.as("parent_display_name"),
                         ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
                         ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
                 .from(m)
@@ -250,7 +250,7 @@ public class ChattingRepository {
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
                 .fetch(mapping((messageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
                                 messageType, mediaId, fileNameHashed, extension, unreadCount, undeliveredCount,
-                                parentMessageId, parentContent, parentSenderDisplayName, parentSenderProfilePicture,
+                                parentMessageId, parentContent, parentOwnerId, parentSenderDisplayName,
                                 parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
                     com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
                     if (unreadCount == 0) {
@@ -260,8 +260,8 @@ public class ChattingRepository {
                     }
                     byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
                     byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
-                    var parentMessageSnippet = parentMessageId == null ? null :
-                            new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent, parentSenderDisplayName, parentMessageType, parentMedia);
+                    var parentMessageSnippet = parentMessageId == null ? null : new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent,
+                            parentOwnerId, parentSenderDisplayName , parentMessageType, parentMedia);
                     return new ChatMessageResponse(messageId, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
                             content, media, messageType, sentAt, messageStatus);
                 }));
@@ -274,7 +274,7 @@ public class ChattingRepository {
         ChatMessageResponse parent = dsl.select(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
                         m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
                         m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
-                        u2.DISPLAY_NAME.as("parent_display_name"),
+                        u2.ID.as("parent_id"), u2.DISPLAY_NAME.as("parent_display_name"),
                         ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
                         ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
                 .from(m)
@@ -294,7 +294,7 @@ public class ChattingRepository {
         List<ChatMessageResponse> previousMessages = dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
                         m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
                         m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
-                        u2.DISPLAY_NAME.as("parent_display_name"),
+                        u2.ID.as("parent_id"), u2.DISPLAY_NAME.as("parent_display_name"),
                         ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
                         ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
                 .from(m)
@@ -313,7 +313,7 @@ public class ChattingRepository {
         List<ChatMessageResponse> nextMessages = dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
                         m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
                         m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
-                        u2.DISPLAY_NAME.as("parent_display_name"),
+                        u2.ID.as("parent_id"), u2.DISPLAY_NAME.as("parent_display_name"),
                         ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
                         ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
                 .from(m)
@@ -550,15 +550,34 @@ public class ChattingRepository {
         );
     }
 
-    private RecordMapper<Record18<Long, Long, String, String, byte[], String, Instant, MediaType, Long, String, String, Long, String, String, Long, MediaType, String, String>, ChatMessageResponse> mapRowToChatMessage() {
+    /*
+      .fetch(mapping((messageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
+                                messageType, mediaId, fileNameHashed, extension, unreadCount, undeliveredCount,
+                                parentMessageId, parentContent, parentOwnerId, parentSenderUsername, parentSenderDisplayName, parentSenderProfilePicture,
+                                parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
+                    com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
+                    if (unreadCount == 0) {
+                        messageStatus = READ;
+                    } else if (undeliveredCount == 0) {
+                        messageStatus = DELIVERED;
+                    }
+                    byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
+                    byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
+                    var parentMessageSnippet = parentMessageId == null ? null : new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent,
+                            new UserAvatar(parentOwnerId, parentSenderUsername, parentSenderDisplayName, parentSenderProfilePicture), parentMessageType, parentMedia);
+                    return new ChatMessageResponse(messageId, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
+                            content, media, messageType, sentAt, messageStatus);
+                }));
+     */
+    private RecordMapper<Record19<Long, Long, String, String, byte[], String, Instant, MediaType, Long, String, String, Long, String, Long, String, Long, MediaType, String, String>, ChatMessageResponse> mapRowToChatMessage() {
         return mapping((messageId2, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
                         messageType, mediaId, fileNameHashed, extension,
-                        parentMessageId, parentContent, parentSenderDisplayName, parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
+                        parentMessageId, parentContent, parentSenderId,parentSenderDisplayName, parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
             byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
             ChatMessageResponse.ParentMessageSnippet parentMessageSnippet = null;
             if (parentMessageId != null) {
                 byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
-                parentMessageSnippet = new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent, parentSenderDisplayName, parentMessageType, parentMedia);
+                parentMessageSnippet = new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent, parentSenderId, parentSenderDisplayName, parentMessageType, parentMedia);
             }
             return new ChatMessageResponse(messageId2, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
                     content, media, messageType, sentAt, READ);
