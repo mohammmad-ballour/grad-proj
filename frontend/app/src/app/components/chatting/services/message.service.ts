@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { BaseService } from '../../../core/services/base.service';
 import { MessageDetailResponse } from '../models/message-detail-response';
-import { MessageResponse, TimestampSeekRequest } from '../models/message-response';
+import { MessageResponse, ParentMessageWithNeighbours, TimestampSeekRequest } from '../models/message-response';
 
 
 @Injectable({ providedIn: 'root' })
@@ -49,9 +49,7 @@ export class MessageService extends BaseService {
     confirmRead(chatId: string) {
         return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});
     }
-    // getChatMessages(chatId: string): Observable<MessageResponse[]> {
-    //     return this.httpClient.get<MessageResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`,)
-    // }
+
 
     getMessageInfo(messageId: number): Observable<MessageDetailResponse> {
         return this.httpClient.get<MessageDetailResponse>(
@@ -74,5 +72,15 @@ export class MessageService extends BaseService {
         );
     }
 
-
+    getParentMessageWithNeighbours(
+        chatId: string,
+        messageId: number,
+        lastFetchedMessageIdInPage: number
+    ): Observable<ParentMessageWithNeighbours> {
+        const params = new HttpParams().set('lastFetchedMessageIdInPage', lastFetchedMessageIdInPage);
+        return this.httpClient.get<ParentMessageWithNeighbours>(
+            `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/messages/${messageId}`,
+            { params }
+        );
+    }
 }

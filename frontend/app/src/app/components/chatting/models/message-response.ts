@@ -9,17 +9,17 @@ export interface MessageResponse {
   sentAt: string;
   messageId: number;
   messageStatus: MessageStatus,
-  parentMessageId: ParentMessageSnippet;
+  parentMessageSnippet: ParentMessageSnippet;
   senderAvatar: UserAvatar;
   media: string;
   messageType: MediaType;
-
 }
+
+
 export interface TimestampSeekRequest {
   lastHappenedAt: string;
   lastEntityId: number;
 }
-
 
 export interface ParentMessageSnippet {
   parentMessageId: number;
@@ -34,12 +34,20 @@ export enum MessageStatus {
 }
 export type MediaType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'OTHER';
 
-// ParentMessageSnippet parentMessageSnippet, UserAvatar  , String  ,
-//                                   ,MediaType messageType, ) {
+// models/parent-message-with-neighbours.ts
 
+export interface ParentMessageWithNeighbours {
+  messages: MessageResponse[];
+  gapBefore: GapInfo;
+  gapAfter: GapInfo;
+}
 
-
-
+export interface GapInfo {
+  exists: boolean;
+  missingCount: number;
+  lastMessageId: number;
+  lastMessageSentAt: string; // ISO string, map to Date if you prefer
+}
 
 
 

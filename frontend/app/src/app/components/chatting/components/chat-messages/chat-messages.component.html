@@ -61,31 +61,38 @@
         <div #messageElement class="chat-bubble shadow-sm p-2"
              [ngClass]="{'sent': m.senderAvatar.userId==activeUserId,'received': m.senderAvatar.userId!=activeUserId}"
              [attr.data-message-id]="m.messageId"
-             [matMenuTriggerFor]="msgMenu" #menuTrigger="matMenuTrigger"
-             (contextmenu)="$event.preventDefault(); menuTrigger.openMenu()">
+           >
 
           <!-- Reply Preview -->
-          @if(m.parentMessageId) {
+          @if(m.parentMessageSnippet ) {
             <div class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
-                 (click)="scrollToParentMessage(m.parentMessageId.parentMessageId)">
+              (click)="viewParent(m.parentMessageSnippet.parentMessageId)"
+                 >
               <small class="text-muted">
                 <strong>
                   {{
-                    getTheParentMesaage(m.parentMessageId.parentMessageId).senderAvatar.userId==activeUserId ? 'You' :
-                    getTheParentMesaage(m.parentMessageId.parentMessageId).senderAvatar.username
+                   m.parentMessageSnippet.senderDisplayName=='activeuserId' ? 'You' :
+                    m.parentMessageSnippet.senderDisplayName
                   }}
                 </strong>
               </small>
               <div class="text-truncate">
-                @if(getTheParentMesaage(m.parentMessageId.parentMessageId).media) {
-                  <img [src]="processImage(getTheParentMesaage(m.parentMessageId.parentMessageId).media)" class="message-media mb-1"/>
+                @if( m.parentMessageSnippet.media) {
+                  <img [src]="processImage( m.parentMessageSnippet.media)" class="message-media mb-1"/>
                 }
               </div>
               <div class="text-truncate">
-                {{ getTheParentMesaage(m.parentMessageId.parentMessageId).content }}
+                {{   m.parentMessageSnippet.content}}
               </div>
             </div>
           }
+          <div
+            [matMenuTriggerFor]="msgMenu" #menuTrigger="matMenuTrigger"
+             [matMenuTriggerData]="{message: m}"
+             (contextmenu)="$event.preventDefault(); menuTrigger.openMenu()"
+          
+          >
+
 
           <!-- Media -->
           @if(m.media) {
@@ -114,8 +121,81 @@
               }"></i>
             }
           </div>
+
+          </div>
         </div>
       </div>
+
+        <!-- Context menu -->
+      <mat-menu #msgMenu="matMenu">
+      <ng-template matMenuContent let-data="matMenuTriggerData">
+      <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
+      <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
+      @if(m.senderAvatar.userId == activeUserId) {
+      <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, m)">
+      <mat-icon>info</mat-icon><span>Info</span>
+      </button>
+      }
+      </ng-template>
+      </mat-menu>
+      <!-- Component.html -->
+      <mat-menu #infoMenu="matMenu">
+      <ng-template matMenuContent>
+      <div
+      style="width: 140px;   max-height: 200px; overflow-y: auto; padding: 12px; font-family: Arial, sans-serif;">
+      <h6 style="margin-bottom: 8px; font-weight: 600;">Message Info</h6>
+
+      <!-- Delivered / Read Status -->
+      <p style="margin: 4px 0; color: gray;">
+      <strong>Delivered:</strong>
+
+      <i class="bi" [ngClass]="{
+      'bi-check-lg': !messageInfoData?.delivered ,
+      'bi-check-all': messageInfoData?.delivered 
+      }"></i>
+      </p>
+      <p style="margin: 4px 0; color: gray;">
+      <strong>Read:</strong>
+      <i class="bi bi-check-all" [ngClass]="{
+      'text-primary': messageInfoData?.read 
+      }"></i>
+
+      </p>
+
+      <!-- Delivered By -->
+      @if(deliveredKeys.length > 0) {
+      <h6 style="margin-top: 12px; margin-bottom: 4px; font-weight: 500; color: #555;">Delivered By</h6>
+      <ul style="list-style: none; padding-left: 0; margin: 0;">
+      @for(userId of deliveredKeys ; track userId) {
+      <li style="padding: 4px 0; font-size: 14px; color: #333;">
+      <strong>User {{ userId }}</strong>
+      <span style="float: right; color: gray; font-size: 12px;">
+        {{ messageInfoData!.deliveredByAt[userId] | date:'shortTime' }}
+      </span>
+      </li>
+      }
+      </ul>
+      }
+
+      <!-- Read By -->
+      @if(readKeys.length > 0) {
+      <h6 style="margin-top: 12px; margin-bottom: 4px; font-weight: 500; color: #555;">Read By</h6>
+      <ul style="list-style: none; padding-left: 0; margin: 0;">
+      @for(userId of readKeys ;track userId) {
+      <li style="padding: 4px 0; font-size: 14px; color: #333;">
+      <strong>User {{ userId }}</strong>
+      <span style="float: right; color: gray; font-size: 12px;">
+        {{ messageInfoData!.readByAt[userId] | date:'shortTime' }}
+      </span>
+      </li>
+      }
+      </ul>
+      }
+
+
+      </div>
+      </ng-template>
+      </mat-menu>
     }
   }
 </div>
@@ -164,3 +244,40 @@
     <mat-icon>send</mat-icon>
   </button>
 </div>
+
+<!-- Message Context Menu -->
+<mat-menu #msgMenu="matMenu">
+  <ng-template matMenuContent let-message="message">
+    <button mat-menu-item (click)="copy(message.content)">Copy</button>
+    <button mat-menu-item (click)="startReply(message)">Reply</button>
+    <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, message)">Info</button>
+  </ng-template>
+</mat-menu>
+
+<!-- Message Info Menu -->
+<mat-menu #infoMenu="matMenu">
+  <div class="p-2" style="min-width: 200px;">
+    @if(messageInfoData) {
+      <h6>Delivered to:</h6>
+      <ul>
+        @for(key of deliveredKeys; track key) {
+          <li>{{ key }} at {{ messageInfoData.deliveredByAt[key] | date:'short' }}</li>
+        }
+        @if(deliveredKeys.length === 0) {
+          <li>None</li>
+        }
+      </ul>
+      <h6>Read by:</h6>
+      <ul>
+        @for(key of readKeys; track key) {
+          <li>{{ key }} at {{ messageInfoData.readByAt[key] | date:'short' }}</li>
+        }
+        @if(readKeys.length === 0) {
+          <li>None</li>
+        }
+      </ul>
+    } @else {
+      <p>Loading...</p>
+    }
+  </div>
+</mat-menu>

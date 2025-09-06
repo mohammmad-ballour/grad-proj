@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, V
 import { ChatService } from '../../services/chat.service';
 import { MessageService } from '../../services/message.service';
 import { ChatResponse } from '../../models/chat-response';
-import { MessageResponse, MessageStatus, MediaType, TimestampSeekRequest } from '../../models/message-response';
+import { MessageResponse, MessageStatus, TimestampSeekRequest, ParentMessageSnippet, MediaType, ParentMessageWithNeighbours } from '../../models/message-response';
 import { MatMenuTrigger, MatMenu, MatMenuPanel } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule, DatePipe } from '@angular/common';
@@ -31,6 +31,7 @@ export class ChatMessagesComponent {
 
   @Input() chatSelected!: ChatResponse;
   @Input() activeUserId!: number;
+  @Input() activeUserName!: number;
 
   messagesToSelectedChatt = signal<MessageResponse[]>([]);
   messageToSent: string = '';
@@ -51,6 +52,7 @@ export class ChatMessagesComponent {
   oldestMessageTimestamp!: string;
   oldestMessageId!: number;
   msgMenu!: MatMenuPanel<any> | null;
+  parentData!: ParentMessageWithNeighbours;
 
   constructor(
     private chatService: ChatService,
@@ -92,16 +94,10 @@ export class ChatMessagesComponent {
     this.messageToSent = '';
   }
 
-  getTheParentMesaage(messageId: number): MessageResponse {
-    return this.messagesToSelectedChatt().find((m) => m.messageId == messageId) as MessageResponse;
-  }
-
-  getParentMessageContent(parentMessageId: number | undefined): string {
-    if (!parentMessageId) return 'Message not found';
-    const parentMessage = this.messagesToSelectedChatt().find(
-      (m) => m.messageId === parentMessageId
-    );
-    return parentMessage?.content || 'Message not found';
+  GoToParentMesaage(messageId: number) {
+    const parent = this.messagesToSelectedChatt().find((m) => m.messageId == messageId) as MessageResponse
+    if (parent)
+      this.scrollToParentMessage(parent.messageId);
   }
 
   scrollToParentMessage(parentMessageId: number): void {
@@ -120,7 +116,7 @@ export class ChatMessagesComponent {
     (event.target as HTMLImageElement).src = fallback;
   }
 
-  processImage(image: string): string {
+  processImage(image: string | undefined): string {
     return `data:image/png;base64,${image}`;
   }
 
@@ -148,10 +144,6 @@ export class ChatMessagesComponent {
 
   // ---------------- Scroll / Pagination ----------------
   onScroll(event: Event) {
-
-    //can detect the scroll is upor down
-    console.log("called from onScroll  ")
-
     const container = event.target as HTMLElement;
     if (container.scrollTop < 10 && this.hasMoreMessages() && !this.loadingOlderMessages) {
       this.loadOlderMessages(container);
@@ -159,7 +151,6 @@ export class ChatMessagesComponent {
   }
 
   loadOlderMessages(container: HTMLElement) {
-    console.log("called from  loadOlderMessages ")
     if (!this.chatSelected || !this.hasMoreMessages()) return;
 
     this.loadingOlderMessages = true;
@@ -169,37 +160,29 @@ export class ChatMessagesComponent {
       lastHappenedAt: this.oldestMessageTimestamp,
       lastEntityId: this.oldestMessageId,
     };
-    console.log(seekRequest);
 
     this.messageService.getChatMessages(this.chatSelected.chatId, 'UP', seekRequest)
       .subscribe({
         next: (msgs) => {
-          console.log(msgs)
-
           if (msgs.length === 0) {
             this.hasMoreMessages.set(false);
-            this.loadingOlderMessages = false;
           } else {
-            //enhance user experince when loded older messages
             this.messagesToSelectedChatt.update(curr => [...msgs.reverse(), ...curr]);
             const oldest = msgs[0];
             this.oldestMessageTimestamp = oldest.sentAt;
             this.oldestMessageId = oldest.messageId;
-            this.scrollToParentMessage(msgs[5].messageId)
 
-            setTimeout(() => {
+            requestAnimationFrame(() => {
               const newScrollHeight = container.scrollHeight;
               container.scrollTop = newScrollHeight - previousScrollHeight;
-              this.loadingOlderMessages = false;
-            }, 0);
+            });
           }
         },
         error: (err) => {
           console.error(err);
-          this.loadingOlderMessages = false;
         },
         complete: () => {
-          this.scrollToParentMessage(this.messagesToSelectedChatt()[5].messageId)
+          this.loadingOlderMessages = false;
         },
       });
   }
@@ -228,14 +211,15 @@ export class ChatMessagesComponent {
 
     this.loadingMessages.set(false);
     this.hasMoreMessages.set(true);
+    this.oldestMessageTimestamp!;
+    this.oldestMessageId!;
 
     this.messageService.getChatMessages(this.chatSelected.chatId)
       .subscribe({
         next: (messages) => {
+          console.log(messages)
           this.messagesToSelectedChatt.update(m => messages.reverse());
           const oldest = messages[0];
-          console.log(messages)
-          console.log(oldest)
           if (oldest) {
             this.oldestMessageTimestamp = oldest.sentAt;
             this.oldestMessageId = oldest.messageId;
@@ -347,6 +331,47 @@ export class ChatMessagesComponent {
       });
     }, 440);
   }
+
+  viewParent(ParentMessageId: number) {
+    // Case 1: message already loaded
+    const existing = this.messagesToSelectedChatt().find(m => m.messageId === ParentMessageId);
+    if (existing) {
+      this.scrollToParentMessage(ParentMessageId);
+      return;
+    }
+
+    // Case 2: fetch from backend
+    this.messageService.getParentMessageWithNeighbours(this.chatSelected.chatId, ParentMessageId, this.oldestMessageId)
+      .subscribe({
+        next: (data) => {
+          this.parentData = data;
+          console.log(this.parentData.messages.reverse())
+
+          this.messagesToSelectedChatt.update(curr => [...data.messages.reverse(), ...curr]);
+
+
+          // Handle gapBefore
+          if (data.gapBefore.exists) {
+            console.log(`⚠️ Missing ${data.gapBefore.missingCount} messages before ID ${data.gapBefore.lastMessageId}`);
+            // You could insert a "Load older messages" placeholder here
+          }
+
+          // Handle gapAfter
+          if (data.gapAfter.exists) {
+            console.log(`⚠️ Missing ${data.gapAfter.missingCount} messages after ID ${data.gapAfter.lastMessageId}`);
+            // Same idea, insert "Load newer messages"
+          }
+
+          // After update, scroll to the parent
+
+
+        },
+        error: (err) => console.error('Error loading parent message:', err),
+        complete: () => {
+          console.log(this.messagesToSelectedChatt())
+          setTimeout(() => this.scrollToParentMessage(ParentMessageId), 100);
+        }
+      });
+  }
+
 }
-
-
