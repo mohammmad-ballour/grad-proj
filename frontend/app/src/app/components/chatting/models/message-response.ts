@@ -13,6 +13,7 @@ export interface MessageResponse {
   senderAvatar: UserAvatar;
   media: string;
   messageType: MediaType;
+  isgab: boolean
 }
 
 

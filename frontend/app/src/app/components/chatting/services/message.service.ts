@@ -9,6 +9,8 @@ import { map } from 'rxjs/operators';
 import { BaseService } from '../../../core/services/base.service';
 import { MessageDetailResponse } from '../models/message-detail-response';
 import { MessageResponse, ParentMessageWithNeighbours, TimestampSeekRequest } from '../models/message-response';
+import { ScrollDirection } from '@angular/material/tabs';
+import { ScrollDirectionCustameType } from '../components/chat-messages/chat-messages.component';
 
 
 @Injectable({ providedIn: 'root' })
@@ -60,17 +62,24 @@ export class MessageService extends BaseService {
 
     getChatMessages(
         chatId: string,
-        scrollDirection: 'UP' | 'DOWN' = 'UP',
+        scrollDirection: ScrollDirectionCustameType,
         seekRequest?: TimestampSeekRequest
     ): Observable<MessageResponse[]> {
         let params = new HttpParams().set('scrollDirection', scrollDirection);
 
+        const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`;
+
+        // Print full URL with query string
+        console.log(`${url}?${params.toString()}`);
+        console.log(seekRequest)
+
         return this.httpClient.post<MessageResponse[]>(
-            `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`,
+            url,
             seekRequest ?? {}, // send body (empty object if undefined)
             { params }
         );
     }
+
 
     getParentMessageWithNeighbours(
         chatId: string,

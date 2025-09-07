@@ -11,9 +11,9 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { filter } from 'rxjs';
 import { MessageDetailResponse } from '../../models/message-detail-response';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+export type ScrollDirectionCustameType = 'UP' | 'DOWN' | 'NOTCHANGE';
 
 @Component({
   selector: 'app-chat-messages',
@@ -38,6 +38,7 @@ export class ChatMessagesComponent {
   replyingToMessage = signal<MessageResponse | null>(null);
   loadingMessages = signal(false);
   loadingOlderMessages = false;
+  loadingNewerMessages = false;
   groupName: any;
   infoMenu!: MatMenu;
   messageInfoData: MessageDetailResponse | null = null;
@@ -49,10 +50,14 @@ export class ChatMessagesComponent {
 
   MessageStatus = MessageStatus;
   hasMoreMessages = signal(true);
+  hasMoreNewer = signal(false);
   oldestMessageTimestamp!: string;
   oldestMessageId!: number;
+  newestMessageTimestamp!: string;
+  newestMessageId!: number;
   msgMenu!: MatMenuPanel<any> | null;
   parentData!: ParentMessageWithNeighbours;
+  isAutoScroll: boolean = false;
 
   constructor(
     private chatService: ChatService,
@@ -108,7 +113,11 @@ export class ChatMessagesComponent {
     if (parentElement) {
       parentElement.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
       parentElement.nativeElement.classList.add('highlight-parent');
-      setTimeout(() => parentElement.nativeElement.classList.remove('highlight-parent'), 800);
+      setTimeout(() => {
+        parentElement.nativeElement.classList.remove('highlight-parent');
+        this.isAutoScroll = false;
+      }
+        , 800);
     }
   }
 
@@ -142,39 +151,133 @@ export class ChatMessagesComponent {
     return lastMessage ? lastMessage.substring(0, 17) + '...' : '';
   }
 
-  // ---------------- Scroll / Pagination ----------------
+  private lastScrollTop = 0; // store last scroll position
+
+
+
   onScroll(event: Event) {
     const container = event.target as HTMLElement;
-    if (container.scrollTop < 10 && this.hasMoreMessages() && !this.loadingOlderMessages) {
-      this.loadOlderMessages(container);
+    const currentScrollTop = container.scrollTop;
+    const scrollDirectionResult: ScrollDirectionCustameType = (currentScrollTop > this.lastScrollTop) ? 'DOWN' : (currentScrollTop < this.lastScrollTop) ? 'UP' : 'NOTCHANGE';
+    this.lastScrollTop = currentScrollTop;
+
+    console.log(scrollDirectionResult);
+    // Load older messages when near the top and scrolling up
+    if (
+      currentScrollTop < 10 &&
+      this.hasMoreMessages() &&
+      !this.loadingOlderMessages &&
+      !this.isAutoScroll &&
+      scrollDirectionResult === 'UP'
+    ) {
+      if (this.parentData && this.parentData.gapBefore.exists) {
+        this.oldestMessageId = this.parentData.gapBefore.lastMessageId;
+        this.oldestMessageTimestamp = this.parentData.gapBefore.lastMessageSentAt;
+      }
+      this.loadMessages(container, scrollDirectionResult);
     }
+
+    // Load newer messages when near the bottom and scrolling down
+    const scrollBottom = container.scrollHeight - currentScrollTop - container.clientHeight;
+    if (
+
+      !this.isAutoScroll &&
+      scrollDirectionResult === 'DOWN'
+      &&
+      this.parentData?.gapAfter.exists
+    ) {
+      if (this.parentData?.gapAfter.exists) {
+        this.newestMessageId = this.parentData.gapAfter.lastMessageId;
+        this.newestMessageTimestamp = this.parentData.gapAfter.lastMessageSentAt;
+      }
+      console.log('befor call loadMessages from Down ')
+      this.loadMessages(container, scrollDirectionResult);
+    }
+    // console.log(this.parentData == null)
   }
 
-  loadOlderMessages(container: HTMLElement) {
-    if (!this.chatSelected || !this.hasMoreMessages()) return;
 
-    this.loadingOlderMessages = true;
+
+  loadMessages(container: HTMLElement, scrollDirection: ScrollDirectionCustameType) {
+    if (!this.chatSelected) return;
+
     const previousScrollHeight = container.scrollHeight;
+    const previousScrollTop = container.scrollTop;
+    const previousScrollBottom = previousScrollHeight - previousScrollTop - container.clientHeight;
 
-    const seekRequest: TimestampSeekRequest = {
-      lastHappenedAt: this.oldestMessageTimestamp,
-      lastEntityId: this.oldestMessageId,
-    };
+    let seekRequest: TimestampSeekRequest;
+    if (scrollDirection === 'UP') {
+      this.loadingOlderMessages = true;
+      seekRequest = {
+        lastHappenedAt: this.oldestMessageTimestamp,
+        lastEntityId: this.oldestMessageId,
+      };
+    } else {
+      seekRequest = {
+        lastHappenedAt: this.newestMessageTimestamp,
+        lastEntityId: this.newestMessageId,
+      };
+    }
 
-    this.messageService.getChatMessages(this.chatSelected.chatId, 'UP', seekRequest)
+
+    console.log(seekRequest)
+
+    this.messageService.getChatMessages(this.chatSelected.chatId, scrollDirection, seekRequest)
       .subscribe({
         next: (msgs) => {
+          console.log('loded messages')
+          console.log(msgs)
+
           if (msgs.length === 0) {
-            this.hasMoreMessages.set(false);
+            if (scrollDirection === 'UP') {
+              this.hasMoreMessages.set(false);
+            } else {
+              this.hasMoreNewer.set(false);
+            }
           } else {
-            this.messagesToSelectedChatt.update(curr => [...msgs.reverse(), ...curr]);
-            const oldest = msgs[0];
-            this.oldestMessageTimestamp = oldest.sentAt;
-            this.oldestMessageId = oldest.messageId;
+            const reversed = msgs.reverse();
+
+            if (scrollDirection === 'UP') {
+              this.messagesToSelectedChatt.update(curr => [...reversed, ...curr]);
+            } else {
+              // this.messagesToSelectedChatt.update(curr => [...curr, ...reversed]);
+            }
+
+            if (this.parentData) {
+              if (scrollDirection === 'UP' && this.parentData.gapBefore.exists) {
+                this.parentData.gapBefore.missingCount -= msgs.length;
+                this.parentData.gapBefore.exists = this.parentData.gapBefore.missingCount > 0;
+                if (!this.parentData.gapBefore.exists) {
+                  this.hasMoreMessages.set(false);
+                }
+              } else if (scrollDirection === 'DOWN' && this.parentData.gapAfter.exists) {
+                this.parentData.gapAfter.missingCount -= msgs.length;
+                this.parentData.gapAfter.exists = this.parentData.gapAfter.missingCount > 0;
+                if (!this.parentData.gapAfter.exists) {
+                  this.hasMoreNewer.set(false);
+                }
+              }
+            }
+
+            if (scrollDirection === 'UP') {
+              const oldest = reversed[0];
+              this.oldestMessageTimestamp = oldest.sentAt;
+              this.oldestMessageId = oldest.messageId;
+            } else {
+              const newest = reversed[reversed.length - 1];
+              this.newestMessageTimestamp = newest.sentAt;
+              this.newestMessageId = newest.messageId;
+            }
 
             requestAnimationFrame(() => {
               const newScrollHeight = container.scrollHeight;
-              container.scrollTop = newScrollHeight - previousScrollHeight;
+              if (scrollDirection === 'UP') {
+                // Keep relative to top
+                container.scrollTop = previousScrollTop + (newScrollHeight - previousScrollHeight);
+              } else {
+                // Keep relative to bottom
+                // container.scrollTop = newScrollHeight - container.clientHeight - previousScrollBottom;
+              }
             });
           }
         },
@@ -182,7 +285,9 @@ export class ChatMessagesComponent {
           console.error(err);
         },
         complete: () => {
-          this.loadingOlderMessages = false;
+          if (scrollDirection === 'UP') {
+            this.loadingOlderMessages = false;
+          }
         },
       });
   }
@@ -211,18 +316,24 @@ export class ChatMessagesComponent {
 
     this.loadingMessages.set(false);
     this.hasMoreMessages.set(true);
+    this.hasMoreNewer.set(false);
     this.oldestMessageTimestamp!;
     this.oldestMessageId!;
 
-    this.messageService.getChatMessages(this.chatSelected.chatId)
+    this.messageService.getChatMessages(this.chatSelected.chatId, 'UP')
       .subscribe({
         next: (messages) => {
           console.log(messages)
-          this.messagesToSelectedChatt.update(m => messages.reverse());
-          const oldest = messages[0];
-          if (oldest) {
+          const reversedMessages = messages.reverse();
+          this.messagesToSelectedChatt.update(m => reversedMessages);
+          if (reversedMessages.length > 0) {
+            const oldest = reversedMessages[0];
             this.oldestMessageTimestamp = oldest.sentAt;
             this.oldestMessageId = oldest.messageId;
+
+            const newest = reversedMessages[reversedMessages.length - 1];
+            this.newestMessageTimestamp = newest.sentAt;
+            this.newestMessageId = newest.messageId;
           }
         },
         error: (err) => console.error('Error fetching messages', err),
@@ -345,19 +456,20 @@ export class ChatMessagesComponent {
       .subscribe({
         next: (data) => {
           this.parentData = data;
-          console.log(this.parentData.messages.reverse())
 
-          this.messagesToSelectedChatt.update(curr => [...data.messages.reverse(), ...curr]);
+          this.messagesToSelectedChatt.update(curr => [...data.messages, ...curr]);
 
-
+          console.log(data)
           // Handle gapBefore
           if (data.gapBefore.exists) {
+            this.hasMoreMessages.set(true);
             console.log(`⚠️ Missing ${data.gapBefore.missingCount} messages before ID ${data.gapBefore.lastMessageId}`);
             // You could insert a "Load older messages" placeholder here
           }
 
           // Handle gapAfter
           if (data.gapAfter.exists) {
+            this.hasMoreNewer.set(true);
             console.log(`⚠️ Missing ${data.gapAfter.missingCount} messages after ID ${data.gapAfter.lastMessageId}`);
             // Same idea, insert "Load newer messages"
           }
@@ -369,6 +481,7 @@ export class ChatMessagesComponent {
         error: (err) => console.error('Error loading parent message:', err),
         complete: () => {
           console.log(this.messagesToSelectedChatt())
+          this.isAutoScroll = true;
           setTimeout(() => this.scrollToParentMessage(ParentMessageId), 100);
         }
       });
