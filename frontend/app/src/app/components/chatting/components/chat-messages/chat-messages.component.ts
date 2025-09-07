@@ -69,12 +69,12 @@ export class ChatMessagesComponent {
     this.getMessagesToSelectedChatt();
   }
 
-  ngAfterViewInit() {
-    this.scrollToUnreadOrBottom();
-    this.messageElements.changes.subscribe(() => {
-      this.scrollToUnreadOrBottom();
-    });
-  }
+  // ngAfterViewInit() {
+  //   this.scrollToUnreadOrBottom();
+  //   this.messageElements.changes.subscribe(() => {
+  //     this.scrollToUnreadOrBottom();
+  //   });
+  // }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['chatSelected'] && this.chatSelected) {
@@ -153,7 +153,7 @@ export class ChatMessagesComponent {
 
   private lastScrollTop = 0; // store last scroll position
 
-
+  lockscroll: boolean = false;
 
   onScroll(event: Event) {
     const container = event.target as HTMLElement;
@@ -169,17 +169,20 @@ export class ChatMessagesComponent {
       !this.loadingOlderMessages &&
       !this.isAutoScroll &&
       scrollDirectionResult === 'UP'
+
     ) {
       if (this.parentData && this.parentData.gapBefore.exists) {
         this.oldestMessageId = this.parentData.gapBefore.lastMessageId;
         this.oldestMessageTimestamp = this.parentData.gapBefore.lastMessageSentAt;
       }
-      this.loadMessages(container, scrollDirectionResult);
+
+      this.loadMessages(container, scrollDirectionResult, this.parentData?.gapBefore.missingCount ?? 10);
     }
 
     // Load newer messages when near the bottom and scrolling down
     const scrollBottom = container.scrollHeight - currentScrollTop - container.clientHeight;
     if (
+      !this.lockscroll &&
 
       !this.isAutoScroll &&
       scrollDirectionResult === 'DOWN'
@@ -190,15 +193,16 @@ export class ChatMessagesComponent {
         this.newestMessageId = this.parentData.gapAfter.lastMessageId;
         this.newestMessageTimestamp = this.parentData.gapAfter.lastMessageSentAt;
       }
+      this.lockscroll = true
       console.log('befor call loadMessages from Down ')
-      this.loadMessages(container, scrollDirectionResult);
+      this.loadMessages(container, scrollDirectionResult, this.parentData?.gapAfter.missingCount);
     }
     // console.log(this.parentData == null)
   }
 
 
 
-  loadMessages(container: HTMLElement, scrollDirection: ScrollDirectionCustameType) {
+  loadMessages(container: HTMLElement, scrollDirection: ScrollDirectionCustameType, missingMessagesCount: number) {
     if (!this.chatSelected) return;
 
     const previousScrollHeight = container.scrollHeight;
@@ -222,7 +226,7 @@ export class ChatMessagesComponent {
 
     console.log(seekRequest)
 
-    this.messageService.getChatMessages(this.chatSelected.chatId, scrollDirection, seekRequest)
+    this.messageService.getChatMessages(this.chatSelected.chatId, scrollDirection, seekRequest, missingMessagesCount)
       .subscribe({
         next: (msgs) => {
 
@@ -240,10 +244,27 @@ export class ChatMessagesComponent {
               this.messagesToSelectedChatt.update(curr => [...reversed, ...curr]);
               console.log('loded messages when scroll up')
               console.log(msgs)
-            } else {
+            } else if (scrollDirection == 'DOWN' && this.parentData?.gapAfter.exists) {
+
+              this.messagesToSelectedChatt.update(curr => {
+                // find the index of the last entity in the current messages
+                const idx = curr.findIndex(m => m.messageId === seekRequest.lastEntityId);
+
+                if (idx !== -1) {
+                  // insert new messages *after* that index
+                  const before = curr.slice(0, idx + 1);
+                  const after = curr.slice(idx + 1);
+                  return [...before, ...msgs.reverse(), ...after];
+                } else {
+                  // fallback: just append to end
+                  console.log('fall')
+                  return [...curr, ...msgs];
+                }
+              });
+              this.lockscroll = true;
               // this.messagesToSelectedChatt.update(curr => [...curr, ...reversed]);
               console.log('loded messages when scroll down')
-              console.log(msgs)
+              console.log(msgs.reverse())
             }
 
             if (this.parentData) {
@@ -267,31 +288,37 @@ export class ChatMessagesComponent {
               const oldest = reversed[0];
               this.oldestMessageTimestamp = oldest.sentAt;
               this.oldestMessageId = oldest.messageId;
-            } else {
-              const newest = reversed[reversed.length - 1];
+            } else if (scrollDirection == 'DOWN') {
+              const newest = reversed.reverse()[reversed.reverse().length - 1];
               this.newestMessageTimestamp = newest.sentAt;
               this.newestMessageId = newest.messageId;
             }
 
             requestAnimationFrame(() => {
-              const newScrollHeight = container.scrollHeight;
-              if (scrollDirection === 'UP') {
-                // Keep relative to top
-                container.scrollTop = previousScrollTop + (newScrollHeight - previousScrollHeight);
-              } else {
-                // Keep relative to bottom
-                container.scrollTop = newScrollHeight - container.clientHeight - previousScrollBottom;
-              }
+              // const newScrollHeight = container.scrollHeight;
+              // if (scrollDirection === 'UP') {
+              //   // Keep relative to top
+              //   container.scrollTop = previousScrollTop + (newScrollHeight - previousScrollHeight);
+              // } else {
+              //   // Keep relative to bottom
+              //   container.scrollTop = newScrollHeight - container.clientHeight - previousScrollBottom;
+              // }
             });
           }
+          console.log("new lodeed  messages")
+
+          console.log(msgs)
         },
         error: (err) => {
           console.error(err);
         },
         complete: () => {
+          console.log("full messages")
+          console.log(this.messagesToSelectedChatt())
           if (scrollDirection === 'UP') {
             this.loadingOlderMessages = false;
           }
+          this.lockscroll = false;
         },
       });
   }

@@ -59,23 +59,25 @@ export class MessageService extends BaseService {
         );
     }
 
-
     getChatMessages(
         chatId: string,
         scrollDirection: ScrollDirectionCustameType,
-        seekRequest?: TimestampSeekRequest
+        seekRequest?: TimestampSeekRequest,
+        missingMessagesCount: number = 10 // allow overriding, default 10
     ): Observable<MessageResponse[]> {
-        let params = new HttpParams().set('scrollDirection', scrollDirection);
+        let params = new HttpParams()
+            .set('scrollDirection', scrollDirection)
+            .set('missingMessagesCount', missingMessagesCount);
 
         const url = `${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/chat-messages`;
 
-        // Print full URL with query string
+        // Debug logging
         console.log(`${url}?${params.toString()}`);
-        console.log(seekRequest)
+        console.log('Request body:', seekRequest ?? {});
 
         return this.httpClient.post<MessageResponse[]>(
             url,
-            seekRequest ?? {}, // send body (empty object if undefined)
+            seekRequest ?? {}, // empty object if undefined
             { params }
         );
     }
