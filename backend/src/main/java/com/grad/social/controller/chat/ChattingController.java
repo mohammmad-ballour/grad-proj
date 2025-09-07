@@ -57,10 +57,10 @@ public class ChattingController {
     // when the user/group avatar in the chat list is clicked, this method is called
     @PostMapping("/chats/{chatId}/chat-messages")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
-    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId,
-                                                                             @RequestParam(defaultValue = "UP") ScrollDirection scrollDirection, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+    public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId, @RequestParam(defaultValue = "UP") ScrollDirection scrollDirection,
+                                                                             @RequestParam(defaultValue = "10") int missingMessagesCount, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
         long userId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(userId, Long.parseLong(chatId), scrollDirection, seekRequest));
+        return ResponseEntity.ok(this.chattingService.getChatMessagesByChatId(userId, Long.parseLong(chatId), missingMessagesCount, scrollDirection, seekRequest));
     }
 
     // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
