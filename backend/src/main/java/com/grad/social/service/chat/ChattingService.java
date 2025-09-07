@@ -57,8 +57,8 @@ public class ChattingService {
         return chatId;
     }
 
-    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId, ScrollDirection scrollDirection, TimestampSeekRequest seekRequest) {
-        return this.chattingRepository.getChatMessagesByChatId(currentUserId, chatId, scrollDirection,
+    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId, int missingMessagesCount, ScrollDirection scrollDirection, TimestampSeekRequest seekRequest) {
+        return this.chattingRepository.getChatMessagesByChatId(currentUserId, chatId, missingMessagesCount, scrollDirection,
                 seekRequest == null ? null : seekRequest.lastEntityId(), seekRequest == null ? null : seekRequest.lastHappenedAt());
     }
 

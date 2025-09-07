@@ -197,7 +197,7 @@ public class ChattingRepository {
                 }));
     }
 
-    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId, ScrollDirection scrollDirection, Long lastMessageId, Instant lastMessageSentAt) {
+    public List<ChatMessageResponse> getChatMessagesByChatId(Long currentUserId, Long chatId, int missingMessagesCount, ScrollDirection scrollDirection, Long lastMessageId, Instant lastMessageSentAt) {
         if (lastMessageSentAt == null) { // this is the first page
             lastMessageSentAt = AppConstants.DEFAULT_MAX_TIMESTAMP;
         }
@@ -247,7 +247,7 @@ public class ChattingRepository {
                 )
                 .orderBy(sentAtOrderByField, messageIdOrderByField)
                 .seek(lastMessageSentAt, lastMessageId)
-                .limit(AppConstants.DEFAULT_PAGE_SIZE)
+                .limit(Math.min(missingMessagesCount, AppConstants.DEFAULT_PAGE_SIZE))
                 .fetch(mapping((messageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
                                 messageType, mediaId, fileNameHashed, extension, unreadCount, undeliveredCount,
                                 parentMessageId, parentContent, parentOwnerId, parentSenderDisplayName,
