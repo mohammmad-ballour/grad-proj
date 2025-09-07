@@ -26,6 +26,7 @@ export interface ParentMessageSnippet {
   parentMessageId: number;
   content: string;
   senderDisplayName: string;
+  parentSenderId: number
   messageType: MediaType;
   media?: string;
 }

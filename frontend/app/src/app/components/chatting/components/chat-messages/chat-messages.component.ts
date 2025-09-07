@@ -225,8 +225,7 @@ export class ChatMessagesComponent {
     this.messageService.getChatMessages(this.chatSelected.chatId, scrollDirection, seekRequest)
       .subscribe({
         next: (msgs) => {
-          console.log('loded messages')
-          console.log(msgs)
+
 
           if (msgs.length === 0) {
             if (scrollDirection === 'UP') {
@@ -239,11 +238,16 @@ export class ChatMessagesComponent {
 
             if (scrollDirection === 'UP') {
               this.messagesToSelectedChatt.update(curr => [...reversed, ...curr]);
+              console.log('loded messages when scroll up')
+              console.log(msgs)
             } else {
               // this.messagesToSelectedChatt.update(curr => [...curr, ...reversed]);
+              console.log('loded messages when scroll down')
+              console.log(msgs)
             }
 
             if (this.parentData) {
+              console.log("test")
               if (scrollDirection === 'UP' && this.parentData.gapBefore.exists) {
                 this.parentData.gapBefore.missingCount -= msgs.length;
                 this.parentData.gapBefore.exists = this.parentData.gapBefore.missingCount > 0;
@@ -276,7 +280,7 @@ export class ChatMessagesComponent {
                 container.scrollTop = previousScrollTop + (newScrollHeight - previousScrollHeight);
               } else {
                 // Keep relative to bottom
-                // container.scrollTop = newScrollHeight - container.clientHeight - previousScrollBottom;
+                container.scrollTop = newScrollHeight - container.clientHeight - previousScrollBottom;
               }
             });
           }
