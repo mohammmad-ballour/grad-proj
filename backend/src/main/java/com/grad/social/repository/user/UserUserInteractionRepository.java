@@ -4,7 +4,7 @@ import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.PrivacySettings;
-import com.grad.social.model.shared.FriendshipStatus;
+import com.grad.social.model.shared.UserConnectionInfo;
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
@@ -238,11 +238,11 @@ public class UserUserInteractionRepository {
 
     // search users by username for a given userId, ORDERED BY favourite friends -> default friends -> verified non friends -> restricted friends -> others
     public List<UserResponse> searchOtherUsers(Long currentUserId, String usernameToFind, int offset) {
-        Field<Boolean> isFollowedByCurrentUserField = when(uf2.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+        Field<Boolean> isFollowedByCurrentUserField = when(uf1.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
                 .otherwise(DSL.falseCondition())
                 .as("is_followed_by_current_user");
 
-        Field<Boolean> isFollowingCurrentUserField = when(uf3.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
+        Field<Boolean> isFollowingCurrentUserField = when(uf2.FOLLOWED_USER_ID.isNotNull(), DSL.trueCondition())
                 .otherwise(DSL.falseCondition())
                 .as("is_following_current_user");
 
@@ -251,16 +251,12 @@ public class UserUserInteractionRepository {
         return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, u.PROFILE_BIO, u.IS_VERIFIED, u.WHO_CAN_MESSAGE, u.WHO_CAN_ADD_TO_GROUPS,
                         isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
-                .leftJoin(uf1)
-                .on(uf1.FOLLOWED_USER_ID.eq(u.ID).and(uf1.FOLLOWER_ID.eq(currentUserId)))
-                // isFollowedByCurrentUserField
-                .leftJoin(uf2).on(
-                        uf2.FOLLOWED_USER_ID.eq(uf1.FOLLOWER_ID).and(uf2.FOLLOWER_ID.eq(currentUserId))
-                )
-                // isFollowingCurrentUser
-                .leftJoin(uf3).on(
-                        uf3.FOLLOWER_ID.eq(uf1.FOLLOWER_ID).and(uf3.FOLLOWED_USER_ID.eq(currentUserId))
-                )
+                // currentUser follows otherUser
+                .leftJoin(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID)
+                        .and(uf1.FOLLOWER_ID.eq(currentUserId)))
+                // otherUser follows currentUser
+                .leftJoin(uf2).on(uf2.FOLLOWER_ID.eq(u.ID)
+                        .and(uf2.FOLLOWED_USER_ID.eq(currentUserId)))
                 .where(usernameToFind.isBlank() ? DSL.trueCondition() : u.USERNAME.likeIgnoreCase(usernameToFind + "%"))
                 .orderBy(case_()
                         .when(uf1.FOLLOWED_USER_ID.isNotNull(),                                                     // Priority 1: Friends
@@ -282,7 +278,7 @@ public class UserUserInteractionRepository {
                     res.setVerified(isVerified);
                     res.setIsFollowedByCurrentUser(isFollowedByCurrentUser);
                     res.setIsFollowingCurrentUser(isFollowingCurrentUser);
-                    res.setCanBeMessagedByCurrentUser(canBeMessagedOrAddedToGroup(whoCanAddToGroups, isFollowedByCurrentUser, isFollowingCurrentUser));
+                    res.setCanBeMessagedByCurrentUser(canBeMessagedOrAddedToGroup(whoCanMessage, isFollowedByCurrentUser, isFollowingCurrentUser));
                     res.setCanBeAddedToGroupByCurrentUser(canBeMessagedOrAddedToGroup(whoCanAddToGroups, isFollowedByCurrentUser, isFollowingCurrentUser));
                     return res;
                 }));
@@ -323,9 +319,9 @@ public class UserUserInteractionRepository {
         };
     }
 
-    public Map<Long, FriendshipStatus> getFollowRelations(Set<Long> otherUserIds, Long currentUserId) {
+    public Map<Long, UserConnectionInfo> getConnectionWithOthersInfo(Set<Long> otherUserIds, Long currentUserId) {
         return dsl.select(
-                        u.ID,
+                        u.ID, u.WHO_CAN_MESSAGE, u.WHO_CAN_ADD_TO_GROUPS,
                         DSL.when(uf1.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_followed"),
                         DSL.when(uf2.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_following")
                 )
@@ -339,8 +335,8 @@ public class UserUserInteractionRepository {
                 .where(u.ID.in(otherUserIds))
                 .fetchMap(
                         r -> r.get(u.ID),
-                        r -> new FriendshipStatus(r.get("is_followed", Boolean.class), r.get("is_following", Boolean.class))
+                        r -> new UserConnectionInfo(r.get("is_followed", Boolean.class), r.get("is_following", Boolean.class)
+                        ,r.get(u.WHO_CAN_MESSAGE), r.get(u.WHO_CAN_ADD_TO_GROUPS))
                 );
     }
-
 }

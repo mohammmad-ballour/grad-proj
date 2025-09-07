@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.jooq.Records.mapping;
 
@@ -148,19 +149,5 @@ public class UserRepository {
     public boolean isAccountProtected(String nameToSearch) {
         Boolean isAccountProtected = dsl.select(u.IS_PROTECTED).where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch))).fetchOneInto(Boolean.class);
         return isAccountProtected != null && isAccountProtected;
-    }
-
-    public PrivacySettings getWhoCanMessage(Long toBeMessaged) {
-        return dsl.select(u.WHO_CAN_MESSAGE)
-                .from(u)
-                .where(u.ID.eq(toBeMessaged))
-                .fetchOneInto(PrivacySettings.class);
-    }
-
-    public PrivacySettings getWhoCanAddToGroup(Long toBeAdded) {
-        return dsl.select(u.WHO_CAN_ADD_TO_GROUPS)
-                .from(u)
-                .where(u.ID.eq(toBeAdded))
-                .fetchOneInto(PrivacySettings.class);
     }
 }

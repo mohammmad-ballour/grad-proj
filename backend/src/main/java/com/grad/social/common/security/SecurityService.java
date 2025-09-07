@@ -1,8 +1,8 @@
 package com.grad.social.common.security;
 
 import com.grad.social.model.enums.PrivacySettings;
-import com.grad.social.model.shared.FriendshipStatus;
 import com.grad.social.model.shared.ProfileStatus;
+import com.grad.social.model.shared.UserConnectionInfo;
 import com.grad.social.repository.chat.ChattingRepository;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.repository.user.UserUserInteractionRepository;
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.grad.social.model.enums.PrivacySettings.*;
 
@@ -63,29 +64,33 @@ public class SecurityService {
     public boolean isPermittedToMessage(Jwt jwt, Long recipientId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
         if (isAnonymous(currentUserId)) return false;
-        PrivacySettings whoCanMessage = this.userRepository.getWhoCanMessage(currentUserId);
-        return checkPrivacySettings(Set.of(recipientId), whoCanMessage, currentUserId);
+        Map<Long, UserConnectionInfo> connectionWithOthersInfo = userUserInteractionRepository.getConnectionWithOthersInfo(Set.of(recipientId), currentUserId);
+        return checkPrivacySettings(connectionWithOthersInfo, currentUserId);
     }
 
     public boolean isPermittedToAddToGroup(Jwt jwt, Set<Long> recipientIds) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
         if (isAnonymous(currentUserId)) return false;
-        // merge in 1 query
-        PrivacySettings whoCanAddToGroup = this.userRepository.getWhoCanAddToGroup(currentUserId);
-        return checkPrivacySettings(recipientIds, whoCanAddToGroup, currentUserId);
+        Map<Long, UserConnectionInfo> connectionWithOthersInfo = userUserInteractionRepository.getConnectionWithOthersInfo(recipientIds, currentUserId);
+        return checkPrivacySettings(connectionWithOthersInfo, currentUserId);
     }
 
-    private boolean checkPrivacySettings(Set<Long> recipientIds, PrivacySettings privacySettings, long currentUserId) {
-        if (privacySettings == EVERYONE) {
-            return true;
-        } else if (privacySettings == NONE) {
-            return false;
-        } else {
-            Map<Long, FriendshipStatus> followRelations = this.userUserInteractionRepository.getFollowRelations(recipientIds, currentUserId);
-            if (privacySettings == FRIENDS) {
-                return followRelations.values().stream().allMatch(FriendshipStatus::areFriends);
-            } else if (privacySettings == FOLLOWERS) {
-                return followRelations.values().stream().allMatch(FriendshipStatus::isFollowedByCurrentUser);
+    private boolean checkPrivacySettings(Map<Long, UserConnectionInfo> userConnectionInfoMap, long currentUserId) {
+        AtomicBoolean result = new AtomicBoolean(false);
+        for (Map.Entry<Long, UserConnectionInfo> entry : userConnectionInfoMap.entrySet()) {
+            UserConnectionInfo userConnectionInfo = entry.getValue();
+            PrivacySettings privacySettings = userConnectionInfo.whoCanAddToGroups();
+            switch (privacySettings) {
+                case EVERYONE:
+                    continue;
+                case FRIENDS:
+                    boolean areFriends = userConnectionInfo.areFriends();
+                    if (!areFriends) break;
+                case FOLLOWERS:
+                    boolean followedByCurrentUser = userConnectionInfo.isFollowedByCurrentUser();
+                    if (!followedByCurrentUser) break;
+                default:
+                    break;
             }
         }
         return false;

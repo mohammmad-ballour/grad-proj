@@ -64,7 +64,7 @@ public class ChattingController {
     }
 
     // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
-    @GetMapping("/chats/{recipientId}")
+    @PostMapping("/chats/{recipientId}")
     @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
     public String getChatIdRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
