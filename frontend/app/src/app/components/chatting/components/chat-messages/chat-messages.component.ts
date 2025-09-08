@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, ViewChild, EventEmitter, Input, Output, SimpleChanges, OnDestroy } from '@angular/core';
+import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, ViewChild, EventEmitter, Input, Output, SimpleChanges, OnDestroy, AfterViewInit } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { MessageService } from '../../services/message.service';
 import { ChatResponse } from '../../models/chat-response';
@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MessageDetailResponse } from '../../models/message-detail-response';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { Observable, of, tap, finalize } from 'rxjs';
 export type ScrollDirectionCustameType = 'UP' | 'DOWN' | 'NOTCHANGE';
 
 interface GapPlaceholder {
@@ -29,7 +30,10 @@ interface GapPlaceholder {
   templateUrl: './chat-messages.component.html',
   styleUrls: ['./chat-messages.component.css']
 })
-export class ChatMessagesComponent implements OnDestroy {
+
+export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
+
+
 
   @Output() reply = new EventEmitter<any>();
   @ViewChild('t') menuTrigger!: MatMenuTrigger;
@@ -168,257 +172,11 @@ export class ChatMessagesComponent implements OnDestroy {
     return lastMessage ? lastMessage.substring(0, 17) + '...' : '';
   }
 
-  isMessage(item: MessageResponse | GapPlaceholder): item is MessageResponse {
-    return 'messageId' in item;
-  }
+
 
   private lastScrollTop = 0; // store last scroll position
 
   lockscroll: boolean = false;
-
-  onScroll(event: Event) {
-    const container = event.target as HTMLElement;
-    const currentScrollTop = container.scrollTop;
-    const scrollDirectionResult: ScrollDirectionCustameType = (currentScrollTop > this.lastScrollTop) ? 'DOWN' : (currentScrollTop < this.lastScrollTop) ? 'UP' : 'NOTCHANGE';
-    this.lastScrollTop = currentScrollTop;
-
-    console.log(scrollDirectionResult);
-    // Load older messages when near the top and scrolling up
-    if (
-      currentScrollTop < 10 &&
-      this.hasMoreMessages() &&
-      !this.loadingOlderMessages &&
-      !this.isAutoScroll &&
-      scrollDirectionResult === 'UP'
-
-    ) {
-      if (this.parentData && this.parentData.gapBefore.exists) {
-        this.oldestMessageId = this.parentData.gapBefore.lastMessageId;
-        this.oldestMessageTimestamp = this.parentData.gapBefore.lastMessageSentAt;
-      }
-
-      console.log('gap before')
-      console.log(this.parentData?.gapBefore.missingCount)
-      this.loadMessages(container, scrollDirectionResult, this.parentData?.gapBefore.missingCount ?? 10);
-    }
-
-    // Load newer messages when near the bottom and scrolling down
-    const scrollBottom = container.scrollHeight - currentScrollTop - container.clientHeight;
-    if (
-      !this.lockscroll &&
-      scrollBottom < 10 &&
-      !this.isAutoScroll &&
-      scrollDirectionResult === 'DOWN' &&
-      this.hasMoreNewer()
-    ) {
-      if (this.parentData && this.parentData.gapAfter.exists) {
-        this.newestMessageId = this.parentData.gapAfter.lastMessageId;
-        this.newestMessageTimestamp = this.parentData.gapAfter.lastMessageSentAt;
-      }
-      this.lockscroll = true;
-      console.log('befor call loadMessages from Down ');
-      this.loadMessages(container, scrollDirectionResult, this.parentData?.gapAfter.missingCount ?? 10);
-    }
-  }
-
-
-
-  loadMessages(container: HTMLElement, scrollDirection: ScrollDirectionCustameType, missingMessagesCount: number) {
-    if (!this.chatSelected) return;
-
-    const previousScrollHeight = container.scrollHeight;
-    const previousScrollTop = container.scrollTop;
-    const previousScrollBottom = previousScrollHeight - previousScrollTop - container.clientHeight;
-
-    // Find anchor for scroll preservation
-    let anchorId: number | undefined;
-    let relativePos: number = 0;
-    const elements = this.messageElements.toArray();
-    for (let el of elements) {
-      const top = el.nativeElement.offsetTop;
-      if (top >= previousScrollTop) {
-        const messageId = el.nativeElement.getAttribute('data-message-id');
-        if (messageId) {
-          anchorId = parseInt(messageId);
-          relativePos = top - previousScrollTop;
-        }
-        break;
-      }
-    }
-
-    this.fillingGapType = scrollDirection === 'UP' ? 'gap-before' : 'gap-after';
-
-    let seekRequest: TimestampSeekRequest;
-    if (scrollDirection === 'UP') {
-      this.loadingOlderMessages = true;
-      seekRequest = {
-        lastHappenedAt: this.oldestMessageTimestamp,
-        lastEntityId: this.oldestMessageId,
-      };
-    } else {
-      this.loadingNewerMessages = true;
-      seekRequest = {
-        lastHappenedAt: this.newestMessageTimestamp,
-        lastEntityId: this.newestMessageId,
-      };
-    }
-
-    console.log(seekRequest)
-
-    this.messageService.getChatMessages(this.chatSelected.chatId, scrollDirection, seekRequest, missingMessagesCount)
-      .subscribe({
-        next: (msgs) => {
-
-          if (msgs.length === 0) {
-            if (scrollDirection === 'UP') {
-              this.hasMoreMessages.set(false);
-            } else {
-              this.hasMoreNewer.set(false);
-            }
-          } else if (msgs.length < missingMessagesCount) {
-            if (scrollDirection === 'UP') {
-              this.hasMoreMessages.set(false);
-            } else {
-              this.hasMoreNewer.set(false);
-            }
-          }
-
-          const reversed = msgs.reverse();
-
-          this.messagesToSelectedChatt.update(curr => {
-            const gapType = this.fillingGapType;
-            const index = curr.findIndex(m => 'type' in m && m.type === gapType);
-            if (index !== -1) {
-              const before = curr.slice(0, index);
-              const after = curr.slice(index + 1);
-              return [...before, ...reversed, ...after];
-            } else {
-              // fallback
-              if (scrollDirection === 'UP') {
-                return [...reversed, ...curr];
-              } else {
-                return [...curr, ...reversed];
-              }
-            }
-          });
-
-          if (this.parentData) {
-            console.log("test")
-            if (scrollDirection === 'UP' && this.parentData.gapBefore.exists) {
-              this.parentData.gapBefore.missingCount -= msgs.length;
-              this.parentData.gapBefore.exists = this.parentData.gapBefore.missingCount > 0;
-              if (!this.parentData.gapBefore.exists) {
-                this.hasMoreMessages.set(false);
-              }
-            } else if (scrollDirection === 'DOWN' && this.parentData.gapAfter.exists) {
-              this.parentData.gapAfter.missingCount -= msgs.length;
-              this.parentData.gapAfter.exists = this.parentData.gapAfter.missingCount > 0;
-              if (!this.parentData.gapAfter.exists) {
-                this.hasMoreNewer.set(false);
-              }
-            }
-          }
-
-          if (scrollDirection === 'UP') {
-            const oldest = reversed[0];
-            this.oldestMessageTimestamp = oldest.sentAt;
-            this.oldestMessageId = oldest.messageId;
-            console.log(this.oldestMessageId)
-          } else if (scrollDirection == 'DOWN') {
-            const newest = reversed[reversed.length - 1];
-            this.newestMessageTimestamp = newest.sentAt;
-            this.newestMessageId = newest.messageId;
-          }
-
-          setTimeout(() => {
-            requestAnimationFrame(() => {
-              if (anchorId) {
-                const newEl = this.messageElements.toArray().find(e => e.nativeElement.getAttribute('data-message-id') === anchorId.toString());
-                if (newEl) {
-                  const newTop = newEl.nativeElement.offsetTop;
-                  container.scrollTop = newTop - relativePos;
-                }
-              }
-            });
-          }, 0);
-        },
-        error: (err) => {
-          console.error(err);
-        },
-        complete: () => {
-          console.log("full messages")
-          console.log(this.messagesToSelectedChatt())
-          if (scrollDirection === 'UP') {
-            this.loadingOlderMessages = false;
-            if (this.parentData && this.parentData.gapBefore.exists) {
-              this.parentData.gapBefore.lastMessageId = this.oldestMessageId;
-              this.parentData.gapBefore.lastMessageSentAt = this.oldestMessageTimestamp;
-              this.messagesToSelectedChatt.update(curr => [
-                {
-                  type: 'gap-before',
-                  missingCount: this.parentData.gapBefore.missingCount,
-                  lastMessageId: this.parentData.gapBefore.lastMessageId,
-                  lastMessageSentAt: this.parentData.gapBefore.lastMessageSentAt
-                },
-                ...curr
-              ]);
-            }
-          } else {
-            this.loadingNewerMessages = false;
-            if (this.parentData && this.parentData.gapAfter.exists) {
-              this.parentData.gapAfter.lastMessageId = this.newestMessageId;
-              this.parentData.gapAfter.lastMessageSentAt = this.newestMessageTimestamp;
-              this.messagesToSelectedChatt.update(curr => [
-                ...curr,
-                {
-                  type: 'gap-after',
-                  missingCount: this.parentData.gapAfter.missingCount,
-                  lastMessageId: this.parentData.gapAfter.lastMessageId,
-                  lastMessageSentAt: this.parentData.gapAfter.lastMessageSentAt
-                }
-              ]);
-            }
-          }
-          this.lockscroll = false;
-          this.fillingGapType = null;
-        },
-      });
-  }
-
-  private setupGapObservers() {
-    if (this.observer) {
-      this.observer.disconnect();
-    }
-
-    this.observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && !this.isAutoScroll) {
-          const el = entry.target as HTMLElement;
-          const type = el.getAttribute('data-gap-type') as 'gap-before' | 'gap-after' | null;
-          if (type) {
-            const direction: ScrollDirectionCustameType = type === 'gap-before' ? 'UP' : 'DOWN';
-            const loading = direction === 'UP' ? this.loadingOlderMessages : this.loadingNewerMessages;
-            const gapKey = type.replace('gap-', '') as 'gapBefore' | 'gapAfter';
-            if (this.parentData && this.parentData[gapKey].exists && !loading) {
-              if (direction === 'UP') {
-                this.loadingOlderMessages = true;
-              } else {
-                this.loadingNewerMessages = true;
-              }
-              const gap = this.parentData[gapKey];
-              this.loadMessages(this.scrollContainer.nativeElement, direction, gap.missingCount);
-            }
-          }
-        }
-      });
-    }, { threshold: 0.1 });
-
-    this.messageElements.toArray().forEach(el => {
-      if (el.nativeElement.hasAttribute('data-gap-type')) {
-        this.observer?.observe(el.nativeElement);
-      }
-    });
-  }
 
   private scrollToUnreadOrBottom() {
     const unreadCount = this.chatSelected.unreadCount;
@@ -645,4 +403,154 @@ export class ChatMessagesComponent implements OnDestroy {
       });
   }
 
+
+
+
+
+
+
+
+
+
+
+  private loadInitialMessages() {
+    if (!this.chatSelected) return;
+    this.hasMoreMessages.set(true);
+    this.hasMoreNewer.set(false);
+
+    this.messageService.getChatMessages(this.chatSelected.chatId, 'UP')
+      .subscribe({
+        next: (messages) => {
+          const reversed = messages.reverse();
+          this.messagesToSelectedChatt.set(reversed);
+          if (reversed.length > 0) {
+            this.oldestMessageTimestamp = reversed[0].sentAt;
+            this.oldestMessageId = reversed[0].messageId;
+            this.newestMessageTimestamp = reversed[reversed.length - 1].sentAt;
+            this.newestMessageId = reversed[reversed.length - 1].messageId;
+          }
+        },
+        error: (err) => console.error('Error fetching messages', err),
+        complete: () => setTimeout(() => this.scrollToBottom(), 0)
+      });
+  }
+
+  private scrollToBottom() {
+    const container = this.scrollContainer.nativeElement;
+    container.scrollTop = container.scrollHeight;
+  }
+
+  @HostListener('scroll', ['$event'])
+  onScroll(event: Event) {
+    const container = event.target as HTMLElement;
+    const currentScrollTop = container.scrollTop;
+
+    const scrollDirection: ScrollDirectionCustameType = currentScrollTop > this.lastScrollTop ? 'DOWN'
+      : currentScrollTop < this.lastScrollTop ? 'UP' : 'NOTCHANGE';
+
+    this.lastScrollTop = currentScrollTop;
+
+    // Load older messages
+    if (scrollDirection === 'UP' && currentScrollTop < 50 && this.hasMoreMessages() && !this.loadingOlderMessages) {
+      this.loadMessages('UP').subscribe();
+    }
+
+    // Load newer messages
+    const scrollBottom = container.scrollHeight - currentScrollTop - container.clientHeight;
+    if (scrollDirection === 'DOWN' && scrollBottom < 50 && this.hasMoreNewer() && !this.loadingNewerMessages) {
+      this.loadMessages('DOWN').subscribe();
+    }
+  }
+
+  private loadMessages(direction: 'UP' | 'DOWN', missingMessagesCount?: number): Observable<MessageResponse[]> {
+    if (!this.chatSelected) return of([]);
+
+    const container = this.scrollContainer.nativeElement;
+    const prevScrollHeight = container.scrollHeight;
+    const prevScrollTop = container.scrollTop;
+
+    const seekRequest: TimestampSeekRequest = {
+      lastHappenedAt: direction === 'UP' ? this.oldestMessageTimestamp : this.newestMessageTimestamp,
+      lastEntityId: direction === 'UP' ? this.oldestMessageId : this.newestMessageId
+    };
+
+    if (direction === 'UP') this.loadingOlderMessages = true;
+    else this.loadingNewerMessages = true;
+
+    return this.messageService.getChatMessages(this.chatSelected.chatId, direction, seekRequest, missingMessagesCount ?? 10).pipe(
+      tap(messages => {
+        if (!messages.length) {
+          direction === 'UP' ? this.hasMoreMessages.set(false) : this.hasMoreNewer.set(false);
+          return;
+        }
+
+        const reversed = messages.reverse();
+        this.messagesToSelectedChatt.update(curr => direction === 'UP'
+          ? [...reversed, ...curr]
+          : [...curr, ...reversed]);
+
+        // Update oldest/newest
+        const allMessages = this.messagesToSelectedChatt().filter(m => 'messageId' in m) as MessageResponse[];
+        this.oldestMessageId = allMessages[0].messageId;
+        this.oldestMessageTimestamp = allMessages[0].sentAt;
+        this.newestMessageId = allMessages[allMessages.length - 1].messageId;
+        this.newestMessageTimestamp = allMessages[allMessages.length - 1].sentAt;
+      }),
+      finalize(() => {
+        if (direction === 'UP') {
+          const newScrollHeight = container.scrollHeight;
+          container.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
+          this.loadingOlderMessages = false;
+        } else {
+          if (this.isUserAtBottom(container)) container.scrollTop = container.scrollHeight;
+          this.loadingNewerMessages = false;
+        }
+      })
+    );
+  }
+
+  private isUserAtBottom(container: HTMLElement, threshold = 50) {
+    return container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+  }
+
+  // ---------------- IntersectionObserver for Gaps  why not work ----------------
+  private setupGapObservers() {
+    if (this.observer) this.observer.disconnect();
+
+    this.observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target as HTMLElement;
+        const gapType = el.getAttribute('data-gap-type') as 'gap-before' | 'gap-after' | null;
+        if (!gapType) return;
+
+        const direction = gapType === 'gap-before' ? 'UP' : 'DOWN';
+        const missingMessagesCount = direction == 'UP' ? this.parentData.gapBefore.missingCount : this.parentData.gapAfter.missingCount
+        const loading = direction === 'UP' ? this.parentData.gapBefore.lastMessageId : this.parentData.gapAfter.lastMessageId;
+
+        if (!loading) {
+          console.log(direction)
+          console.log(missingMessagesCount)
+          this.loadMessages(direction, missingMessagesCount).subscribe(() => {
+            this.messagesToSelectedChatt.update(curr => curr.filter(m => this.isMessage(m) || m.type !== gapType));
+            this.observer?.unobserve(el);
+          });
+        }
+      });
+    }, { threshold: 0.1 });
+
+    this.observeGapElements();
+    this.messageElements.changes.subscribe(() => this.observeGapElements());
+  }
+
+  private observeGapElements() {
+    this.messageElements.forEach(elRef => {
+      const el = elRef.nativeElement;
+      if (el.hasAttribute('data-gap-type')) this.observer?.observe(el);
+    });
+  }
+
+  isMessage(item: MessageResponse | GapPlaceholder): item is MessageResponse {
+    return 'messageId' in item;
+  }
 }
