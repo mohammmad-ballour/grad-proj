@@ -11,13 +11,6 @@
      class="overflow-auto p-3 h-100 bg-light chat-scrollbar"
      (scroll)="onScroll($event)">
 
-  <!-- Loader for older messages -->
-  @if(loadingOlderMessages) {
-    <div class="text-center py-2">
-      <mat-spinner diameter="24"></mat-spinner>
-    </div>
-  }
-
   <!-- Loading placeholder -->
   @if(!loadingMessages()) {
     <div class="d-flex align-items-center justify-content-center p-4">
@@ -46,156 +39,93 @@
       <p class="mt-2 mb-0">No messages yet. Send the first message to start the conversation.</p>
     </div>
   } @else {
-    @for(m of messagesToSelectedChatt(); track m.messageId) {
-      <div class="d-flex mb-2" [class.justify-content-end]="m.senderAvatar.userId==activeUserId"
-           [class.justify-content-start]="m.senderAvatar.userId!=activeUserId">
-        
-        <!-- Avatar -->
-        @if(m.senderAvatar.userId!=activeUserId) {
-          <img class="rounded-circle me-2 align-self-end" width="28" height="28"
-               [src]="processImage(m.senderAvatar.profilePicture)"
-               (error)="onImageError($event,'assets/ProfileAvatar.png')" />
-        }
+    @for(item of messagesToSelectedChatt(); track trackByMessageId($index, item)) {
+      @if(isMessage(item)) {
+        <div class="d-flex mb-2" [class.justify-content-end]="item.senderAvatar.userId==activeUserId"
+             [class.justify-content-start]="item.senderAvatar.userId!=activeUserId">
+          
+          <!-- Avatar -->
+          @if(item.senderAvatar.userId!=activeUserId) {
+            <img class="rounded-circle me-2 align-self-end" width="28" height="28"
+                 [src]="processImage(item.senderAvatar.profilePicture)"
+                 (error)="onImageError($event,'assets/ProfileAvatar.png')" />
+          }
 
-        <!-- Chat Bubble -->
-        <div #messageElement class="chat-bubble shadow-sm p-2"
-             [ngClass]="{'sent': m.senderAvatar.userId==activeUserId,'received': m.senderAvatar.userId!=activeUserId}"
-             [attr.data-message-id]="m.messageId"
-           >
+          <!-- Chat Bubble -->
+          <div #messageElement class="chat-bubble shadow-sm p-2"
+               [ngClass]="{'sent': item.senderAvatar.userId==activeUserId,'received': item.senderAvatar.userId!=activeUserId}"
+               [attr.data-message-id]="item.messageId">
 
-          <!-- Reply Preview -->
-          @if(m.parentMessageSnippet ) {
-            <div class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
-              (click)="viewParent(m.parentMessageSnippet.parentMessageId)"
-                 >
-              <small class="text-muted">
-                <strong>
-                  {{
-                   m.parentMessageSnippet.senderDisplayName=='activeuserId' ? 'You' :
-                    m.parentMessageSnippet.senderDisplayName
-                  }}
-                </strong>
-              </small>
-              <div class="text-truncate">
-                @if( m.parentMessageSnippet.media) {
-                  <img [src]="processImage( m.parentMessageSnippet.media)" class="message-media mb-1"/>
+            <!-- Reply Preview -->
+            @if(item.parentMessageSnippet ) {
+              <div class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
+                   (click)="viewParent(item.parentMessageSnippet.parentMessageId)">
+                <small class="text-muted">
+                  <strong>
+                    {{
+                     item.parentMessageSnippet.senderDisplayName=='activeuserId' ? 'You' :
+                      item.parentMessageSnippet.senderDisplayName
+                    }}
+                  </strong>
+                </small>
+                <div class="text-truncate">
+                  @if( item.parentMessageSnippet.media) {
+                    <img [src]="processImage( item.parentMessageSnippet.media)" class="message-media mb-1"/>
+                  }
+                </div>
+                <div class="text-truncate">
+                  {{   item.parentMessageSnippet.content}}
+                </div>
+              </div>
+            }
+            <div
+              [matMenuTriggerFor]="msgMenu" #menuTrigger="matMenuTrigger"
+               [matMenuTriggerData]="{message: item}"
+               (contextmenu)="$event.preventDefault(); menuTrigger.openMenu()"
+            >
+
+
+            <!-- Media -->
+            @if(item.media) {
+              <div class="message-media-wrapper mb-1">
+                @if(item.messageType=='IMAGE') {
+                  <img [src]="processImage(item.media)" class="message-media" />
+                } @else if(item.messageType=='VIDEO') {
+                  <video [src]="processVideo(item.media)" controls class="message-media rounded"></video>
                 }
               </div>
-              <div class="text-truncate">
-                {{   m.parentMessageSnippet.content}}
-              </div>
-            </div>
-          }
-          <div
-            [matMenuTriggerFor]="msgMenu" #menuTrigger="matMenuTrigger"
-             [matMenuTriggerData]="{message: m}"
-             (contextmenu)="$event.preventDefault(); menuTrigger.openMenu()"
-          
-          >
+            }
 
+            <!-- Text -->
+            @if(item.content) {
+              <div class="text-content">{{ item.content }}</div>
+            }
 
-          <!-- Media -->
-          @if(m.media) {
-            <div class="message-media-wrapper mb-1">
-              @if(m.messageType=='IMAGE') {
-                <img [src]="processImage(m.media)" class="message-media" />
-              } @else if(m.messageType=='VIDEO') {
-                <video [src]="processVideo(m.media)" controls class="message-media rounded"></video>
+            <!-- Meta -->
+            <div class="chat-meta text-end mt-1">
+              <small class="text-muted me-1">{{ item.sentAt | date:'shortTime' }}</small>
+              @if(activeUserId==item.senderAvatar.userId) {
+                <i class="bi" [ngClass]="{
+                  'bi-check-lg': item.messageStatus===MessageStatus.SENT,
+                  'bi-check-all': item.messageStatus===MessageStatus.DELIVERED||item.messageStatus===MessageStatus.READ,
+                  'text-primary': item.messageStatus===MessageStatus.READ
+                }"></i>
               }
             </div>
-          }
 
-          <!-- Text -->
-          @if(m.content) {
-            <div class="text-content">{{ m.content }}</div>
-          }
-
-          <!-- Meta -->
-          <div class="chat-meta text-end mt-1">
-            <small class="text-muted me-1">{{ m.sentAt | date:'shortTime' }}</small>
-            @if(activeUserId==m.senderAvatar.userId) {
-              <i class="bi" [ngClass]="{
-                'bi-check-lg': m.messageStatus===MessageStatus.SENT,
-                'bi-check-all': m.messageStatus===MessageStatus.DELIVERED||m.messageStatus===MessageStatus.READ,
-                'text-primary': m.messageStatus===MessageStatus.READ
-              }"></i>
-            }
-          </div>
-
+            </div>
           </div>
         </div>
-      </div>
-
-        <!-- Context menu -->
-      <mat-menu #msgMenu="matMenu">
-      <ng-template matMenuContent let-data="matMenuTriggerData">
-      <button mat-menu-item (click)="startReply(m)"><mat-icon>reply</mat-icon><span>Reply</span></button>
-      <button mat-menu-item (click)="copy(m.content)"><mat-icon>content_copy</mat-icon><span>Copy</span></button>
-      @if(m.senderAvatar.userId == activeUserId) {
-      <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, m)">
-      <mat-icon>info</mat-icon><span>Info</span>
-      </button>
+      } @else {
+        <div #messageElement class="text-center py-2 gap-placeholder" [attr.data-gap-type]="item.type">
+          @if( (item.type === 'gap-before' && loadingOlderMessages) || (item.type === 'gap-after' && loadingNewerMessages) ) {
+            <mat-spinner diameter="24"></mat-spinner>
+            <span class="ms-2">Loading messages...</span>
+          } @else {
+            <span>{{ item.missingCount }} {{ item.type === 'gap-before' ? 'older' : 'newer' }} messages</span>
+          }
+        </div>
       }
-      </ng-template>
-      </mat-menu>
-      <!-- Component.html -->
-      <mat-menu #infoMenu="matMenu">
-      <ng-template matMenuContent>
-      <div
-      style="width: 140px;   max-height: 200px; overflow-y: auto; padding: 12px; font-family: Arial, sans-serif;">
-      <h6 style="margin-bottom: 8px; font-weight: 600;">Message Info</h6>
-
-      <!-- Delivered / Read Status -->
-      <p style="margin: 4px 0; color: gray;">
-      <strong>Delivered:</strong>
-
-      <i class="bi" [ngClass]="{
-      'bi-check-lg': !messageInfoData?.delivered ,
-      'bi-check-all': messageInfoData?.delivered 
-      }"></i>
-      </p>
-      <p style="margin: 4px 0; color: gray;">
-      <strong>Read:</strong>
-      <i class="bi bi-check-all" [ngClass]="{
-      'text-primary': messageInfoData?.read 
-      }"></i>
-
-      </p>
-
-      <!-- Delivered By -->
-      @if(deliveredKeys.length > 0) {
-      <h6 style="margin-top: 12px; margin-bottom: 4px; font-weight: 500; color: #555;">Delivered By</h6>
-      <ul style="list-style: none; padding-left: 0; margin: 0;">
-      @for(userId of deliveredKeys ; track userId) {
-      <li style="padding: 4px 0; font-size: 14px; color: #333;">
-      <strong>User {{ userId }}</strong>
-      <span style="float: right; color: gray; font-size: 12px;">
-        {{ messageInfoData!.deliveredByAt[userId] | date:'shortTime' }}
-      </span>
-      </li>
-      }
-      </ul>
-      }
-
-      <!-- Read By -->
-      @if(readKeys.length > 0) {
-      <h6 style="margin-top: 12px; margin-bottom: 4px; font-weight: 500; color: #555;">Read By</h6>
-      <ul style="list-style: none; padding-left: 0; margin: 0;">
-      @for(userId of readKeys ;track userId) {
-      <li style="padding: 4px 0; font-size: 14px; color: #333;">
-      <strong>User {{ userId }}</strong>
-      <span style="float: right; color: gray; font-size: 12px;">
-        {{ messageInfoData!.readByAt[userId] | date:'shortTime' }}
-      </span>
-      </li>
-      }
-      </ul>
-      }
-
-
-      </div>
-      </ng-template>
-      </mat-menu>
     }
   }
 </div>
@@ -248,9 +178,11 @@
 <!-- Message Context Menu -->
 <mat-menu #msgMenu="matMenu">
   <ng-template matMenuContent let-message="message">
-    <button mat-menu-item (click)="copy(message.content)">Copy</button>
-    <button mat-menu-item (click)="startReply(message)">Reply</button>
-    <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, message)">Info</button>
+    <button mat-menu-item (click)="copy(message.content)"><mat-icon>content_copy</mat-icon>Copy</button>
+    <button mat-menu-item (click)="startReply(message)"><mat-icon>reply</mat-icon>Reply</button>
+    @if(message.senderAvatar.userId == activeUserId) {
+      <button mat-menu-item (click)="openInfoFromContext(menuTrigger, infoMenu, message)"><mat-icon>info</mat-icon>Info</button>
+    }
   </ng-template>
 </mat-menu>
 

@@ -204,3 +204,58 @@ img.rounded-circle {
     border-right: 8px solid #ffffff;
     border-top: 8px solid transparent;
 }
+
+.chat-scrollbar {
+    height: calc(100vh - 120px);
+    /* Adjust based on header/footer height */
+    overflow-y: auto;
+}
+
+.chat-bubble {
+    max-width: 70%;
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+
+.sent {
+    background-color: #d1e7dd;
+    margin-left: auto;
+}
+
+.received {
+    background-color: #f8f9fa;
+    margin-right: auto;
+}
+
+.message-media {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+}
+
+.replied-message {
+    cursor: pointer;
+    border-left: 3px solid #007bff;
+}
+
+.gap-placeholder {
+    background-color: #e9ecef;
+    border-radius: 8px;
+    padding: 8px;
+    margin: 10px 0;
+    font-size: 0.9em;
+}
+
+.highlight-parent {
+    animation: highlight 0.8s ease-in-out;
+}
+
+@keyframes highlight {
+    0% {
+        background-color: #fff3cd;
+    }
+
+    100% {
+        background-color: inherit;
+    }
+}
