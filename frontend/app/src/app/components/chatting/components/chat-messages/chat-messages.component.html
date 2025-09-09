@@ -39,7 +39,8 @@
       <p class="mt-2 mb-0">No messages yet. Send the first message to start the conversation.</p>
     </div>
   } @else {
-    @for(item of messagesToSelectedChatt(); track trackByMessageId($index, item)) {
+   @for(item of messagesToSelectedChatt(); track trackByMessage($index, item)){
+
       @if(isMessage(item)) {
         <div class="d-flex mb-2" [class.justify-content-end]="item.senderAvatar.userId==activeUserId"
              [class.justify-content-start]="item.senderAvatar.userId!=activeUserId">
@@ -117,7 +118,14 @@
           </div>
         </div>
       } @else {
-        <div #messageElement class="text-center py-2 gap-placeholder" [attr.data-gap-type]="item.type">
+        <div #messageElement class="text-center py-2 gap-placeholder"
+        (disable)="isAutoScroll"
+        [attr.data-gap-type]="item.type"
+        [attr.data-missing-count]="item.missingCount"
+        [attr.data-last-message-id]="item.lastMessageId"
+        [attr.data-last-message-sent-at]="item.lastMessageSentAt"
+        
+        >
           @if( (item.type === 'gap-before' && loadingOlderMessages) || (item.type === 'gap-after' && loadingNewerMessages) ) {
             <mat-spinner diameter="24"></mat-spinner>
             <span class="ms-2">Loading messages...</span>

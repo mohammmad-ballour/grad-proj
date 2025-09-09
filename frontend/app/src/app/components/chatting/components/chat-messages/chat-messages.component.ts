@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MessageDetailResponse } from '../../models/message-detail-response';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
-import { Observable, of, tap, finalize } from 'rxjs';
+import { Observable, of, tap, finalize, Subscription } from 'rxjs';
 export type ScrollDirectionCustameType = 'UP' | 'DOWN' | 'NOTCHANGE';
 
 interface GapPlaceholder {
@@ -89,11 +89,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  ngOnDestroy() {
-    if (this.observer) {
-      this.observer.disconnect();
-    }
-  }
+
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['chatSelected'] && this.chatSelected) {
@@ -125,20 +121,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  scrollToParentMessage(parentMessageId: number): void {
-    const parentElement = this.messageElements
-      .toArray()
-      .find(el => el.nativeElement.getAttribute('data-message-id') === parentMessageId.toString());
 
-    if (parentElement) {
-      parentElement.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      parentElement.nativeElement.classList.add('highlight-parent');
-      setTimeout(() => {
-        parentElement.nativeElement.classList.remove('highlight-parent');
-        this.isAutoScroll = false;
-      }, 800);
-    }
-  }
 
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
@@ -337,71 +320,6 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     }, 440);
   }
 
-  viewParent(ParentMessageId: number) {
-    // Case 1: message already loaded
-    const existing = this.messagesToSelectedChatt().find(m => this.isMessage(m) && m.messageId === ParentMessageId);
-    if (existing) {
-      this.scrollToParentMessage(ParentMessageId);
-      return;
-    }
-
-    // Case 2: fetch from backend
-    this.messageService.getParentMessageWithNeighbours(this.chatSelected.chatId, ParentMessageId, this.oldestMessageId)
-      .subscribe({
-        next: (data) => {
-          this.parentData = data;
-
-          const newList: (MessageResponse | GapPlaceholder)[] = [];
-          if (data.gapBefore.exists) {
-            newList.push({
-              type: 'gap-before',
-              missingCount: data.gapBefore.missingCount,
-              lastMessageId: data.gapBefore.lastMessageId,
-              lastMessageSentAt: data.gapBefore.lastMessageSentAt
-            });
-          }
-          newList.push(...data.messages.sort((a, b) => a.messageId - b.messageId));
-          if (data.gapAfter.exists) {
-            newList.push({
-              type: 'gap-after',
-              missingCount: data.gapAfter.missingCount,
-              lastMessageId: data.gapAfter.lastMessageId,
-              lastMessageSentAt: data.gapAfter.lastMessageSentAt
-            });
-          }
-
-          this.messagesToSelectedChatt.update(curr => [...newList, ...curr]);
-
-          console.log(data)
-          // Handle gapBefore
-          if (data.gapBefore.exists) {
-            this.hasMoreMessages.set(true);
-            console.log(`⚠️ Missing ${data.gapBefore.missingCount} messages before ID ${data.gapBefore.lastMessageId}`);
-          }
-
-          // Handle gapAfter
-          if (data.gapAfter.exists) {
-            this.hasMoreNewer.set(true);
-            console.log(`⚠️ Missing ${data.gapAfter.missingCount} messages after ID ${data.gapAfter.lastMessageId}`);
-          }
-
-          // Update oldest and newest
-          const actualMsgs = this.messagesToSelectedChatt().filter(this.isMessage).sort((a, b) => a.messageId - b.messageId);
-          if (actualMsgs.length > 0) {
-            this.oldestMessageId = actualMsgs[0].messageId;
-            this.oldestMessageTimestamp = actualMsgs[0].sentAt;
-            this.newestMessageId = actualMsgs[actualMsgs.length - 1].messageId;
-            this.newestMessageTimestamp = actualMsgs[actualMsgs.length - 1].sentAt;
-          }
-        },
-        error: (err) => console.error('Error loading parent message:', err),
-        complete: () => {
-          console.log(this.messagesToSelectedChatt())
-          this.isAutoScroll = true;
-          setTimeout(() => this.scrollToParentMessage(ParentMessageId), 100);
-        }
-      });
-  }
 
 
 
@@ -440,6 +358,35 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     container.scrollTop = container.scrollHeight;
   }
 
+
+
+
+  private isUserAtBottom(container: HTMLElement, threshold = 50) {
+    return container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+  }
+
+
+  private observeGapElements() {
+    this.messageElements.forEach(elRef => {
+      const el = elRef.nativeElement;
+      if (el.hasAttribute('data-gap-type')) this.observer?.observe(el);
+    });
+  }
+
+
+
+
+  isMessage(item: MessageResponse | GapPlaceholder): item is MessageResponse {
+    return 'messageId' in item;
+  }
+
+
+
+
+
+  // Inside the ChatMessagesComponent class
+  private scrollSubscriptions: Subscription[] = []; // Store subscriptions to clean up
+
   @HostListener('scroll', ['$event'])
   onScroll(event: Event) {
     const container = event.target as HTMLElement;
@@ -452,90 +399,167 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
     // Load older messages
     if (scrollDirection === 'UP' && currentScrollTop < 50 && this.hasMoreMessages() && !this.loadingOlderMessages) {
-      this.loadMessages('UP').subscribe();
+      this.loadMessages('UP');
+
     }
 
     // Load newer messages
     const scrollBottom = container.scrollHeight - currentScrollTop - container.clientHeight;
     if (scrollDirection === 'DOWN' && scrollBottom < 50 && this.hasMoreNewer() && !this.loadingNewerMessages) {
-      this.loadMessages('DOWN').subscribe();
+      this.loadMessages('DOWN')
+
     }
   }
 
-  private loadMessages(direction: 'UP' | 'DOWN', missingMessagesCount?: number): Observable<MessageResponse[]> {
-    if (!this.chatSelected) return of([]);
+
+
+
+
+  private loadMessages(direction: 'UP' | 'DOWN', missingMessagesCount: number = 10, lastMessageId?: number, lastMessageSentAt?: string): void {
+    if (!this.chatSelected || this.loadingOlderMessages || this.loadingNewerMessages) return;
 
     const container = this.scrollContainer.nativeElement;
     const prevScrollHeight = container.scrollHeight;
     const prevScrollTop = container.scrollTop;
 
     const seekRequest: TimestampSeekRequest = {
-      lastHappenedAt: direction === 'UP' ? this.oldestMessageTimestamp : this.newestMessageTimestamp,
-      lastEntityId: direction === 'UP' ? this.oldestMessageId : this.newestMessageId
+      lastHappenedAt: lastMessageSentAt ?? (direction === 'UP' ? this.oldestMessageTimestamp : this.newestMessageTimestamp),
+      lastEntityId: lastMessageId ?? (direction === 'UP' ? this.oldestMessageId : this.newestMessageId)
     };
 
     if (direction === 'UP') this.loadingOlderMessages = true;
     else this.loadingNewerMessages = true;
 
-    return this.messageService.getChatMessages(this.chatSelected.chatId, direction, seekRequest, missingMessagesCount ?? 10).pipe(
-      tap(messages => {
-        if (!messages.length) {
-          direction === 'UP' ? this.hasMoreMessages.set(false) : this.hasMoreNewer.set(false);
-          return;
-        }
-
-        const reversed = messages.reverse();
-        this.messagesToSelectedChatt.update(curr => direction === 'UP'
-          ? [...reversed, ...curr]
-          : [...curr, ...reversed]);
-
-        // Update oldest/newest
-        const allMessages = this.messagesToSelectedChatt().filter(m => 'messageId' in m) as MessageResponse[];
-        this.oldestMessageId = allMessages[0].messageId;
-        this.oldestMessageTimestamp = allMessages[0].sentAt;
-        this.newestMessageId = allMessages[allMessages.length - 1].messageId;
-        this.newestMessageTimestamp = allMessages[allMessages.length - 1].sentAt;
-      }),
-      finalize(() => {
-        if (direction === 'UP') {
-          const newScrollHeight = container.scrollHeight;
-          container.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
+    this.messageService.getChatMessages(this.chatSelected.chatId, direction, seekRequest, missingMessagesCount)
+      .pipe(
+        finalize(() => {
           this.loadingOlderMessages = false;
-        } else {
-          if (this.isUserAtBottom(container)) container.scrollTop = container.scrollHeight;
           this.loadingNewerMessages = false;
+          this.fillingGapType = null;
+        })
+      )
+      .subscribe({
+        next: (messages) => {
+          console.log(messages)
+          if (!messages.length) {
+            direction === 'UP' ? this.hasMoreMessages.set(false) : this.hasMoreNewer.set(false);
+            return;
+          }
+
+          const reversed = direction === 'UP' ? messages.reverse() : messages;
+
+          this.messagesToSelectedChatt.update(curr => {
+            // Find the index of the reference message (seekRequest.lastEntityId)
+            const referenceIndex = curr.findIndex(item =>
+              this.isMessage(item) && item.messageId === seekRequest.lastEntityId
+            );
+            console.log(referenceIndex)
+            let updated: (MessageResponse | GapPlaceholder)[] = [...curr];
+
+            if (referenceIndex !== -1) {
+              // Insert messages at the correct position
+              if (direction === 'UP') {
+                // Insert before the reference message (seekRequest.lastEntityId)
+                updated.splice(referenceIndex, 0, ...reversed);
+              } else {
+                // Insert after the reference message (seekRequest.lastEntityId)
+                updated.splice(referenceIndex + 1, 0, ...reversed);
+              }
+            } else {
+              // Fallback: append/prepend if reference message not found
+              // updated = direction === 'UP' ? [...reversed, ...curr] : [...curr, ...reversed];
+              console.log('fall back')
+            }
+
+            // Remove gap placeholders if filled
+            return updated.filter(item => {
+              if (!this.isMessage(item)) {
+                return !(item.type === 'gap-before' && direction === 'UP') && !(item.type === 'gap-after' && direction === 'DOWN');
+              }
+              return true;
+            });
+          });
+
+          const allMessages = this.messagesToSelectedChatt().filter(this.isMessage) as MessageResponse[];
+          if (allMessages.length > 0) {
+            this.oldestMessageId = allMessages[0].messageId;
+            this.oldestMessageTimestamp = allMessages[0].sentAt;
+            this.newestMessageId = allMessages[allMessages.length - 1].messageId;
+            this.newestMessageTimestamp = allMessages[allMessages.length - 1].sentAt;
+          }
+        },
+        error: (err) => {
+          console.error('Error loading messages:', err);
+          this.snackBar.open('Failed to load messages', 'Close', { duration: 3000 });
+        },
+        complete: () => {
+          console.log(this.messagesToSelectedChatt())
+          if (direction === 'UP') {
+            const newScrollHeight = container.scrollHeight;
+            container.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
+            this.loadingOlderMessages = false;
+          } else {
+            if (this.isUserAtBottom(container)) this.scrollToBottom();
+            this.loadingNewerMessages = false;
+          }
         }
-      })
-    );
+      });
   }
 
-  private isUserAtBottom(container: HTMLElement, threshold = 50) {
-    return container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+
+
+
+
+
+  ngOnDestroy() {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+    this.scrollSubscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  // ---------------- IntersectionObserver for Gaps  why not work ----------------
+
+
+
+
+
+
+
+
+
+
+
   private setupGapObservers() {
+    if (this.isAutoScroll) return; // 🚫 Skip during auto-scroll
+
     if (this.observer) this.observer.disconnect();
 
     this.observer = new IntersectionObserver(entries => {
+      // Skip processing if auto-scrolling or already filling a gap
+      if (this.isAutoScroll || this.fillingGapType) return;
+
       entries.forEach(entry => {
         if (!entry.isIntersecting) return;
+
         const el = entry.target as HTMLElement;
         const gapType = el.getAttribute('data-gap-type') as 'gap-before' | 'gap-after' | null;
         if (!gapType) return;
 
-        const direction = gapType === 'gap-before' ? 'UP' : 'DOWN';
-        const missingMessagesCount = direction == 'UP' ? this.parentData.gapBefore.missingCount : this.parentData.gapAfter.missingCount
-        const loading = direction === 'UP' ? this.parentData.gapBefore.lastMessageId : this.parentData.gapAfter.lastMessageId;
+        // 🚫 Block gap-after if we're inside viewParent auto-scroll
+        if (this.isAutoScroll && gapType === 'gap-after') return;
 
-        if (!loading) {
-          console.log(direction)
-          console.log(missingMessagesCount)
-          this.loadMessages(direction, missingMessagesCount).subscribe(() => {
-            this.messagesToSelectedChatt.update(curr => curr.filter(m => this.isMessage(m) || m.type !== gapType));
-            this.observer?.unobserve(el);
-          });
+        const direction = gapType === 'gap-before' ? 'UP' : 'DOWN';
+        const missingCount = parseInt(el.getAttribute('data-missing-count') || '0');
+        const lastMessageId = parseInt(el.getAttribute('data-last-message-id') || '0');
+        const lastMessageSentAt = el.getAttribute('data-last-message-sent-at') || '';
+
+        if (missingCount <= 0 || !lastMessageId || !lastMessageSentAt) {
+          console.warn('Invalid gap data:', { gapType, missingCount, lastMessageId, lastMessageSentAt });
+          return;
         }
+
+        this.fillingGapType = gapType;
+        this.loadMessages(direction, missingCount, lastMessageId, lastMessageSentAt);
       });
     }, { threshold: 0.1 });
 
@@ -543,14 +567,120 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     this.messageElements.changes.subscribe(() => this.observeGapElements());
   }
 
-  private observeGapElements() {
-    this.messageElements.forEach(elRef => {
-      const el = elRef.nativeElement;
-      if (el.hasAttribute('data-gap-type')) this.observer?.observe(el);
-    });
+  viewParent(ParentMessageId: number) {
+    // Disconnect observer while fetching parent
+    if (this.observer) this.observer.disconnect();
+
+    // Case 1: message already loaded
+    const existing = this.messagesToSelectedChatt().find(m => this.isMessage(m) && m.messageId === ParentMessageId);
+    if (existing) {
+      this.isAutoScroll = true;
+      this.scrollToParentMessage(ParentMessageId);
+      return;
+    }
+
+    // Case 2: fetch from backend
+    this.isAutoScroll = true;
+    this.messageService.getParentMessageWithNeighbours(this.chatSelected.chatId, ParentMessageId, this.oldestMessageId)
+      .subscribe({
+        next: (data) => {
+
+
+          const newList: (MessageResponse | GapPlaceholder)[] = [];
+          // if messagesekectedchat at index 0 is gap-before' remove the item
+          if (data.gapBefore.exists) {
+            newList.push({
+              type: 'gap-before',
+              missingCount: data.gapBefore.missingCount,
+              lastMessageId: data.gapBefore.lastMessageId,
+              lastMessageSentAt: data.gapBefore.lastMessageSentAt
+            });
+          }
+          newList.push(...data.messages.sort((a, b) => a.messageId - b.messageId));
+          if (data.gapAfter.exists) {
+            newList.push({
+              type: 'gap-after',
+              missingCount: data.gapAfter.missingCount,
+              lastMessageId: data.gapAfter.lastMessageId,
+              lastMessageSentAt: data.gapAfter.lastMessageSentAt
+            });
+          }
+
+          this.messagesToSelectedChatt.update(curr => [...newList, ...curr]);
+
+          // Handle gaps
+          if (data.gapBefore.exists) this.hasMoreMessages.set(true);
+          if (data.gapAfter.exists) this.hasMoreNewer.set(true);
+          const messages = this.messagesToSelectedChatt();
+
+          if (messages.length > 0 && !this.isMessage(messages[0])) {
+            // Remove the first item
+            this.messagesToSelectedChatt().shift();
+
+          }
+          // Update oldest/newest
+          const actualMsgs = this.messagesToSelectedChatt().filter(this.isMessage).sort((a, b) => a.messageId - b.messageId);
+          if (actualMsgs.length > 0) {
+            this.oldestMessageId = actualMsgs[0].messageId;
+            this.oldestMessageTimestamp = actualMsgs[0].sentAt;
+            this.newestMessageId = actualMsgs[actualMsgs.length - 1].messageId;
+            this.newestMessageTimestamp = actualMsgs[actualMsgs.length - 1].sentAt;
+          }
+        },
+        error: (err) => {
+          console.error('Error loading parent message:', err);
+          this.isAutoScroll = false;
+        },
+        complete: () => {
+          console.log(this.messagesToSelectedChatt())
+          setTimeout(() => {
+            this.scrollToParentMessage(ParentMessageId);
+
+            // ✅ Re-enable observer after smooth scroll finishes
+            setTimeout(() => {
+              this.isAutoScroll = false;
+              this.setupGapObservers();
+            }, 1000);
+          }, 100);
+        }
+      });
   }
 
-  isMessage(item: MessageResponse | GapPlaceholder): item is MessageResponse {
-    return 'messageId' in item;
+  scrollToParentMessage(parentMessageId: number): void {
+    const parentElement = this.messageElements
+      .toArray()
+      .find(el => el.nativeElement.getAttribute('data-message-id') === parentMessageId.toString());
+
+    if (parentElement) {
+      this.isAutoScroll = true;
+
+      parentElement.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      parentElement.nativeElement.classList.add('highlight-parent');
+
+      setTimeout(() => {
+        parentElement.nativeElement.classList.remove('highlight-parent');
+
+        // Re-enable after scroll highlight
+        setTimeout(() => {
+          this.isAutoScroll = false;
+          this.setupGapObservers();
+        }, 300);
+      }, 800);
+    } else {
+      this.isAutoScroll = false;
+    }
   }
+
+  trackByMessage(index: number, item: any): string | number {
+    if (this.isMessage(item)) {
+      return item.messageId; // messages tracked by ID
+    }
+    return `${item.type}-${item.lastMessageId}`; // gaps tracked uniquely
+  }
+
+
+
 }
+
+
+
