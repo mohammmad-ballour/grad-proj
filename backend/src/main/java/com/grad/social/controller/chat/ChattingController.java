@@ -55,7 +55,7 @@ public class ChattingController {
     }
 
     // when the user/group avatar in the chat list is clicked, this method is called
-    @GetMapping("/chats/{chatId}/chat-messages")
+    @PostMapping("/chats/{chatId}/chat-messages")
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public ResponseEntity<List<ChatMessageResponse>> getChatMessagesByChatId(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId, @RequestParam(defaultValue = "UP") ScrollDirection scrollDirection,
                                                                              @RequestParam(defaultValue = "10") int missingMessagesCount, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
