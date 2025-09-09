@@ -126,11 +126,11 @@
         [attr.data-last-message-sent-at]="item.lastMessageSentAt"
         
         >
-          @if( (item.type === 'gap-before' && loadingOlderMessages) || (item.type === 'gap-after' && loadingNewerMessages) ) {
+          @if(  item.type === 'gap-after' && loadingNewerMessages ) {
             <mat-spinner diameter="24"></mat-spinner>
             <span class="ms-2">Loading messages...</span>
           } @else {
-            <span>{{ item.missingCount }} {{ item.type === 'gap-before' ? 'older' : 'newer' }} messages</span>
+            <span>{{ item.missingCount }}  newer  messages</span>
           }
         </div>
       }

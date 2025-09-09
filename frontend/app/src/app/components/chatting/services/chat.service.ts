@@ -13,22 +13,24 @@ import { UserResponse } from '../models/user-response';
 export class ChatService extends BaseService {
 
 
-  http: any;
-
   constructor(private httpClient: HttpClient, private authServices: AuthService) {
     super();
   }
-
   getAllChats(): Observable<ChatResponse[]> {
     return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}/chat-list`);
   }
 
+
   createOneOnOneChat(recipientId: number): Observable<string> {
-    return this.httpClient.get(`${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}`, {
-      responseType: 'text'
-    });
+    return this.httpClient.post<string>(
+      `${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}`,
+      {},
+      { responseType: 'text' as 'json' } // 👈 important
+    );
   }
 
+
+  // return this.http.post(`${this.apiUrl}/${recipientId}`, {}, { headers, responseType: 'text' });
 
 
 

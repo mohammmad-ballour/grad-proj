@@ -287,6 +287,7 @@ export class ChatListComponent {
   openChat(userId: number): void {
     this.chatService.createOneOnOneChat(userId).subscribe({
       next: (chatId: string) => {
+        console.log(chatId)
         this.closeDialog();
         this.router.navigate([`${AppRoutes.MESSAGES}`, chatId]);
         this.ngOnInit();
