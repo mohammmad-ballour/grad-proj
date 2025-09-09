@@ -26,8 +26,8 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
+import static com.grad.social.model.enums.PrivacySettings.*;
 import static org.jooq.Records.mapping;
 
 @Repository
@@ -71,6 +71,13 @@ public class UserRepository {
                         .where(uf.FOLLOWER_ID.eq(currentUserId).and(uf.FOLLOWED_USER_ID.eq(profileOwnerId)))
         ).as("isBeingFollowed");
 
+        // used for toggling follow button
+        Field<Boolean> isFollowingCurrentUserField = Objects.equals(currentUserId, profileOwnerId) ? DSL.val(false).as("isFollowingCurrentUserField") : DSL.exists(
+                DSL.selectOne()
+                        .from(uf)
+                        .where(uf.FOLLOWER_ID.eq(profileOwnerId).and(uf.FOLLOWED_USER_ID.eq(currentUserId)))
+        ).as("isFollowingCurrentUserField");
+
         // Return the priority or NULL if not following or is self
         Field<FollowingPriority> followingPriorityField = Objects.equals(currentUserId, profileOwnerId) ? DSL.val((FollowingPriority) null).as("followingPriority")
                 : DSL.select(uf.FOLLOWING_PRIORITY)
@@ -93,11 +100,13 @@ public class UserRepository {
         ).as("isMuted");
 
         return dsl.select(u.ID, u.DISPLAY_NAME, u.USERNAME, u.JOINED_AT, u.PROFILE_PICTURE, u.PROFILE_COVER_PHOTO, u.PROFILE_BIO, u.DOB, u.RESIDENCE, u.GENDER,
-                        u.TIMEZONE_ID, followingNumberField, followerNumberField, isBeingFollowedField, followingPriorityField, isBlockedField, isMutedField)
+                        u.TIMEZONE_ID, u.WHO_CAN_MESSAGE, followingNumberField, followerNumberField, isFollowingCurrentUserField, isBeingFollowedField, followingPriorityField,
+                        isBlockedField, isMutedField)
                 .from(u)
                 .where(u.ID.eq(profileOwnerId))
                 .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender,
-                                   timezoneId, followingNumber, followerNumber, isBeingFollowed, followingPriority, isBlocked, isMuted) -> {
+                                   timezoneId, whoCanMessage, followingNumber, followerNumber, isFollowingCurrentUser, isBeingFollowed, followingPriority,
+                                   isBlocked, isMuted) -> {
                     var profile = new ProfileResponse(new UserAvatar(userId, username, displayName, profilePicture), profileCover, bio, joinedAt,
                             new UserAbout(gender, dob, residence, timezoneId));
                     profile.setFollowerNo(followerNumber);
@@ -106,6 +115,14 @@ public class UserRepository {
                     profile.setFollowingPriority(followingPriority == null ? null : followingPriority.name());
                     profile.setIsBlocked(isBlocked);
                     profile.setIsMuted(isMuted);
+                    profile.setCanBeMessaged(
+                            switch (whoCanMessage) {
+                                case EVERYONE -> true;
+                                case FOLLOWERS -> isBeingFollowed;
+                                case FRIENDS -> isBeingFollowed && isFollowingCurrentUser;
+                                case NONE -> false;
+                            }
+                    );
                     return profile;
                 }));
     }
@@ -150,4 +167,5 @@ public class UserRepository {
         Boolean isAccountProtected = dsl.select(u.IS_PROTECTED).where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch))).fetchOneInto(Boolean.class);
         return isAccountProtected != null && isAccountProtected;
     }
+
 }

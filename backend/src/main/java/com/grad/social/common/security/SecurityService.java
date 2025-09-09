@@ -65,35 +65,41 @@ public class SecurityService {
         long currentUserId = extractUserIdFromAuthentication(jwt);
         if (isAnonymous(currentUserId)) return false;
         Map<Long, UserConnectionInfo> connectionWithOthersInfo = userUserInteractionRepository.getConnectionWithOthersInfo(Set.of(recipientId), currentUserId);
-        return checkPrivacySettings(connectionWithOthersInfo, currentUserId);
+        return checkPrivacySettings(connectionWithOthersInfo, "WHO_CAN_MESSAGE");
     }
 
     public boolean isPermittedToAddToGroup(Jwt jwt, Set<Long> recipientIds) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
         if (isAnonymous(currentUserId)) return false;
         Map<Long, UserConnectionInfo> connectionWithOthersInfo = userUserInteractionRepository.getConnectionWithOthersInfo(recipientIds, currentUserId);
-        return checkPrivacySettings(connectionWithOthersInfo, currentUserId);
+        return checkPrivacySettings(connectionWithOthersInfo, "WHO_CAN_ADD_TO_GROUPS");
     }
 
-    private boolean checkPrivacySettings(Map<Long, UserConnectionInfo> userConnectionInfoMap, long currentUserId) {
-        AtomicBoolean result = new AtomicBoolean(false);
+    private boolean checkPrivacySettings(Map<Long, UserConnectionInfo> userConnectionInfoMap, String privacySetting) {
         for (Map.Entry<Long, UserConnectionInfo> entry : userConnectionInfoMap.entrySet()) {
             UserConnectionInfo userConnectionInfo = entry.getValue();
-            PrivacySettings privacySettings = userConnectionInfo.whoCanAddToGroups();
+            PrivacySettings privacySettings = null;
+            if (privacySetting.equals("WHO_CAN_MESSAGE")) {
+                privacySettings = userConnectionInfo.whoCanMessage();
+            } else if (privacySetting.equals("WHO_CAN_ADD_TO_GROUPS")) {
+                privacySettings = userConnectionInfo.whoCanAddToGroups();
+            } else {
+                log.error("Invalid privacy setting: {}", privacySetting);
+            }
             switch (privacySettings) {
                 case EVERYONE:
                     continue;
                 case FRIENDS:
                     boolean areFriends = userConnectionInfo.areFriends();
-                    if (!areFriends) break;
+                    if (!areFriends) return false;
                 case FOLLOWERS:
                     boolean followedByCurrentUser = userConnectionInfo.isFollowedByCurrentUser();
-                    if (!followedByCurrentUser) break;
+                    if (!followedByCurrentUser) return false;
                 default:
-                    break;
+                    return false;
             }
         }
-        return false;
+        return true;
     }
 
     private boolean isAnonymous(long currentUserId) {

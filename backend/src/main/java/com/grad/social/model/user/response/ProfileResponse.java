@@ -1,13 +1,11 @@
 package com.grad.social.model.user.response;
 
-import com.grad.social.model.post.response.PostCard;
 import com.grad.social.model.shared.UserAvatar;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @NoArgsConstructor
 @Data
@@ -24,9 +22,7 @@ public class ProfileResponse {
     private String followingPriority;
     private Boolean isBlocked;
     private Boolean isMuted;
-    private List<PostCard> posts;
-    private long unreadMessagesCount;
-    private long unreadNotificationsCount;
+    private Boolean canBeMessaged;
 
     public ProfileResponse(UserAvatar userAvatar, byte[] profileCoverPhoto, String profileBio, LocalDate joinedAt, UserAbout aboutUser) {
         this.userAvatar = userAvatar;
