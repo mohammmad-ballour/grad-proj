@@ -22,6 +22,7 @@ export interface ProfileResponseDto {
     followingPriority: string;
     isBlocked: boolean;
     isMuted: boolean;
+    canBeMessaged: boolean
 }
 export interface PostCard {
     content: string;

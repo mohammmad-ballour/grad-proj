@@ -77,7 +77,7 @@
           <div class="block-category-group">
             <!-- messenger-button.component.html -->
              @if(!profile.isBlocked){
-               <button class="messenger-btn" (click)="openChat()" >
+               <button class="messenger-btn" [disabled]="!profile.canBeMessaged" [title]="profile.canBeMessaged ?'message' : 'cant send messages' " (click)="openChat()" >
              <i class="bi bi-messenger text-primary fs-3"></i>
 
             </button>

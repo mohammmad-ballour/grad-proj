@@ -82,6 +82,7 @@ export class ProfileComponent implements OnInit {
     this.initialSpinner = isInitialCall;
     this.profileServices.GetDataOfProfile(this.CurrentUserName).subscribe({
       next: (result) => {
+        console.log(result)
         if (result) {
           this.profile = result;
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
