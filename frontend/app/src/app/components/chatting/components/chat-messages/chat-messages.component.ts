@@ -126,7 +126,9 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
       // ✅ Now fetch messages for the new chat
       this.getMessagesToSelectedChatt();
-      this.loadGroupMembers()
+      if (this.chatSelected.group
+      )
+        this.loadGroupMembers()
     }
   }
 
@@ -725,7 +727,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   openMembersDialog() {
     this.dialog.open(MembersDialogComponent, {
       data: { members: this.members },
-      width: '300px'
+      width: '300px', height: '350px'
     });
   }
   getMemberNamesPreview(): string {
