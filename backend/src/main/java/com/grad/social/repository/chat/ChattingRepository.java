@@ -109,6 +109,14 @@ public class ChattingRepository {
         return chatId;
     }
 
+    public List<UserAvatar> getGroupMembers(Long chatId) {
+        return dsl.selectDistinct(cp.USER_ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE)
+                .from(cp)
+                .join(u).on(cp.USER_ID.eq(u.ID))
+                .where(cp.CHAT_ID.eq(chatId))
+                .fetch(mapping(UserAvatar::new));
+    }
+
     public List<UserResponse> getCandidateUsersToMessageOrAddToGroup(Long currentUserId, String nameToSearch, int offset) {
         return this.userUserInteractionRepository.searchOtherUsers(currentUserId, nameToSearch, offset);
     }

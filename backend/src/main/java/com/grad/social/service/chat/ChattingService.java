@@ -11,6 +11,7 @@ import com.grad.social.model.chat.response.ParentMessageWithNeighbours;
 import com.grad.social.model.enums.MediaType;
 import com.grad.social.model.shared.ScrollDirection;
 import com.grad.social.model.shared.TimestampSeekRequest;
+import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.chat.ChattingRepository;
 import com.grad.social.repository.media.MediaRepository;
@@ -41,6 +42,10 @@ public class ChattingService {
             pictureBytes = groupPicture.getBytes();
         }
         return this.chattingRepository.createGroupChat(creatorId, groupName, pictureBytes, participantIds);
+    }
+
+    public List<UserAvatar> getGroupMembers(Long chatId) {
+        return this.chattingRepository.getGroupMembers(chatId);
     }
 
     public List<UserResponse> searchUsersToMessageOrAddToGroup(Long currentUserId, String nameToSearch, int offset) {
