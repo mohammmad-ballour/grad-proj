@@ -76,6 +76,7 @@ public class SecurityService {
     }
 
     private boolean checkPrivacySettings(Map<Long, UserConnectionInfo> userConnectionInfoMap, String privacySetting) {
+        boolean result = true;
         for (Map.Entry<Long, UserConnectionInfo> entry : userConnectionInfoMap.entrySet()) {
             UserConnectionInfo userConnectionInfo = entry.getValue();
             PrivacySettings privacySettings = null;
@@ -86,20 +87,17 @@ public class SecurityService {
             } else {
                 log.error("Invalid privacy setting: {}", privacySetting);
             }
-            switch (privacySettings) {
-                case EVERYONE:
-                    continue;
-                case FRIENDS:
-                    boolean areFriends = userConnectionInfo.areFriends();
-                    if (!areFriends) return false;
-                case FOLLOWERS:
-                    boolean followedByCurrentUser = userConnectionInfo.isFollowedByCurrentUser();
-                    if (!followedByCurrentUser) return false;
-                default:
-                    return false;
-            }
+
+            result = switch (privacySettings) {
+                case EVERYONE -> true;
+                case FRIENDS -> userConnectionInfo.areFriends();
+                case FOLLOWERS -> userConnectionInfo.isFollowedByCurrentUser();
+                case NONE -> false;
+                default -> false;
+            };
+            if (!result) break;
         }
-        return true;
+        return result;
     }
 
     private boolean isAnonymous(long currentUserId) {
