@@ -181,6 +181,7 @@ public class ChattingRepository {
                     res.setChatId(chatId);
                     res.setName(chatName);
                     res.setChatPicture(chatPicture);
+                    res.setGroup(isGroup);
                     if (isGroup && (lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt))) {
                         res.setLastMessage(null);
                         res.setLastMessageTime(null);
