@@ -87,12 +87,37 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   }
 
 
-
   ngOnChanges(changes: SimpleChanges) {
     if (changes['chatSelected'] && this.chatSelected) {
+      // ✅ Clear/reset all state before loading the new chat
+      this.messagesToSelectedChatt.set([]);
+      this.replyingToMessage.set(null);
+      this.messageToSent = '';
+      this.selectedFile = undefined;
+      this.filePreviewUrl = undefined;
+      this.deliveredKeys = [];
+      this.readKeys = [];
+      this.messageInfoData = null;
+
+      this.hasMoreMessages.set(true);
+      this.hasMoreNewer.set(false);
+      this.loadingMessages.set(true);
+      this.loadingOlderMessages = false;
+      this.loadingNewerMessages = false;
+
+      this.oldestMessageId = 0;
+      this.newestMessageId = 0;
+      this.oldestMessageTimestamp = '';
+      this.newestMessageTimestamp = '';
+
+      this.isAutoScroll = false;
+      if (this.observer) this.observer.disconnect();
+
+      // ✅ Now fetch messages for the new chat
       this.getMessagesToSelectedChatt();
     }
   }
+
 
   trackByMessageId(index: number, item: MessageResponse | GapPlaceholder) {
     return 'messageId' in item ? item.messageId : item.type;
@@ -363,6 +388,9 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
   @HostListener('scroll', ['$event'])
   onScroll(event: Event) {
+
+    if (this.oldestMessageId == 0 && this.oldestMessageTimestamp == '')
+      return;
     const container = event.target as HTMLElement;
     const currentScrollTop = container.scrollTop;
     // Load older messages
