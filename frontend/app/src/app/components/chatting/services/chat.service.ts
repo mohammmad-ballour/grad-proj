@@ -22,9 +22,8 @@ export class ChatService extends BaseService {
 
 
   createOneOnOneChat(recipientId: number): Observable<string> {
-    return this.httpClient.post<string>(
+    return this.httpClient.get<string>(
       `${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}`,
-      {},
       { responseType: 'text' as 'json' } // 👈 important
     );
   }

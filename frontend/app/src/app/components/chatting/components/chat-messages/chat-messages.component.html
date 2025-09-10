@@ -3,7 +3,10 @@
   <img [src]="processImage(chatSelected.chatPicture)" 
        (error)="onImageError($event, 'assets/ProfileAvatar.png')"
        class="rounded-circle me-2" width="40" height="40" alt="">
-  <strong>{{ chatSelected.name }}</strong>
+  <div class="d-flex flex-column">
+    <strong>{{ chatSelected.name }}</strong>
+    <small class="text-muted" (click)="openMembersDialog()" style="cursor: pointer;">   <strong>{{ getMemberNamesPreview() }} </strong></small>
+  </div>
 </div>
 
 <!-- Messages Scroll Container -->
@@ -202,7 +205,7 @@
       <h6>Delivered to:</h6>
       <ul>
         @for(key of deliveredKeys; track key) {
-          <li>{{ key }} at {{ messageInfoData.deliveredByAt[key] | date:'short' }}</li>
+          <li>{{ GetMemberName(key)   }} at {{ messageInfoData.deliveredByAt[key] | date:'short' }}</li>
         }
         @if(deliveredKeys.length === 0) {
           <li>None</li>
@@ -211,7 +214,7 @@
       <h6>Read by:</h6>
       <ul>
         @for(key of readKeys; track key) {
-          <li>{{ key }} at {{ messageInfoData.readByAt[key] | date:'short' }}</li>
+          <li>{{ GetMemberName(key)  }} <br> at {{ messageInfoData.readByAt[key] | date:'short' }}</li>
         }
         @if(readKeys.length === 0) {
           <li>None</li>

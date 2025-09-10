@@ -11,6 +11,7 @@ import { MessageDetailResponse } from '../models/message-detail-response';
 import { MessageResponse, ParentMessageWithNeighbours, TimestampSeekRequest } from '../models/message-response';
 import { ScrollDirection } from '@angular/material/tabs';
 import { ScrollDirectionCustameType } from '../components/chat-messages/chat-messages.component';
+import { UserAvatar } from '../../models/ProfileResponseDto';
 
 
 @Injectable({ providedIn: 'root' })
@@ -82,7 +83,9 @@ export class MessageService extends BaseService {
         );
     }
 
-
+    getGroupMembers(chatId: string): Observable<UserAvatar[]> {
+        return this.httpClient.get<UserAvatar[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/group-members`);
+    }
     getParentMessageWithNeighbours(
         chatId: string,
         messageId: number,

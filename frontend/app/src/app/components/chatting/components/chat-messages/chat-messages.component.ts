@@ -7,13 +7,17 @@ import { MatMenuTrigger, MatMenu, MatMenuPanel } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MessageDetailResponse } from '../../models/message-detail-response';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { Observable, of, tap, finalize, Subscription } from 'rxjs';
+import { UserAvatar } from '../../../models/ProfileResponseDto';
+import { Inject } from '@angular/core';
+import { MembersDialogComponent } from './members-dialog/members-dialog.component';
+
 export type ScrollDirectionCustameType = 'UP' | 'DOWN' | 'NOTCHANGE';
 
 interface GapPlaceholder {
@@ -22,6 +26,8 @@ interface GapPlaceholder {
   lastMessageId: number;
   lastMessageSentAt: string;
 }
+
+
 
 @Component({
   selector: 'app-chat-messages',
@@ -32,6 +38,10 @@ interface GapPlaceholder {
 })
 
 export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
+  // Update oldest/newest
+  GetMemberName(userID: number): string | undefined {
+    return this.members.find(m => m.userId == userID)?.displayName;
+  }
 
 
 
@@ -56,8 +66,8 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   selectedFile?: File;
   filePreviewUrl?: string;
 
-  deliveredKeys: string[] = [];
-  readKeys: string[] = [];
+  deliveredKeys: number[] = [];
+  readKeys: number[] = [];
 
   MessageStatus = MessageStatus;
   hasMoreMessages = signal(true);
@@ -76,6 +86,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     private chatService: ChatService,
     private messageService: MessageService,
     private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) { }
 
 
@@ -115,6 +126,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
       // ✅ Now fetch messages for the new chat
       this.getMessagesToSelectedChatt();
+      this.loadGroupMembers()
     }
   }
 
@@ -329,8 +341,13 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
       next: (info: MessageDetailResponse) => {
         console.log(info);
         this.messageInfoData = info;
-        this.deliveredKeys = info.deliveredByAt ? Object.keys(info.deliveredByAt) : [];
-        this.readKeys = info.readByAt ? Object.keys(info.readByAt) : [];
+        this.deliveredKeys = info.deliveredByAt
+          ? Object.keys(info.deliveredByAt).map(k => Number(k))
+          : [];
+        this.readKeys = info.readByAt
+          ? Object.keys(info.readByAt).map(k => Number(k))
+          : [];
+
       },
       error: (err) => {
         this.deliveredKeys = [];
@@ -696,10 +713,38 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     }
     return `${item.type}-${item.lastMessageId}`; // gaps tracked uniquely
   }
+  members: UserAvatar[] = [];
 
+  loadGroupMembers() {
+    this.messageService.getGroupMembers(this.chatSelected.chatId).subscribe({
+      next: (res) => this.members = res,
+      error: (err) => console.error('Error loading members:', err)
+    });
+  }
+
+  openMembersDialog() {
+    this.dialog.open(MembersDialogComponent, {
+      data: { members: this.members },
+      width: '300px'
+    });
+  }
+  getMemberNamesPreview(): string {
+    const maxMembersToShow = 3;
+    const memberNames = this.members
+      .filter(member => member.userId !== this.activeUserId) // Exclude the active user
+      .slice(0, maxMembersToShow)
+      .map(member => member.displayName);
+
+    if (memberNames.length === 0) {
+      return 'No members';
+    }
+
+    let preview = memberNames.join(', ');
+    if (this.members.length > maxMembersToShow) {
+      preview += ` and ${this.members.length - maxMembersToShow} more`;
+    }
+    return preview;
+  }
 
 
 }
-
-
-

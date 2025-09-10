@@ -259,3 +259,82 @@ img.rounded-circle {
         background-color: inherit;
     }
 }
+
+/* WhatsApp-inspired colors and layout */
+.chat-header {
+    background-color: #075e54;
+    /* WhatsApp dark green */
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    padding: 10px 15px;
+}
+
+.group-info {
+    cursor: pointer;
+}
+
+.group-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.text-muted {
+    font-size: 0.85rem;
+}
+
+.member-list {
+    background-color: #f8f9fa;
+    /* Light background like WhatsApp */
+    min-height: 100vh;
+}
+
+.member-item {
+    padding: 8px 0;
+}
+
+.member-item img {
+    border: 1px solid #ddd;
+}
+
+.bi {
+    font-size: 1.2rem;
+}
+
+.btn-link {
+    color: white !important;
+    text-decoration: none;
+}
+
+/* Ensure responsiveness */
+@media (max-width: 576px) {
+    .chat-header {
+        padding: 8px 10px;
+    }
+
+    .group-name {
+        font-size: 1rem;
+    }
+
+    .member-item img {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+.chat-header {
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.chat-header strong {
+    font-size: 16px;
+    color: #000;
+}
+
+.chat-header .text-muted {
+    font-size: 12px;
+    color: #666;
+}
