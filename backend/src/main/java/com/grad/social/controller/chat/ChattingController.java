@@ -7,6 +7,7 @@ import com.grad.social.model.chat.response.MessageDetailResponse;
 import com.grad.social.model.chat.response.ParentMessageWithNeighbours;
 import com.grad.social.model.shared.ScrollDirection;
 import com.grad.social.model.shared.TimestampSeekRequest;
+import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.service.chat.ChattingService;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,13 @@ public class ChattingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(String.valueOf(this.chattingService.createGroupChat(creatorId, groupName, groupPicture, participantIds)));
     }
 
+    @GetMapping("/chats/{chatId}/group-members")
+    @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
+    public ResponseEntity<List<UserAvatar>> getGroupMembers(@AuthenticationPrincipal Jwt jwt, @PathVariable String chatId) {
+        long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.chattingService.getGroupMembers(Long.parseLong(chatId)));
+    }
+
     @GetMapping("/chats/candidate-users/{nameToSearch}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserResponse>> getGroupCandidates(@AuthenticationPrincipal Jwt jwt, @PathVariable String nameToSearch,
@@ -64,7 +72,7 @@ public class ChattingController {
     }
 
     // when the 'message' button is clicked on recipientId's profile by currentUserId, this method is called
-    @PostMapping("/chats/{recipientId}")
+    @GetMapping("/chats/{recipientId}")
     @PreAuthorize("@SecurityService.isPermittedToMessage(#jwt, #recipientId)")
     public String getChatIdRecipientId(@AuthenticationPrincipal Jwt jwt, @PathVariable Long recipientId) {
         long senderId = Long.parseLong(jwt.getClaimAsString("uid"));
