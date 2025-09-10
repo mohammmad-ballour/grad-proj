@@ -327,6 +327,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   fetchMessageInfo(messageId: number): void {
     this.chatService.getMessageInfo(messageId).subscribe({
       next: (info: MessageDetailResponse) => {
+        console.log(info);
         this.messageInfoData = info;
         this.deliveredKeys = info.deliveredByAt ? Object.keys(info.deliveredByAt) : [];
         this.readKeys = info.readByAt ? Object.keys(info.readByAt) : [];
@@ -340,20 +341,52 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  openInfoFromContext(trigger: MatMenuTrigger, infoMenu: MatMenu, message: MessageResponse) {
+  // add fields
+  currentMenuTrigger?: MatMenuTrigger | null = null;
+  currentMenuMessage?: MessageResponse | null = null;
+
+  // called when a message's trigger opened
+  onMenuOpened(trigger: MatMenuTrigger, message?: MessageResponse) {
+    this.currentMenuTrigger = trigger;
+    this.currentMenuMessage = message ?? null;
+  }
+
+  // called when closed — clear stored trigger (only if same)
+  onMenuClosed(trigger?: MatMenuTrigger) {
+    if (this.currentMenuTrigger === trigger) {
+      this.currentMenuTrigger = null;
+      this.currentMenuMessage = null;
+    }
+  }
+
+  // this replaces the old openInfoFromContext(trigger, ...) approach
+  openInfoFromContextInfo(infoMenu: MatMenu, message: MessageResponse) {
+    if (!this.currentMenuTrigger) {
+      console.warn('openInfoFromContextInfo: no currentMenuTrigger available');
+      return;
+    }
+
+    // fetch info first
     this.fetchMessageInfo(message.messageId);
+
+    const trigger = this.currentMenuTrigger;
     const originalMenu = trigger.menu;
+
+    // close current menu and replace with infoMenu
     trigger.closeMenu();
     trigger.menu = infoMenu;
 
+    // small timeout to let the overlay settle, then open the info menu
     setTimeout(() => {
       trigger.openMenu();
       const sub = trigger.menuClosed.subscribe(() => {
+        // restore original menu when info menu closes
         trigger.menu = originalMenu;
         sub.unsubscribe();
       });
-    }, 440);
+    }, 200); // 200ms works reliably; you can reduce to 0 if you like
   }
+
 
 
   private scrollToBottom() {
