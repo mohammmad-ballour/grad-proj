@@ -3,7 +3,7 @@ import { BaseService } from '../../../core/services/base.service';
 import { HttpClient } from '@angular/common/http';
 import { ChatResponse } from '../models/chat-response';
 import { AuthService } from '../../../core/services/auth.service';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { MessageResponse } from '../models/message-response';
 import { MessageDetailResponse } from '../models/message-detail-response';
 import { UserResponse } from '../models/user-response';
@@ -16,18 +16,22 @@ export class ChatService extends BaseService {
   constructor(private httpClient: HttpClient, private authServices: AuthService) {
     super();
   }
+  private reciveriD!: number;
   getAllChats(): Observable<ChatResponse[]> {
     return this.httpClient.get<ChatResponse[]>(`${this.baseUrl}${this.ENDPOINTS.chats}${this.authServices.UserId}/chat-list`);
   }
 
-
   createOneOnOneChat(recipientId: number): Observable<string> {
     return this.httpClient.get<string>(
       `${this.baseUrl}${this.ENDPOINTS.chats}${recipientId}`,
-      { responseType: 'text' as 'json' } // 👈 important
+      { responseType: 'text' as 'json' } // important
+    ).pipe(
+      tap(() => {
+        // Store recipientId after the call is successful
+        this.reciveriD = recipientId;
+      })
     );
   }
-
 
   // return this.http.post(`${this.apiUrl}/${recipientId}`, {}, { headers, responseType: 'text' });
 
@@ -60,11 +64,6 @@ export class ChatService extends BaseService {
     return this.httpClient.patch<void>(url, null); // no body needed
   }
 
-  getMessageInfo(messageId: number): Observable<MessageDetailResponse> {
-    return this.httpClient.get<MessageDetailResponse>(
-      `${this.baseUrl}${this.ENDPOINTS.messages}${messageId}/info`
-    );
-  }
 
   getGroupCandidates(nameToSearch: string, page: number = 0): Observable<UserResponse[]> {
     console.log('called')

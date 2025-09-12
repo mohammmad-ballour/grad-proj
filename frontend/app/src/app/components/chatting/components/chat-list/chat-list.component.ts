@@ -79,6 +79,7 @@ export class ChatListComponent {
   }
 
   private initChats(): void {
+    console.log('called initChats ')
     this.loadingChats.set(false);
     const deletedChats: string[] = JSON.parse(localStorage.getItem('deletedChats') || '[]');
 

@@ -15,11 +15,11 @@ import { AppRoutes } from "../../../../../config/app-routes.enum";
   template: `
     <h2 mat-dialog-title>Members</h2>
     <mat-dialog-content>
-      <div class="list-unstyled">
+      <div class="list-unstyled" >
         @for (member of data.members; track member.userId) {
          <div class="d-flex align-items-center justify-content-between mb-2">
   <!-- Member Info -->
-  <div class="d-flex align-items-center">
+  <div class="d-flex align-items-center  "  style="margin-top: 10px;">
     <img [src]="'data:image/png;base64,' + member.profilePicture"
          (error)="onImageError($event, 'assets/ProfileAvatar.png')"
          class="rounded-circle me-2" width="32" height="32" alt="">
@@ -30,12 +30,14 @@ import { AppRoutes } from "../../../../../config/app-routes.enum";
     </div>
   </div>
 
-  <!-- Chat Button at the end -->
-  <button type="button" class="btn btn-sm" class="btn btn-sm btn-outline-primary ms-2"
-          (click)="$event.stopPropagation(); openChat(member.userId)"
-        >
-    <mat-icon>chat</mat-icon>
-  </button>
+  <!-- Chat Button at the end --> 
+   @if(member.userId!=  data.activeUserId){
+    <button type="button"  class="btn btn-sm   ms-2"
+            (click)="$event.stopPropagation(); openChat(member.userId)"
+          >
+      <mat-icon>chat</mat-icon>
+    </button>
+   }
 </div>
 
         }
@@ -50,7 +52,7 @@ export class MembersDialogComponent {
 
   constructor(
     public dialogRef: MatDialogRef<MembersDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { members: UserAvatar[] },
+    @Inject(MAT_DIALOG_DATA) public data: { members: UserAvatar[], activeUserId: number },
     private chatService: ChatService,
     private router: Router,
     private snackBar: MatSnackBar

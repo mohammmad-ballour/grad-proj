@@ -82,7 +82,6 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   private fillingGapType: 'gap-after' | null = null;
 
   constructor(
-    private chatService: ChatService,
     private messageService: MessageService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
@@ -95,6 +94,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
       this.setupGapObservers();
     });
   }
+
 
 
   ngOnChanges(changes: SimpleChanges) {
@@ -338,7 +338,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
   // ---------------- Message Info ----------------
   fetchMessageInfo(messageId: number): void {
-    this.chatService.getMessageInfo(messageId).subscribe({
+    this.messageService.getMessageInfo(messageId).subscribe({
       next: (info: MessageDetailResponse) => {
         console.log(info);
         this.messageInfoData = info;
@@ -703,7 +703,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
   openMembersDialog() {
     const dialogRef = this.dialog.open(MembersDialogComponent, {
-      data: { members: this.members },
+      data: { members: this.members, activeUserId: this.activeUserId },
       width: '300px',
       height: '350px'
     });

@@ -178,7 +178,7 @@
 <div class="p-2 border-top d-flex bg-white align-items-center">
   <button class="btn btn-light me-2" (click)="fileInput.click()">
     <mat-icon>attach_file</mat-icon>
-  </button>
+  </button> 
   <input type="file" #fileInput hidden accept="image/*,video/*" (change)="onFileSelected($event)" />
   <textarea class="form-control me-2" [(ngModel)]="messageToSent" placeholder="Type a message" rows="1"
             (input)="autoResize($event)" (keyup.enter)="sendMessage()"
@@ -204,7 +204,10 @@
 <!-- Message Info Menu -->
 <mat-menu #infoMenu="matMenu">
   <div class="p-2" style="min-width: 200px;">
-    @if(messageInfoData) {
+    @if(messageInfoData ) {
+      @if(chatSelected.group){
+
+      
       <h6>Delivered to:</h6>
       <ul>
         @for(key of deliveredKeys; track key) {
@@ -223,6 +226,38 @@
           <li>None</li>
         }
       </ul>
+    }@else {
+
+      @if(!chatSelected.group) {
+<div class="d-flex justify-content-between align-items-center mb-1">
+  <span>
+    <mat-icon 
+      [ngClass]="{
+    'text-primary':  messageInfoData.readByAt[readKeys[0]]
+      }"
+      inline>
+      done_all
+    </mat-icon> 
+    Read at
+  </span>
+  <span>
+    {{ messageInfoData.readByAt[readKeys[0]] | date:'short' }}
+  </span>
+</div>
+
+
+  <div class="d-flex justify-content-between align-items-center">
+    <span>
+      <mat-icon inline>done_all</mat-icon> Delivered
+    </span>
+    <span>
+  
+      {{ messageInfoData.deliveredByAt[readKeys[0]] | date:'short' }}
+    </span>
+  </div>
+}
+
+    }
     } @else {
       <p>Loading...</p>
     }

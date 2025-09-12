@@ -12,12 +12,13 @@ import { MessageResponse, ParentMessageWithNeighbours, TimestampSeekRequest } fr
 import { ScrollDirection } from '@angular/material/tabs';
 import { ScrollDirectionCustameType } from '../components/chat-messages/chat-messages.component';
 import { UserAvatar } from '../../models/ProfileResponseDto';
+import { ChatService } from './chat.service';
 
 
 @Injectable({ providedIn: 'root' })
 export class MessageService extends BaseService {
 
-    constructor(private httpClient: HttpClient) {
+    constructor(private httpClient: HttpClient, private chatService: ChatService) {
         super()
     }
     sendMessage(
@@ -48,6 +49,8 @@ export class MessageService extends BaseService {
 
         return this.httpClient.post<number>(url, formData);
     }
+
+
 
     confirmRead(chatId: string) {
         return this.httpClient.post<void>(`${this.baseUrl}${this.ENDPOINTS.chats}${chatId}/confirmRead`, {});
