@@ -3,7 +3,7 @@ import { ChatService } from '../../services/chat.service';
 import { ChatResponse } from '../../models/chat-response';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,6 +14,8 @@ import { AppRoutes } from '../../../../config/app-routes.enum';
 import { UserResponse } from '../../models/user-response';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
+import { catchError, debounceTime, distinctUntilChanged, filter, map, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 
 @Component({
   selector: 'app-chat-list',
@@ -27,7 +29,9 @@ import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from 
     MatIconModule,
     MatDialogModule,
     MatInputModule,
-    DragDropModule
+    DragDropModule,
+    ReactiveFormsModule,
+    MatProgressSpinnerModule
   ],
   standalone: true
 })
@@ -45,6 +49,11 @@ export class ChatListComponent {
   selectedGroupMembers = signal<UserResponse[]>([]);
   groupAvatarPreview: string | null = null;
   dragging = signal(false); // Track drag state for visual feedback
+  isSearching = signal(false);
+
+  contactsSearchControl = new FormControl('');
+  private destroy$ = new Subject<void>();
+
 
   @Output() chatSelected = new EventEmitter<ChatResponse>();
   @ViewChild('t') menuTrigger!: MatMenuTrigger;
@@ -59,10 +68,18 @@ export class ChatListComponent {
   ) { }
 
   ngOnInit() {
+    this.initChats();
+    this.initContactsSearch();
+  }
+
+
+  private initChats(): void {
     this.loadingChats.set(false);
+    const deletedChats: string[] = JSON.parse(localStorage.getItem('deletedChats') || '[]');
+
     this.chatService.getAllChats().subscribe({
       next: (res) => {
-        this.chats.set(res);
+        this.chats.set(res.filter(c => !deletedChats.includes(String(c.chatId))));
         const chatId = this.activatedRoute.snapshot.paramMap.get('chatId');
         if (chatId) {
           const chat = res.find(c => c.chatId === chatId);
@@ -76,6 +93,48 @@ export class ChatListComponent {
       },
       complete: () => this.loadingChats.set(true)
     });
+  }
+
+  private initContactsSearch(): void {
+
+    this.contactsSearchControl.valueChanges.pipe(
+      map((v: any) => (v || '').toString().trim()),
+      debounceTime(1000), // 0.5s feels smoother
+      distinctUntilChanged(),
+      tap(term => {
+        if (term.length < 2) {
+          this.contacts.set([]);
+        }
+      }),
+      filter(term => term.length >= 2),
+      tap(() => this.isSearching.set(true)), // start spinner
+      switchMap(term =>
+        this.chatService.getGroupCandidates(term).pipe(
+          catchError(err => {
+            console.error('Failed to load group candidates', err);
+            this.snackBar.open('Failed to load users for group', 'Close', { duration: 4000 });
+            return of([] as UserResponse[]);
+          }),
+          tap(() => this.isSearching.set(false)) // stop spinner
+        )
+      ),
+      takeUntil(this.destroy$)
+    ).subscribe((res: UserResponse[]) => {
+      const filteredRes = this.isGroupMode
+        ? res.filter(u =>
+          u.canBeAddedToGroupByCurrentUser &&
+          !this.selectedGroupMembers().some(m => m.userAvatar.userId === u.userAvatar.userId)
+        )
+        : res.filter(u => u.canBeMessagedByCurrentUser);
+
+      this.contacts.set(filteredRes);
+    });
+  }
+
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   // Handle drag-and-drop event
@@ -202,14 +261,21 @@ export class ChatListComponent {
     });
   }
 
+  // chat-list.component.ts
   deleteChat(chatId: string) {
+    // update UI
     this.chats.update(chats => chats.filter(c => c.chatId !== chatId));
-    const deletedChats: string[] = JSON.parse(localStorage.getItem('deletedChats') || '[]');
-    if (!deletedChats.includes(chatId)) {
-      deletedChats.push(chatId);
-      localStorage.setItem('deletedChats', JSON.stringify(deletedChats));
+
+    // delegate persistence to service (handles string/number)
+    this.chatService.deleteChatLocally(chatId);
+
+    if (this.selectedChat()?.chatId == chatId) {
+      this.chatSelected.emit({} as ChatResponse);
+      this.router.navigate([`${AppRoutes.MESSAGES}`]);
     }
   }
+
+
 
   togglePinChat(chat: ChatResponse) {
     const request$ = chat.pinned
@@ -287,6 +353,12 @@ export class ChatListComponent {
   openChat(userId: number): void {
     this.chatService.createOneOnOneChat(userId).subscribe({
       next: (chatId: string) => {
+
+        const deletedChats: string[] = JSON.parse(localStorage.getItem('deletedChats') || '[]');
+        const updatedDeletedChats = deletedChats.filter(id => id !== chatId);
+        localStorage.setItem('deletedChats', JSON.stringify(updatedDeletedChats));
+
+        //check if the id exit in local storage delete it from it 
         console.log(chatId)
         this.closeDialog();
         this.router.navigate([`${AppRoutes.MESSAGES}`, chatId]);
@@ -299,6 +371,7 @@ export class ChatListComponent {
   }
 
   closeDialog() {
+    this.contactsSearchControl.setValue('');
     this.dialog.closeAll();
   }
   cancelDialog() {

@@ -28,31 +28,32 @@
       <i class="fas fa-search text-muted"></i>
     </span>
 
-    <!-- Input -->
-    <input 
-      #contactsSearch
-      matInput
-      type="text"
-      class="form-control border-0 bg-transparent shadow-none"
-      placeholder="Search contacts"
-      [(ngModel)]="concatesSearchTerm"
-      (ngModelChange)="($event || '').trim() ? getGroupCandidates() : contacts.set([])"
-      (keydown.enter)="$event.preventDefault(); concatesSearchTerm.trim() && getGroupCandidates()"
-      aria-label="Search for contacts to add to chat or group" />
+    <!-- Input -->   
+    <input
+  #contactsSearch
+  matInput
+  type="text"
+  class="form-control border-0 bg-transparent shadow-none"
+  placeholder="Search contacts"
+  [formControl]="contactsSearchControl"
+  (keydown.enter)="$event.preventDefault(); (contactsSearchControl.value || '').toString().trim().length >= 2 && getGroupCandidates()"
+  aria-label="Search for contacts to add to chat or group" />
+
 
     <!-- Clear Button -->
-    @if(concatesSearchTerm) {
-    <button 
-      class="btn btn-sm rounded-circle me-2"
-      type="button"
-      (click)="concatesSearchTerm=''; contactsSearch.focus()"
-      title="Clear search"
-      aria-label="Clear search"
-      style="background-color: rgba(210, 23, 85, 0.968); color: white; width: 35px; height: 35px;"
-      (mousedown)="$event.preventDefault()">
-      <i class="bi bi-x-lg"></i>
-    </button>
-    }
+   @if(contactsSearchControl.value) {
+  <button 
+    class="btn btn-sm rounded-circle me-2"
+    type="button"
+    (click)="contactsSearchControl.setValue(''); contactsSearch.focus()"
+    title="Clear search"
+    aria-label="Clear search"
+    style="background-color: rgba(210, 23, 85, 0.968); color: white; width: 35px; height: 35px;"
+    (mousedown)="$event.preventDefault()">
+    <i class="bi bi-x-lg"></i>
+  </button>
+}
+
   </div>
 </div>
 
@@ -87,11 +88,19 @@
             </div>
             }
             }
-            @if ((contacts() || []).length === 0) {
-            <div class="text-center text-muted p-4 drop-zone-empty">
-              No contacts found
-            </div>
-            }
+               @if(isSearching()) {
+        <div class="d-flex flex-column align-items-center justify-content-center text-muted p-4">
+          <mat-spinner diameter="24"></mat-spinner>
+          <small class="mt-2">Loading...</small>
+        </div>
+        }
+
+        @if ((contacts() || []).length === 0 && !isSearching() ) {
+        <div class="text-center text-muted p-4">
+          No contacts found
+        </div>
+        }
+            
           </div>
         </div>
 
@@ -149,7 +158,15 @@
         </button>
         }
         }
-        @if ((contacts() || []).length === 0) {
+     
+        @if(isSearching()) {
+        <div class="d-flex flex-column align-items-center justify-content-center text-muted p-4">
+          <mat-spinner diameter="24"></mat-spinner>
+          <small class="mt-2">Loading...</small>
+        </div>
+        }
+
+        @if ((contacts() || []).length === 0 && !isSearching() ) {
         <div class="text-center text-muted p-4">
           No contacts found
         </div>
@@ -167,7 +184,7 @@
         Clear All
       </button>
       <button type="button" class="btn telegram-primary-btn" (click)="createGroupChat()"
-        [disabled]="!concatesSearchTerm.trim() || selectedGroupMembers().length === 0"
+        [disabled]=" selectedGroupMembers().length === 0"
         style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;" aria-label="Create group chat">
         Create
       </button>
