@@ -123,8 +123,8 @@ public class ChattingService {
         return mediaAssetId;
     }
 
-    public ParentMessageWithNeighbours getParentMessageWithNeighboursInChat(Long chatId, Long messageId, Long lastFetchedMessageIdInPage) {
-        return this.chattingRepository.getParentMessageWithNeighboursInChat(chatId, messageId, lastFetchedMessageIdInPage);
+    public ParentMessageWithNeighbours getParentMessageWithNeighboursInChat(Long userId, Long chatId, Long messageId, Long lastFetchedMessageIdInPage) {
+        return this.chattingRepository.getParentMessageWithNeighboursInChat(userId, chatId, messageId, lastFetchedMessageIdInPage);
     }
 
     public MessageDetailResponse getMessageDetails(Long messageId) {

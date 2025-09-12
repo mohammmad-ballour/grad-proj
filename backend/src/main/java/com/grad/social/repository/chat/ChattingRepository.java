@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.TsidUtils;
+import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
 import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.common.utils.media.MediaStorageService;
+import com.grad.social.exception.chat.ChattingErrorCode;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
@@ -171,7 +173,12 @@ public class ChattingRepository {
                 .join(u).on(u.ID.eq(cpOther.USER_ID))
                 .leftJoin(lateral(lm)).on(DSL.trueCondition())
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
-                .where(cp.USER_ID.eq(currentUserId))
+                .where(cp.USER_ID.eq(currentUserId)
+                        // skip deleted chats
+                        .and(lm.field(m.SENT_AT).isNull().or(
+                                lm.field(m.SENT_AT).gt(DSL.coalesce(cp.LAST_DELETED_AT, DSL.val(AppConstants.DEFAULT_MIN_TIMESTAMP)))
+                        ))
+                )
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
                 .offset(offset * pageSize)
                 .limit(pageSize)
@@ -182,7 +189,7 @@ public class ChattingRepository {
                     res.setName(chatName);
                     res.setChatPicture(chatPicture);
                     res.setGroup(isGroup);
-                    if (isGroup && (lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt))) {
+                    if (lastDeletedAt != null && lastDeletedAt.isAfter(lastMessageSentAt)) {
                         res.setLastMessage(null);
                         res.setLastMessageTime(null);
                         res.setUnreadCount(0L);
@@ -270,13 +277,13 @@ public class ChattingRepository {
                     byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
                     byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
                     var parentMessageSnippet = parentMessageId == null ? null : new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent,
-                            parentOwnerId, parentSenderDisplayName , parentMessageType, parentMedia);
+                            parentOwnerId, parentSenderDisplayName, parentMessageType, parentMedia);
                     return new ChatMessageResponse(messageId, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
                             content, media, messageType, sentAt, messageStatus);
                 }));
     }
 
-    public ParentMessageWithNeighbours getParentMessageWithNeighboursInChat(Long chatId, Long messageId, Long lastFetchedMessageIdInPage) {
+    public ParentMessageWithNeighbours getParentMessageWithNeighboursInChat(Long currentUserId, Long chatId, Long messageId, Long lastFetchedMessageIdInPage) {
         int neighboursWindow = 3;
 
         // 1. Fetch the parent message
@@ -292,11 +299,15 @@ public class ChattingRepository {
                 .leftJoin(ma2).on(m2.MEDIA_ID.eq(ma2.MEDIA_ID))
                 .leftJoin(u).on(m.SENDER_ID.eq(u.ID))
                 .leftJoin(u2).on(m2.SENDER_ID.eq(u2.ID))
-                .where(m.MESSAGE_ID.eq(messageId))
+                .leftJoin(cp).on(m.CHAT_ID.eq(cp.CHAT_ID))
+                .where(m.MESSAGE_ID.eq(messageId)
+                        .and(cp.USER_ID.eq(currentUserId))
+                        .and(m.SENT_AT.gt(DSL.coalesce(cp.LAST_DELETED_AT, DSL.val(AppConstants.DEFAULT_MIN_TIMESTAMP))))
+                )
                 .fetchOne(mapRowToChatMessage());
 
         if (parent == null) {
-//            throw new ModelNotFoundException(Model.MESSAGE, messageId);
+            return null;    // does not exist or chat deleted after message is sent
         }
 
         // 2. Fetch 5 previous neighbours
@@ -581,7 +592,7 @@ public class ChattingRepository {
     private RecordMapper<Record19<Long, Long, String, String, byte[], String, Instant, MediaType, Long, String, String, Long, String, Long, String, Long, MediaType, String, String>, ChatMessageResponse> mapRowToChatMessage() {
         return mapping((messageId2, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
                         messageType, mediaId, fileNameHashed, extension,
-                        parentMessageId, parentContent, parentSenderId,parentSenderDisplayName, parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
+                        parentMessageId, parentContent, parentSenderId, parentSenderDisplayName, parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
             byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
             ChatMessageResponse.ParentMessageSnippet parentMessageSnippet = null;
             if (parentMessageId != null) {

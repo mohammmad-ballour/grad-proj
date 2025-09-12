@@ -141,7 +141,8 @@ public class ChattingController {
     @PreAuthorize("@SecurityService.isParticipantInChat(#jwt, #chatId)")
     public ResponseEntity<ParentMessageWithNeighbours> getParentMessageWithNeighboursInChat(@AuthenticationPrincipal Jwt jwt, @PathVariable Long chatId, @PathVariable Long messageId,
                                                                                             @RequestParam Long lastFetchedMessageIdInPage) {
-        return ResponseEntity.ok(this.chattingService.getParentMessageWithNeighboursInChat(chatId, messageId, lastFetchedMessageIdInPage));
+        long userId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.chattingService.getParentMessageWithNeighboursInChat(userId, chatId, messageId, lastFetchedMessageIdInPage));
     }
 
     @GetMapping("/messages/{messageId}/info")
