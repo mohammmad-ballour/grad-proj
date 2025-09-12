@@ -68,10 +68,15 @@ export class ChatListComponent {
   ) { }
 
   ngOnInit() {
-    this.initChats();
+    // Subscribe to changes in the chatId route param
+    this.activatedRoute.paramMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.initChats();
+      });
+
     this.initContactsSearch();
   }
-
 
   private initChats(): void {
     this.loadingChats.set(false);
@@ -192,7 +197,6 @@ export class ChatListComponent {
         next: (res: string) => {
           this.snackBar.open('Group created successfully!', 'Close', { duration: 3000 });
           this.router.navigate([`${AppRoutes.MESSAGES}`, res]);
-          this.ngOnInit();
           this.selectedGroupMembers.set([]);
           this.groupName = '';
           this.groupAvatarPreview = null;
@@ -362,7 +366,6 @@ export class ChatListComponent {
         console.log(chatId)
         this.closeDialog();
         this.router.navigate([`${AppRoutes.MESSAGES}`, chatId]);
-        this.ngOnInit();
       },
       error: (err) => {
         this.snackBar.open('Failed to open chat. Please try again later.', 'Close', { duration: 3000 });

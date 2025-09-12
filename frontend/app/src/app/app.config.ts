@@ -1,8 +1,5 @@
 import { ApplicationConfig, importProvidersFrom, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatIconModule } from '@angular/material/icon';
 import { routes } from './app.routes';
 import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
@@ -16,6 +13,7 @@ export const appConfig: ApplicationConfig = {
   },
   provideZoneChangeDetection({ eventCoalescing: true }),
   provideRouter(routes),
+  { provide: 'NG0913_DISABLE', useValue: true }// also apperar
 
   ]
 };

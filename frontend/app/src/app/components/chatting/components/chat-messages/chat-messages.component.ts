@@ -2,20 +2,19 @@ import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, V
 import { ChatService } from '../../services/chat.service';
 import { MessageService } from '../../services/message.service';
 import { ChatResponse } from '../../models/chat-response';
-import { MessageResponse, MessageStatus, TimestampSeekRequest, ParentMessageSnippet, MediaType, ParentMessageWithNeighbours } from '../../models/message-response';
+import { MessageResponse, MessageStatus, TimestampSeekRequest, ParentMessageWithNeighbours } from '../../models/message-response';
 import { MatMenuTrigger, MatMenu, MatMenuPanel } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MessageDetailResponse } from '../../models/message-detail-response';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
-import { Observable, of, tap, finalize, Subscription } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 import { UserAvatar } from '../../../models/ProfileResponseDto';
-import { Inject } from '@angular/core';
 import { MembersDialogComponent } from './members-dialog/members-dialog.component';
 
 export type ScrollDirectionCustameType = 'UP' | 'DOWN' | 'NOTCHANGE';
@@ -407,7 +406,6 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   }
 
 
-
   private scrollToBottom() {
     const container = this.scrollContainer.nativeElement;
     container.scrollTop = container.scrollHeight;
@@ -425,15 +423,9 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   }
 
 
-
-
   isMessage(item: MessageResponse | GapPlaceholder): item is MessageResponse {
     return 'messageId' in item;
   }
-
-
-
-
 
   // Inside the ChatMessagesComponent class
   private scrollSubscriptions: Subscription[] = []; // Store subscriptions to clean up
@@ -559,27 +551,12 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   }
 
 
-
-
-
-
   ngOnDestroy() {
     if (this.observer) {
       this.observer.disconnect();
     }
     this.scrollSubscriptions.forEach(sub => sub.unsubscribe());
   }
-
-
-
-
-
-
-
-
-
-
-
 
   private setupGapObservers() {
     if (this.isAutoScroll) return; // 🚫 Skip during auto-scroll
@@ -725,11 +702,20 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   }
 
   openMembersDialog() {
-    this.dialog.open(MembersDialogComponent, {
+    const dialogRef = this.dialog.open(MembersDialogComponent, {
       data: { members: this.members },
-      width: '300px', height: '350px'
+      width: '300px',
+      height: '350px'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+
+      if (result) {
+
+      }
     });
   }
+
   getMemberNamesPreview(): string {
     const maxMembersToShow = 3;
     const memberNames = this.members
