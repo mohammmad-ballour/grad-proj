@@ -266,19 +266,31 @@ export class ChatListComponent {
     });
   }
 
-  // chat-list.component.ts
   deleteChat(chatId: string) {
-    // update UI
-    this.chats.update(chats => chats.filter(c => c.chatId !== chatId));
+    this.chatService.deleteConversation(chatId).subscribe({
+      next: () => {
+        console.log('Chat deleted successfully');
 
-    // delegate persistence to service (handles string/number)
-    this.chatService.deleteChatLocally(chatId);
+        // If the deleted chat is currently selected, reset selection and navigate
+        if (this.selectedChat()?.chatId === chatId) {
+          this.chatSelected.emit({} as ChatResponse);
+          this.router.navigate([AppRoutes.MESSAGES]);
+        }
 
-    if (this.selectedChat()?.chatId == chatId) {
-      this.chatSelected.emit({} as ChatResponse);
-      this.router.navigate([`${AppRoutes.MESSAGES}`]);
-    }
+        // Optionally, you can show a success toast/snackbar
+        // this.toastService.success('Chat deleted successfully');
+      },
+      error: (err) => {
+        console.error('Failed to delete chat:', err);
+        // Optionally, show error notification
+        // this.toastService.error('Failed to delete chat. Please try again.');
+      },
+      complete: () => {
+        console.log('Delete request completed');
+      }
+    });
   }
+
 
 
 

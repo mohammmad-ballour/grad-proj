@@ -92,29 +92,6 @@ export class ChatService extends BaseService {
     );
   }
 
-  // chat.service.ts
-  deleteChatLocally(chatId: string | number): void {
-    const key = 'deletedChats';
-    try {
-      const stored = localStorage.getItem(key);
-      const deletedChats: string[] = stored ? JSON.parse(stored) : [];
-
-      // normalize to strings, use Set to avoid duplicates
-      const set = new Set(deletedChats.map(String));
-      set.add(String(chatId));
-
-      localStorage.setItem(key, JSON.stringify(Array.from(set)));
-    } catch (e) {
-      // If localStorage JSON is corrupted or inaccessible, overwrite safely
-      console.error('Failed to read/update deletedChats in localStorage', e);
-      try {
-        localStorage.setItem(key, JSON.stringify([String(chatId)]));
-      } catch (err) {
-        console.error('Also failed to write fallback deletedChats', err);
-      }
-    }
-  }
-
-
 
 }
+
