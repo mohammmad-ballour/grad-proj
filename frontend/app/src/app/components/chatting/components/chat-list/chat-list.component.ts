@@ -258,34 +258,40 @@ export class ChatListComponent {
   onOpenChat(chatId: string) {
     this.messageService.confirmRead(chatId).subscribe({
       next: () => {
+        // update selectedChat
         this.selectedChat.update(c =>
           c && c.chatId === chatId ? { ...c, unreadCount: 0 } : c
+        );
+
+        // update chats list
+        this.chats.set(
+          this.chats().map(chat =>
+            chat.chatId === chatId ? { ...chat, unreadCount: 0 } : chat
+          )
         );
       },
       error: (err) => console.error('Failed to confirm read', err)
     });
   }
 
+
   deleteChat(chatId: string) {
     this.chatService.deleteConversation(chatId).subscribe({
       next: () => {
         console.log('Chat deleted successfully');
-
+        this.chats.set(this.chats().filter(c => c.chatId !== chatId));
         // If the deleted chat is currently selected, reset selection and navigate
         if (this.selectedChat()?.chatId === chatId) {
           this.chatSelected.emit({} as ChatResponse);
-          this.router.navigate([AppRoutes.MESSAGES]);
+          // this.router.navigate([AppRoutes.MESSAGES]);
         }
-
-        // Optionally, you can show a success toast/snackbar
-        // this.toastService.success('Chat deleted successfully');
       },
       error: (err) => {
         console.error('Failed to delete chat:', err);
-        // Optionally, show error notification
-        // this.toastService.error('Failed to delete chat. Please try again.');
+
       },
       complete: () => {
+        console.log(this.chats())
         console.log('Delete request completed');
       }
     });
