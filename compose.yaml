@@ -1,12 +1,12 @@
 services:
   pgvector:
-    image: 'pgvector/pgvector:pg17'
-    container_name: 'social-container'
+    image: 'postgres:17-alpine'
+    container_name: 'social-posgres'
     environment:
       - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
       - 'POSTGRES_USER=mohbalor'
-      - PGTZ=UTC
+      - 'POSTGRES_PASSWORD=secret'
+      - 'PGTZ=UTC'
     labels:
       - "org.springframework.boot.service-connection=postgres"
     ports:

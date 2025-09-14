@@ -13,7 +13,7 @@ import java.util.Collections;
 @Testcontainers
 public class TestcontainersConfiguration {
 	@Container
-	static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("pgvector/pgvector:pg17")
+	static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:17-alpine")
 			.withDatabaseName("test-db")
 			.withUsername("postgres")
 			.withPassword("secret")
@@ -21,7 +21,7 @@ public class TestcontainersConfiguration {
 
 	@Bean
 	@ServiceConnection
-	PostgreSQLContainer<?> pgvectorContainer() {
+	PostgreSQLContainer<?> pgContainer() {
 		return postgreSQLContainer;
 	}
 
