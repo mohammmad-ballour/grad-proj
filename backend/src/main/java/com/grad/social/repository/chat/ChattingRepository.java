@@ -174,10 +174,13 @@ public class ChattingRepository {
                 .leftJoin(lateral(lm)).on(DSL.trueCondition())
                 .leftJoin(uc).on(uc.field(m.CHAT_ID).eq(c.CHAT_ID))
                 .where(cp.USER_ID.eq(currentUserId)
-                        // skip deleted chats
-                        .and(lm.field(m.SENT_AT).isNull().or(
-                                lm.field(m.SENT_AT).gt(DSL.coalesce(cp.LAST_DELETED_AT, DSL.val(AppConstants.DEFAULT_MIN_TIMESTAMP)))
-                        ))
+                        // skip staled and deleted chats
+                        .and(
+                                (lm.field(m.SENT_AT).isNull().and(cp.LAST_DELETED_AT.isNull()))
+                                        .or(
+                                                lm.field(m.SENT_AT).gt(DSL.coalesce(cp.LAST_DELETED_AT, DSL.val(AppConstants.DEFAULT_MIN_TIMESTAMP)))
+                                        )
+                        )
                 )
                 .orderBy(lm.field(m.SENT_AT).desc().nullsLast())
                 .offset(offset * pageSize)
@@ -209,6 +212,7 @@ public class ChattingRepository {
                         if (userOnline) onlineUsersCount.getAndIncrement();
                     });
                     res.setOnlineRecipientsNumber(onlineUsersCount.get());
+                    System.out.println("chat name = " + chatName + ", last message = " + lastMessage + ", sent at = " + lastMessageSentAt + ", last deleted at = " + lastDeletedAt);
                     return res;
                 }));
     }
