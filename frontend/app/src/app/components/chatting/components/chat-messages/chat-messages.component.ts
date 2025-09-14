@@ -612,10 +612,11 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     this.messageService.getParentMessageWithNeighbours(this.chatSelected.chatId, ParentMessageId, this.oldestMessageId)
       .subscribe({
         next: (data) => {
-
-
+          if (data == null) {
+            this.snackBar.open('this message was deleted ', 'Close', { duration: 3000 })
+            return
+          }
           const newList: (MessageResponse | GapPlaceholder)[] = [];
-
           newList.push(...data.messages.sort((a, b) => a.messageId - b.messageId));
           if (data.gapAfter.exists) {
             newList.push({
@@ -625,14 +626,10 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
               lastMessageSentAt: data.gapAfter.lastMessageSentAt
             });
           }
-
           this.messagesToSelectedChatt.update(curr => [...newList, ...curr]);
-
           // Handle gaps
           if (data.gapBefore.exists) this.hasMoreMessages.set(true);
           if (data.gapAfter.exists) this.hasMoreNewer.set(true);
-
-
           // Update oldest/newest
           const actualMsgs = this.messagesToSelectedChatt().filter(this.isMessage).sort((a, b) => a.messageId - b.messageId);
           if (actualMsgs.length > 0) {
