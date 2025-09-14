@@ -77,12 +77,12 @@
           <div class="block-category-group">
             <!-- messenger-button.component.html -->
              @if(!profile.isBlocked){
-               <button class="messenger-btn" [disabled]="!profile.canBeMessaged" [title]="profile.canBeMessaged ?'message' : 'cant send messages' " (click)="openChat()" >
+               <button class="messenger-btn" [disabled]="!profile.canBeMessaged" [title]="profile.canBeMessaged ?'message' : 'You are not allowed to message this user' " (click)="openChat()" >
              <i class="bi bi-messenger text-primary fs-3"></i>
 
             </button>
              }
-           
+
 
             <!-- Category Menu -->
             <button mat-icon-button [matMenuTriggerFor]="menu" #menuTrigger="matMenuTrigger">
@@ -215,7 +215,7 @@
       </div>
       @if(!isPersonalProfile&& MutualFollowings&& !profile.isBlocked){
         <div [style.cursor]="'pointer'"  (click)="loadMutualFollowings()" style="margin-top:20px; color: rgb(151, 195, 246);"> <span style="color: gray;">Followed by</span> {{MutualFollowings}}
-         
+
         </div>
       }
 
