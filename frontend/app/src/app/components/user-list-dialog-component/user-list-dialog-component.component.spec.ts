@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { UserListDialogComponentComponent } from './user-list-dialog-component.component';
+import { UserListDialogComponent } from './user-list-dialog-component.component';
 
 describe('UserListDialogComponentComponent', () => {
-  let component: UserListDialogComponentComponent;
-  let fixture: ComponentFixture<UserListDialogComponentComponent>;
+  let component: UserListDialogComponent;
+  let fixture: ComponentFixture<UserListDialogComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [UserListDialogComponentComponent]
+      imports: [UserListDialogComponent]
     })
-    .compileComponents();
+      .compileComponents();
 
-    fixture = TestBed.createComponent(UserListDialogComponentComponent);
+    fixture = TestBed.createComponent(UserListDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

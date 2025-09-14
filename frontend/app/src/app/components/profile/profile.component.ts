@@ -4,11 +4,11 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
 import { EditProfileDialogComponent } from '../edit-profile-dialog/edit-profile-dialog.component';
 import { ProfileServices } from '../services/profile.services';
-import { UserSeekResponse, UserService } from '../services/user.service';
+import { UserResponse, UserService } from '../services/user.service';
 import { MatIconModule } from "@angular/material/icon";
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatMenuModule } from "@angular/material/menu";
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatInputModule } from "@angular/material/input";
@@ -18,6 +18,9 @@ import { MuteDialogComponent } from '../mute-dialog-component/mute-dialog-compon
 import { MuteDuration } from '../models/MuteDurationDto';
 import { Observable, Subscription } from 'rxjs';
 import { UserListDialogComponent } from '../user-list-dialog-component/user-list-dialog-component.component';
+import { ChatService } from '../chatting/services/chat.service';
+import { AppRoutes } from '../../config/app-routes.enum';
+import { AuthService } from '../../core/services/auth.service';
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
@@ -42,6 +45,7 @@ export interface UserSeek {
 })
 export class ProfileComponent implements OnInit {
 
+
   profile!: ProfileResponseDto;
   initialSpinner = false;
   isNotFound = true;
@@ -59,6 +63,8 @@ export class ProfileComponent implements OnInit {
     private userService: UserService,
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
+    private chatService: ChatService,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -76,6 +82,7 @@ export class ProfileComponent implements OnInit {
     this.initialSpinner = isInitialCall;
     this.profileServices.GetDataOfProfile(this.CurrentUserName).subscribe({
       next: (result) => {
+        console.log(result)
         if (result) {
           this.profile = result;
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
@@ -335,6 +342,7 @@ export class ProfileComponent implements OnInit {
       .subscribe({
         next: (following) => {
           if (following) {
+
             this.openUserList('Following', following);
           }
         },
@@ -360,11 +368,12 @@ export class ProfileComponent implements OnInit {
       });
   }
 
-  openUserList(title: string, userSeekResponse: UserSeekResponse[]): void {
-    if (userSeekResponse.length > 0) {
+  openUserList(title: string, UserResponse: UserResponse[]): void {
+    if (UserResponse.length > 0) {
+
       const dialog = this.dialog.open(UserListDialogComponent, {
-        width: '1000px', height: userSeekResponse.length < 4 ? `${userSeekResponse.length * 215}px` : "500px",
-        data: { title, userSeekResponse, isPersonalProfile: this.isPersonalProfile, userId: this.profile.userAvatar.userId }
+        width: '1000px', height: UserResponse.length < 4 ? `${UserResponse.length * 215}px` : "500px",
+        data: { title, UserResponse, userId: this.profile.userAvatar.userId }
       });
       dialog.afterClosed().subscribe(() => {
         this.fetchProfileData(false);
@@ -390,7 +399,7 @@ export class ProfileComponent implements OnInit {
             // Take first 3, map to usernames, and join with commas
             this.MutualFollowings = mutualFollowings
               .slice(0, 3)
-              .map(user => user.username) // assuming API returns { username: string, ... }
+              .map(user => user.userAvatar.username) // assuming API returns { username: string, ... }
               .join(', ') + `${mutualFollowings.length > 3 ? ` + ${mutualFollowings.length - 3} more` : ''} `;
 
           } else {
@@ -403,6 +412,21 @@ export class ProfileComponent implements OnInit {
         }
       });
   }
+  openChat() {
+    this.chatService.createOneOnOneChat(this.profile.userAvatar.userId).subscribe({
+      next: (chatId: string) => {
+        this.router.navigate([`${AppRoutes.MESSAGES}`, chatId]);
+      },
+      error: (err) => {
+        if (err.status === 403) {
+          this.showSnackBar('You are not allowed to message this user.');
+        } else {
+          this.showSnackBar('Failed to open chat. Please try again later.');
+        }
+      }
+    });
+  }
+
 
 
 }

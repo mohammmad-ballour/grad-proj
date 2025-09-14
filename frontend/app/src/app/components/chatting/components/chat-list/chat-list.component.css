@@ -1,0 +1,257 @@
+/* Chat List */
+.chat-list {
+  >div {
+    cursor: pointer;
+
+    &:hover {
+      background-color: #f2f1f1;
+    }
+  }
+}
+
+/* Badge */
+.badge.rounded-pill.text-bg-light {
+  font-weight: normal !important;
+}
+
+/* Chat Bubbles */
+.chat-bubble {
+  max-width: 70%;
+  border-radius: 12px;
+  padding: 6px 8px;
+  position: relative;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-size: 14px;
+}
+
+/* Sent (your messages) */
+.chat-bubble.sent {
+  background-color: #dcf8c6;
+  /* WhatsApp green */
+  border-bottom-right-radius: 0;
+  margin-left: auto;
+}
+
+/* Received (others' messages) */
+.chat-bubble.received {
+  background-color: #fff;
+  border-bottom-left-radius: 0;
+  margin-right: auto;
+}
+
+/* Message Meta (time, status) */
+.chat-meta {
+  font-size: 11px;
+  opacity: 0.7;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 4px;
+}
+
+/* Media inside bubbles */
+.message-media {
+  max-width: 200px;
+  border-radius: 8px;
+  display: block;
+}
+
+/* Replied Message */
+.replied-message {
+  border-left: 3px solid #28a745;
+  cursor: pointer;
+  font-size: 0.9em;
+  padding: 4px;
+}
+
+.replied-message:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Scrollable Area */
+.chat-scrollbar {
+  overflow-y: auto;
+  /* make it scrollable */
+  scrollbar-width: thin;
+  /* Firefox */
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Avatars */
+img.rounded-circle {
+  align-self: flex-start;
+  /* keep avatars top-aligned */
+
+}
+
+
+
+/* Custom thin scrollbar */
+.chat-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollable::-webkit-scrollbar-track {
+  background: #f1f1f1;
+
+}
+
+.chat-scrollable::-webkit-scrollbar-thumb {
+  background-color: #888;
+  /* border-radius: 3px; */
+  height: 2px;
+}
+
+.chat-scrollable::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
+
+
+/* chat-list.component.css */
+.drop-zone {
+  background: #f8f9fa;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.drop-zone-active {
+  background: #e6f3ff !important;
+  border-color: #007bff !important;
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  background: white;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  padding: 10px;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+  background: #e9ecef;
+  border-radius: 8px;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .cdk-drag {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.list-group-item {
+
+  border-radius: 8px;
+  margin-bottom: 8px;
+  padding: 10px;
+  background: white;
+  transition: background 0.2s ease;
+}
+
+.list-group-item:hover {
+  background: #f1f3f5;
+}
+
+.list-group-item[cdkDragDisabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: #6c757d;
+}
+
+.drop-zone-empty {
+  color: #6c757d;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .d-flex.flex-md-row {
+    flex-direction: column !important;
+  }
+
+  .flex-1 {
+    width: 100%;
+  }
+}
+
+.telegram-primary-btn {
+  background-color: #0088cc;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.telegram-primary-btn:hover {
+  background-color: #006699;
+}
+
+.telegram-primary-btn:disabled {
+  background-color: #b0c4de;
+  cursor: not-allowed;
+}
+
+.btn-outline-danger {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-outline-danger:disabled {
+  border-color: #d3d3d3;
+  color: #d3d3d3;
+  cursor: not-allowed;
+}
+
+.badge {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}
+
+/* WhatsApp-like search bar */
+.whatsapp-search {
+  background-color: #f0f2f5;
+  transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  box-shadow: 0 1px 2pxrgba(19, 171, 241, 0.2);
+  -webkit-transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  -moz-transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  -ms-transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  -o-transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+/* Hover */
+.whatsapp-search:hover {
+  background-color: #e9edef;
+}
+
+/* Focus state (when input is active) */
+.whatsapp-search:focus-within {
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(19, 171, 241, 0.2);
+  /* subtle green glow */
+}

@@ -262,3 +262,20 @@ button {
   background-color: transparent;
   color: #1da1f2;
 }
+
+.messenger-btn {
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  margin-left: 5px;
+  font-size: 28px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.messenger-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}

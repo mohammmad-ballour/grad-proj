@@ -1,6 +1,10 @@
 package com.grad.social.common.security;
 
+import com.grad.social.model.enums.PrivacySettings;
 import com.grad.social.model.shared.ProfileStatus;
+import com.grad.social.model.shared.UserConnectionInfo;
+import com.grad.social.repository.chat.ChattingRepository;
+import com.grad.social.repository.user.UserRepository;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,11 +13,19 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static com.grad.social.model.enums.PrivacySettings.*;
+
 @RequiredArgsConstructor
 @Service("SecurityService")
 @Slf4j
 public class SecurityService {
     private final UserUserInteractionRepository userUserInteractionRepository;
+    private final ChattingRepository chattingRepository;
+    private final UserRepository userRepository;
 
     public boolean hasUserLongId(Authentication authentication, Long requestedId) {
         if (authentication instanceof JwtAuthenticationToken jwtAuthenticationTokenT) {
@@ -24,9 +36,7 @@ public class SecurityService {
 
     public boolean canAccessProfileProtectedData(Jwt jwt, Long profileOwnerId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (currentUserId == -1) {
-            return false;       // anonymouse user
-        }
+        if (isAnonymous(currentUserId)) return false;
         ProfileStatus profileStatus = this.userUserInteractionRepository.getProfileStatus(profileOwnerId, currentUserId);
         boolean isTargetProfileBlockedByCurrentUser = profileStatus.isProfileBlockedByCurrentUser();
         if (isTargetProfileBlockedByCurrentUser) {
@@ -37,6 +47,61 @@ public class SecurityService {
             return true;
         }
         return profileStatus.isProfileFollowedByCurrentUser();
+    }
+
+    public boolean isParticipantInChat(Jwt jwt, Long chatId) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        if (isAnonymous(currentUserId)) return false;
+        return this.chattingRepository.isParticipant(chatId, currentUserId);
+    }
+
+    public boolean isSelfMessage(Jwt jwt, Long messageId) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        if (isAnonymous(currentUserId)) return false;
+        return this.chattingRepository.isSelfMessage(currentUserId, messageId);
+    }
+
+    public boolean isPermittedToMessage(Jwt jwt, Long recipientId) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        if (isAnonymous(currentUserId)) return false;
+        Map<Long, UserConnectionInfo> connectionWithOthersInfo = userUserInteractionRepository.getConnectionWithOthersInfo(Set.of(recipientId), currentUserId);
+        return checkPrivacySettings(connectionWithOthersInfo, "WHO_CAN_MESSAGE");
+    }
+
+    public boolean isPermittedToAddToGroup(Jwt jwt, Set<Long> recipientIds) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        if (isAnonymous(currentUserId)) return false;
+        Map<Long, UserConnectionInfo> connectionWithOthersInfo = userUserInteractionRepository.getConnectionWithOthersInfo(recipientIds, currentUserId);
+        return checkPrivacySettings(connectionWithOthersInfo, "WHO_CAN_ADD_TO_GROUPS");
+    }
+
+    private boolean checkPrivacySettings(Map<Long, UserConnectionInfo> userConnectionInfoMap, String privacySetting) {
+        boolean result = true;
+        for (Map.Entry<Long, UserConnectionInfo> entry : userConnectionInfoMap.entrySet()) {
+            UserConnectionInfo userConnectionInfo = entry.getValue();
+            PrivacySettings privacySettings = null;
+            if (privacySetting.equals("WHO_CAN_MESSAGE")) {
+                privacySettings = userConnectionInfo.whoCanMessage();
+            } else if (privacySetting.equals("WHO_CAN_ADD_TO_GROUPS")) {
+                privacySettings = userConnectionInfo.whoCanAddToGroups();
+            } else {
+                log.error("Invalid privacy setting: {}", privacySetting);
+            }
+
+            result = switch (privacySettings) {
+                case EVERYONE -> true;
+                case FRIENDS -> userConnectionInfo.areFriends();
+                case FOLLOWERS -> userConnectionInfo.isFollowedByCurrentUser();
+                case NONE -> false;
+                default -> false;
+            };
+            if (!result) break;
+        }
+        return result;
+    }
+
+    private boolean isAnonymous(long currentUserId) {
+        return currentUserId == -1;
     }
 
     private long extractUserIdFromAuthentication(Jwt jwt) {

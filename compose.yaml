@@ -14,6 +14,13 @@ services:
     volumes:
       - social_data:/var/lib/postgresql/data  # Volume to persist data
 
+  redis:
+    image: 'redis:latest'
+    container_name: 'social-redis'
+    ports:
+      - "16379:6379"
+    restart: unless-stopped
+
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:latest
@@ -22,8 +29,11 @@ services:
     environment:
       - KEYCLOAK_ADMIN=mohbalor
       - KEYCLOAK_ADMIN_PASSWORD=secret
+    volumes:
+      - ./backend/keycloak-config/grad-proj-realm-export.json:/opt/keycloak/data/import/realm.json
     command:
       - "start-dev"
+      - "--import-realm"
 
 volumes:
   social_data: # Define the volume

@@ -1,7 +1,6 @@
 package com.grad.social.common.utils;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
@@ -27,10 +26,6 @@ public class TemporalUtils {
         return instant.atZone(UTC)
                 .plusYears(years)
                 .toInstant();
-    }
-
-    public static Instant localDateToInstant(LocalDate localDate) {
-        return localDate.atStartOfDay(UTC).toInstant();
     }
 
 }

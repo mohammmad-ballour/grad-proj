@@ -3,13 +3,13 @@ import { LoginComponent } from './features/auth/login/login.component';
 import { FeedComponent } from './components/feed/feed.component';
 import { ProfileComponent } from './components/profile/profile.component';
 import { NotificationsComponent } from './components/notifications/notifications.component';
-import { MessagesComponent } from './components/messages/messages.component';
 import { MoreComponent } from './components/more/more.component';
 import { LayoutComponent } from './components/layout/layout.component';
 import { SignupComponent } from './features/auth/signup/signup.component';
 import { AppRoutes } from './config/app-routes.enum';
 import { AuthGuard } from './core/guards/auth.guard';
-import {LogoutComponent} from './features/auth/logout/logout.component';
+import { LogoutComponent } from './features/auth/logout/logout.component';
+import { ChatComponent } from './components/chatting/components/chat/chat.component';
 
 export const routes: Routes = [
     { path: AppRoutes.LOGIN, component: LoginComponent },
@@ -23,9 +23,11 @@ export const routes: Routes = [
             { path: AppRoutes.HOME, component: FeedComponent },
             { path: 'explore', component: FeedComponent },
             { path: AppRoutes.NOTIFICATIONS, component: NotificationsComponent },
-            { path: AppRoutes.MESSAGES, component: MessagesComponent },
+            { path: AppRoutes.MESSAGES, component: ChatComponent },
             { path: AppRoutes.MORE, component: MoreComponent },
             // ⚠️ This must be **last** so it doesn't catch other static routes!
+            { path: `${AppRoutes.MESSAGES}/:chatId`, component: ChatComponent },//is not work
+
             { path: ':username', component: ProfileComponent },
         ],
         canActivate: [AuthGuard]

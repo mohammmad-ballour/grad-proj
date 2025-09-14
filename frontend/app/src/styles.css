@@ -3,3 +3,60 @@ body {
     margin: 0px;
     height: 100vb;
 }
+
+/* For WebKit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 8px;
+    /* slim scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+    /* no visible track */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    /* light gray/black */
+    border-radius: 10px;
+    /* rounded */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.35);
+    /* slightly darker on hover */
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    /* slim scrollbar */
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+/* For WebKit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 8px;
+    /* slim scrollbar */
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    min-height: 20px;
+    /* ensures small height for short thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.35);
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}

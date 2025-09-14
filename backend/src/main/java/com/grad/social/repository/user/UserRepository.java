@@ -1,12 +1,11 @@
 package com.grad.social.repository.user;
 
 import com.grad.grad_proj.generated.api.model.CreateUserDto;
-import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
-import com.grad.grad_proj.generated.api.model.UserAboutDto;
-import com.grad.grad_proj.generated.api.model.UserAvatarDto;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
+import com.grad.social.model.enums.PrivacySettings;
+import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
 import com.grad.social.model.tables.UserFollowers;
 import com.grad.social.model.tables.UserMutes;
@@ -14,6 +13,8 @@ import com.grad.social.model.tables.Users;
 import com.grad.social.model.tables.records.UsersRecord;
 import com.grad.social.model.user.UserBasicData;
 import com.grad.social.model.user.UsernameTimezoneId;
+import com.grad.social.model.user.response.ProfileResponse;
+import com.grad.social.model.user.response.UserAbout;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -26,19 +27,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.grad.social.model.enums.PrivacySettings.*;
 import static org.jooq.Records.mapping;
 
 @Repository
 @RequiredArgsConstructor
 public class UserRepository {
-
     private final DSLContext dsl;
+
     private final Users u = Users.USERS.as("u");
     private final UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
     private final UserMutes um = UserMutes.USER_MUTES.as("UM");
     private final UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
 
-    public ProfileResponseDto fetchUserProfileByName(Long currentUserId, String nameToSearch) {
+    public ProfileResponse fetchUserProfileByName(Long currentUserId, String nameToSearch) {
         Long profileOwnerId = dsl.select(u.ID)
                 .from(u)
                 .where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch)))
@@ -49,7 +51,7 @@ public class UserRepository {
         return fetchUserProfileById(currentUserId, profileOwnerId);
     }
 
-    public ProfileResponseDto fetchUserProfileById(Long currentUserId, Long profileOwnerId) {
+    public ProfileResponse fetchUserProfileById(Long currentUserId, Long profileOwnerId) {
         // number of followers of the profile owner
         Field<Integer> followerNumberField = DSL.selectCount()
                 .from(uf)
@@ -68,6 +70,13 @@ public class UserRepository {
                         .from(uf)
                         .where(uf.FOLLOWER_ID.eq(currentUserId).and(uf.FOLLOWED_USER_ID.eq(profileOwnerId)))
         ).as("isBeingFollowed");
+
+        // used for toggling follow button
+        Field<Boolean> isFollowingCurrentUserField = Objects.equals(currentUserId, profileOwnerId) ? DSL.val(false).as("isFollowingCurrentUserField") : DSL.exists(
+                DSL.selectOne()
+                        .from(uf)
+                        .where(uf.FOLLOWER_ID.eq(profileOwnerId).and(uf.FOLLOWED_USER_ID.eq(currentUserId)))
+        ).as("isFollowingCurrentUserField");
 
         // Return the priority or NULL if not following or is self
         Field<FollowingPriority> followingPriorityField = Objects.equals(currentUserId, profileOwnerId) ? DSL.val((FollowingPriority) null).as("followingPriority")
@@ -91,19 +100,29 @@ public class UserRepository {
         ).as("isMuted");
 
         return dsl.select(u.ID, u.DISPLAY_NAME, u.USERNAME, u.JOINED_AT, u.PROFILE_PICTURE, u.PROFILE_COVER_PHOTO, u.PROFILE_BIO, u.DOB, u.RESIDENCE, u.GENDER,
-                        u.TIMEZONE_ID, followingNumberField, followerNumberField, isBeingFollowedField, followingPriorityField, isBlockedField, isMutedField)
+                        u.TIMEZONE_ID, u.WHO_CAN_MESSAGE, followingNumberField, followerNumberField, isFollowingCurrentUserField, isBeingFollowedField, followingPriorityField,
+                        isBlockedField, isMutedField)
                 .from(u)
                 .where(u.ID.eq(profileOwnerId))
                 .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender,
-                                   timezoneId, followingNumber, followerNumber, isBeingFollowed, followingPriority, isBlocked, isMuted) -> {
-                    var profile = new ProfileResponseDto(username, new UserAvatarDto(userId, displayName, profilePicture), profileCover, bio, joinedAt,
-                            new UserAboutDto(gender.name(), dob, residence, timezoneId));
+                                   timezoneId, whoCanMessage, followingNumber, followerNumber, isFollowingCurrentUser, isBeingFollowed, followingPriority,
+                                   isBlocked, isMuted) -> {
+                    var profile = new ProfileResponse(new UserAvatar(userId, username, displayName, profilePicture), profileCover, bio, joinedAt,
+                            new UserAbout(gender, dob, residence, timezoneId));
                     profile.setFollowerNo(followerNumber);
                     profile.setFollowingNo(followingNumber);
-                    profile.isBeingFollowed(isBeingFollowed);
+                    profile.setIsBeingFollowed(isBeingFollowed);
                     profile.setFollowingPriority(followingPriority == null ? null : followingPriority.name());
-                    profile.isBlocked(isBlocked);
-                    profile.isMuted(isMuted);
+                    profile.setIsBlocked(isBlocked);
+                    profile.setIsMuted(isMuted);
+                    profile.setCanBeMessaged(
+                            switch (whoCanMessage) {
+                                case EVERYONE -> true;
+                                case FOLLOWERS -> isBeingFollowed;
+                                case FRIENDS -> isBeingFollowed && isFollowingCurrentUser;
+                                case NONE -> false;
+                            }
+                    );
                     return profile;
                 }));
     }
@@ -148,4 +167,5 @@ public class UserRepository {
         Boolean isAccountProtected = dsl.select(u.IS_PROTECTED).where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch))).fetchOneInto(Boolean.class);
         return isAccountProtected != null && isAccountProtected;
     }
+
 }

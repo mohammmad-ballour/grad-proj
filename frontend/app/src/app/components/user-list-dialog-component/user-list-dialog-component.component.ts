@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogActions } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subject } from 'rxjs';
-import { UserSeekResponse, UserService } from '../services/user.service';
+import { UserResponse, UserService } from '../services/user.service';
 import { UserItemComponent } from '../user-item-component/user-item-component';
 import { Router } from '@angular/router';
 
@@ -37,7 +37,7 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
   private observer?: IntersectionObserver;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { title: string; userSeekResponse: UserSeekResponse[], userId: number },
+    @Inject(MAT_DIALOG_DATA) public data: { title: string; UserResponse: UserResponse[], userId: number },
     private dialogRef: MatDialogRef<UserListDialogComponent>,
     private userService: UserService,
     private router: Router
@@ -71,7 +71,7 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
     request$.subscribe({
       next: (users) => {
         if (users?.length) {
-          this.data.userSeekResponse.push(...users);
+          this.data.UserResponse.push(...users);
           this.page++;
           if (users.length < this.pageSize) {
             this.hasMore = false;
@@ -117,10 +117,10 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
   }
 
 
-  follow(user: UserSeekResponse) {
+  follow(user: UserResponse) {
     this.followSpinner = true;
-    this.currentUserId = user.userId;
-    this.userService.follow(user.userId).subscribe({
+    this.currentUserId = user.userAvatar.userId;
+    this.userService.follow(user.userAvatar.userId).subscribe({
       next: () => {
         user.isFollowedByCurrentUser = true;
       },
@@ -133,10 +133,10 @@ export class UserListDialogComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  unFollow(user: UserSeekResponse) {
+  unFollow(user: UserResponse) {
     this.followSpinner = true;
-    this.currentUserId = user.userId;
-    this.userService.unfollow(user.userId).subscribe({
+    this.currentUserId = user.userAvatar.userId;
+    this.userService.unfollow(user.userAvatar.userId).subscribe({
       next: () => {
         user.isFollowedByCurrentUser = false;
       },

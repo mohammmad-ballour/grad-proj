@@ -34,7 +34,7 @@ public class SecurityConfig {
                         auth
                                 .requestMatchers(PUBLIC_API).permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()    // login endpoint
-                                .requestMatchers(HttpMethod.POST, "/api/users").permitAll()         // signup endpoint
+                                .requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(auth ->

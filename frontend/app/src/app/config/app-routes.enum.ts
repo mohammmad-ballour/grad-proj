@@ -7,7 +7,7 @@ export enum AppRoutes {
     FEED = 'feed',
     HOME = 'home',
     NOTIFICATIONS = 'notifications',
-    MESSAGES = 'messages',
+    MESSAGES = 'chats',
     MORE = 'more',
 }
 

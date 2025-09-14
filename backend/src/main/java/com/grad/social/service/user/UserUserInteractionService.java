@@ -7,7 +7,7 @@ import com.grad.social.common.exceptionhandling.AssociationNotFoundException;
 import com.grad.social.common.utils.TemporalUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.user.MuteDuration;
-import com.grad.social.model.user.response.UserSeekResponse;
+import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -25,15 +25,15 @@ import static com.grad.social.exception.user.UserErrorCode.*;
 public class UserUserInteractionService {
     private final UserUserInteractionRepository userRepository;
 
-    public List<UserSeekResponse> retrieveFollowerList(Long userId, Long currentUserId, int page) {
+    public List<UserResponse> retrieveFollowerList(Long userId, Long currentUserId, int page) {
         return this.userRepository.findFollowersWithPagination(userId, currentUserId, page);
     }
 
-    public List<UserSeekResponse> retrieveFollowingList(Long userId, Long currentUserId, int page) {
+    public List<UserResponse> retrieveFollowingList(Long userId, Long currentUserId, int page) {
         return this.userRepository.findFollowingsWithPagination(userId, currentUserId, page);
     }
 
-    public List<UserSeekResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, int page) {
+    public List<UserResponse> findFollowersCurrentUserFollowsInUserIdFollowingList(Long userId, Long currentUserId, int page) {
         return this.userRepository.findFollowersCurrentUserFollowsInUserIdFollowingList(userId, currentUserId, page);
     }
 
@@ -106,7 +106,7 @@ public class UserUserInteractionService {
         }
     }
 
-    public List<UserSeekResponse> findMutedUsersWithPagination(Long userId, int page) {
+    public List<UserResponse> findMutedUsersWithPagination(Long userId, int page) {
         return this.userRepository.findMutedUsersWithPagination(userId, page);
     }
 
@@ -131,7 +131,7 @@ public class UserUserInteractionService {
         }
     }
 
-    public List<UserSeekResponse> findBlockedUsersWithPagination(Long userId, int page) {
+    public List<UserResponse> findBlockedUsersWithPagination(Long userId, int page) {
         return this.userRepository.findBlockedUsersWithPagination(userId, page);
     }
 

@@ -1,31 +1,31 @@
   <div class="user-item">
       <div class="user-info">
-        <img class="img" 
-          [src]="showImage(user.profilePicture)"
-          alt="{{ user.displayName }}"
+        <img class="img"
+          [src]="showImage(user.userAvatar.profilePicture)"
+          alt="{{ user.userAvatar.displayName }}"
           width="40" height="40" />
-       
+
         <div class="user-details">
-           <span  [style.cursor]='"pointer"' (click)="GoTOProfile.emit(user.username)"  class="user-handle">{{ '@' + user.username }}
-            @if(user.verified){
+           <span  [style.cursor]='"pointer"' (click)="GoTOProfile.emit(user.userAvatar.username)"  class="user-handle">{{ '@' + user.userAvatar.username }}
+            @if(user.isVerified){
                <mat-icon class="verified">verified</mat-icon>
             }
            </span>
-          <span class="user-name">{{ user.displayName }}</span>
+          <span class="user-name">{{ user.userAvatar.displayName }}</span>
         </div>
           <span class="profile-bio" [title]="user.profileBio">{{ user.profileBio }}</span>
       </div>
-      <button 
-        mat-flat-button 
-        color="primary" 
+      <button
+        mat-flat-button
+        color="primary"
         class="follow-btn"
         (click)="handleClick()"
-        [disabled]="isLoading && currentUserId === user.userId">
-        @if (isLoading && currentUserId === user.userId) {
-          <mat-progress-spinner 
-            diameter="18" 
-            strokeWidth="3" 
-            mode="indeterminate" 
+        [disabled]="isLoading && currentUserId === user.userAvatar.userId">
+        @if (isLoading && currentUserId === user.userAvatar.userId) {
+          <mat-progress-spinner
+            diameter="18"
+            strokeWidth="3"
+            mode="indeterminate"
             color="accent"
             class="follow-spinner">
           </mat-progress-spinner>

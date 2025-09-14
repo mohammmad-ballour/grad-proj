@@ -1,0 +1,15 @@
+<div class="container-fluid bg-white rounded shadow-sm" style="height: 100%;">
+  <div class="row h-100 rounded">
+
+      <app-chat-list 
+      class="col-3 border-end d-flex flex-column h-100"
+      (chatSelected)="onChatSelected($event)">
+      </app-chat-list>
+    @if(isChatSelected()) {
+    <app-chat-messages class="col-9 d-flex flex-column h-100" [chatSelected]="chatSelected()"
+      [activeUserId]="activeUserId">
+    </app-chat-messages>
+    }
+
+  </div>
+</div>

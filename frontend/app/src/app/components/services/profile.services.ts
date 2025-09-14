@@ -43,6 +43,9 @@ export class ProfileServices extends BaseService {
     get userName() {
         return this.authService.UserName;
     }
+    get userId() {
+        return this.authService.UserId;
+    }
 
 
 
