@@ -4,7 +4,6 @@ import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
-import com.grad.social.model.enums.PrivacySettings;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
 import com.grad.social.model.tables.UserFollowers;
@@ -27,7 +26,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.grad.social.model.enums.PrivacySettings.*;
 import static org.jooq.Records.mapping;
 
 @Repository
@@ -121,6 +119,7 @@ public class UserRepository {
                                 case FOLLOWERS -> isBeingFollowed;
                                 case FRIENDS -> isBeingFollowed && isFollowingCurrentUser;
                                 case NONE -> false;
+                                default -> throw new IllegalStateException("Unexpected value: " + whoCanMessage);
                             }
                     );
                     return profile;

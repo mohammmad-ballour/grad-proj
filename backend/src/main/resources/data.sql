@@ -1,6 +1,5 @@
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
 ALTER SEQUENCE messages_message_id_seq RESTART WITH 1;
-ALTER SEQUENCE media_asset_media_id_seq RESTART WITH 1;
 
 DELETE
 FROM media_asset;
@@ -129,10 +128,34 @@ INSERT INTO public.user_blocks(user_id, blocked_user_id, blocked_at)
 VALUES (2, 3, '2025-08-09');
 
 -- media assets
-INSERT INTO public.media_asset (content_hash, filename_hash, extension, mime_type, size_bytes)
-VALUES ('content19', 'nature1', 'jpeg', 'image/jpeg', 1024),
-       ('content23', 'let-us-go', 'mp4', 'video/mp4', 232448),
-       ('content24', 'thanks', 'gif', 'image/gif', 138240);
+INSERT INTO public.media_asset (media_id, content_hash, filename_hash, mime_type, size_bytes)
+VALUES (1, 'content1', 'Cairo1_1.jpg', 'image/jpg', 555),
+       (2, 'content2', 'Cairo1_2.jpg', 'image/jpg', 700),
+       (3, 'content3', 'Cairo1_3.jpg', 'image/jpg', 1024),
+       (4, 'content4', 'Cairo1_4.jpg', 'image/jpg', 1024),
+       (5, 'content5', 'Cairo1_5.jpg', 'image/jpg', 1024),
+       (6, 'content6', 'Cairo1_6.jpg', 'image/jpg', 1024),
+       (7, 'content7', 'Cairo1_7.jpg', 'image/jpg', 1024),
+       (8, 'content8', 'Cairo1_8.jpg', 'image/jpg', 1024),
+       (9, 'content9', 'Cairo1_9.jpg', 'image/jpg', 1024),
+       (10, 'content10', 'Cairo1_10.jpg', 'image/jpg', 1024),
+       (11, 'content11', 'Cairo1_11.jpg', 'image/jpg', 1024),
+       (12, 'content12', 'Cairo1_12.jpg', 'image/jpg', 1024),
+       (13, 'content13', 'Cairo2_1.jpg', 'image/jpg', 1024),
+       (14, 'content14', 'Cairo2_2.jpg', 'image/jpg', 1024),
+       (15, 'content15', 'Cairo2_3.jpg', 'image/jpg', 1024),
+       (16, 'content16', 'Cairo2_4.jpg', 'image/jpg', 1024),
+       (17, 'content17', 'Cairo2_5.jpg', 'image/jpg', 1024),
+       (18, 'content18', 'Cairo2_6.jpg', 'image/jpg', 1024),
+
+       (19, 'content19', 'nature1.jpeg', 'image/jpeg', 1024),
+       (20, 'content20', 'nature2.jpeg', 'image/jpeg', 1024),
+
+       (21, 'content21', 'nature3.jpeg', 'image/jpeg', 1024),
+       (22, 'content22', 'debugging-is-great.png', 'image/png', 1024),
+
+       (23, 'content23', 'let-us-go.mp4', 'video/mp4', 232448),
+       (24, 'content24', 'thanks.gif', 'image/gif', 138240);
 
 -- chats
 INSERT INTO public.chats(chat_id, is_group_chat, name, created_at)
@@ -166,12 +189,12 @@ INSERT INTO public.messages(chat_id, parent_message_id, sender_id, content, mess
 VALUES (1000, null, 1, 'Hello, 2 and 3', 'TEXT', null, '2025-08-09 09:15:49.513348 +00:00'),
        (1000, null, 2, 'Hey, both', 'TEXT', null, '2025-08-09 09:16:49.513348 +00:00'),
        (1000, 2, 1, 'How are you', 'TEXT', null, '2025-08-09 09:25:05.513348 +00:00'),
-       (1000, 1, 3, 'Hey folks', 'IMAGE', 1, '2025-08-09 09:28:05.513348 +00:00'),
+       (1000, 1, 3, 'Hey folks', 'IMAGE', 19, '2025-08-09 09:28:05.513348 +00:00'),
 
        (2000, null, 2, 'Hey baraa, Shall we create a group for backend stuff?', 'TEXT', null,
         '2025-08-05 22:05:05.513348 +00:00'),
        (2000, 5, 2, 'Answer ASAP', 'TEXT', null, '2025-08-05 22:20:05.513348 +00:00'),
-       (2000, null, 3, '', 'VIDEO', 2, '2025-08-05 22:31:00.513348 +00:00'),
+       (2000, null, 3, '', 'VIDEO', 23, '2025-08-05 22:31:00.513348 +00:00'),
 
        (4000, null, 2, 'Call me!', 'TEXT', null, '2025-08-05 22:06:00.513348 +00:00'),    -- id = 8
 
@@ -181,7 +204,7 @@ VALUES (1000, null, 1, 'Hello, 2 and 3', 'TEXT', null, '2025-08-09 09:15:49.5133
        (2000, null, 2, 'Cool.', 'TEXT', null, '2025-08-29 19:07:00.513348 +00:00'),
        (2000, null, 2, 'Can you send it to me before 10 p.m.', 'TEXT', null, '2025-08-29 19:07:48.513348 +00:00'),
        (2000, null, 3, 'Sure', 'TEXT', null, '2025-08-29 19:10:55.513348 +00:00'),
-       (2000, 14, 2, '😊', 'IMAGE', 3, '2025-08-29 19:12:00.513348 +00:00'),               -- id = 15
+       (2000, 14, 2, '😊', 'IMAGE', 24, '2025-08-29 19:12:00.513348 +00:00'),               -- id = 15
 
        (2000, null, 2, 'Good Evening', 'TEXT', null, '2025-08-30 15:01:00.513000 +00:00'),
        (2000, null, 2, 'Is the report ready?', 'TEXT', null, '2025-08-30 15:02:05.227000 +00:00'),
@@ -250,3 +273,198 @@ VALUES (1, 2, '2025-08-09 09:16:05.513348 +00:00', '2025-08-09 09:15:49.513348 +
 
        (27, 2, '2025-08-30 20:22:00.150890 +00:00', '2025-08-30 20:22:33.200890 +00:00'),
        (28, 2, '2025-08-30 20:22:00.199000 +00:00', '2025-08-30 20:22:33.200890 +00:00');
+
+
+-- statuses
+INSERT INTO public.statuses (id, content, user_id, privacy, created_at, parent_status_id, parent_association, is_pinned,
+                             reply_audience, share_audience, content_tsvector)
+VALUES (1, 'Hello, all', 1, 'PUBLIC', '2025-08-09 10:15:49.513348 +00:00', NULL, NULL, true,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'Hello, all')),
+       (10, 'Hello', 2, 'PUBLIC', '2025-08-10 10:22:15.513348 +00:00', 1, 'REPLY', false, 'EVERYONE', 'EVERYONE',
+        to_tsvector('english', 'Hello')),
+       (15, 'Hola!', 3, 'PUBLIC', '2025-08-10 10:25:15.513348 +00:00', 1, 'REPLY', false, 'EVERYONE', 'EVERYONE',
+        to_tsvector('spanish', 'Hola!')),
+       (20, 'مرحبا أبو عاطف', 3, 'PUBLIC', '2025-08-10 10:26:15.513348 +00:00', 15, 'REPLY', false, 'EVERYONE',
+        'EVERYONE', to_tsvector('arabic', 'مرحبا أبو عاطف')),
+
+       (50, 'Nature is the best therapy', 1, 'FOLLOWERS', '2025-08-10 10:15:49.513348 +00:00', NULL, NULL, false,
+        'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'Nature is the best therapy')),
+       (55, 'Inspiring shot 👌, see mine 😀', 3, 'FOLLOWERS', '2025-08-10 10:18:49.513348 +00:00', 50, 'REPLY', false,
+        'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'Inspiring shot 👌, see mine 😀')),
+
+       (100, 'My travel experiences', 1, 'PRIVATE', '2025-08-10 22:15:49.513348 +00:00', NULL, NULL, false,
+        'ONLY_ME', 'ONLY_ME', to_tsvector('english', 'My travel experiences')),
+       (105, 'post next Friday', 1, 'PRIVATE', '2025-08-10 22:16:49.513348 +00:00', 100, 'REPLY', false, 'EVERYONE',
+        'EVERYONE', to_tsvector('english', 'post next Friday')),
+
+       (150, 'Opinion on latest tech news', 1, 'PUBLIC', '2025-08-11 19:15:23.513348 +00:00', NULL, NULL, false,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'Opinion on latest tech news')),
+       (155, 'I agree with your opinion.', 2, 'PUBLIC', '2025-08-11 19:30:23.000555 +00:00', 150, 'REPLY', true,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'I agree with your opinion.')),
+       (160, 'Could you share more details?', 4, 'PUBLIC', '2025-08-12 00:00:23.513348 +00:00', 150, 'REPLY', false,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'Could you share more details?')),
+
+       (200, 'Tech event highlights', 1, 'PUBLIC', '2025-08-11 20:15:00.513348 +00:00', NULL, NULL, false,
+        'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'Tech event highlights')),
+       (205, 'This quote really resonates.', 2, 'FOLLOWERS', '2025-08-12 10:18:49.513348 +00:00', 200, 'REPLY', false,
+        'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'This quote really resonates.')),
+
+
+       (250, 'Private family moments', 2, 'PUBLIC', '2025-08-11 20:15:00.513348 +00:00', NULL, NULL, false,
+        'ONLY_ME', 'ONLY_ME', to_tsvector('english', 'Private family moments')),
+
+       (300, 'Debugging is easy 🤣🤣🤣🤣', 2, 'PUBLIC', '2025-08-11 21:15:00.513348 +00:00', NULL, NULL, true,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'Debugging is easy 🤣🤣🤣🤣')),
+       (305, 'hahaha', 1, 'PUBLIC', '2025-08-11 21:20:00.513348 +00:00', 300, 'REPLY', false, 'EVERYONE',
+        'EVERYONE', to_tsvector('english', 'hahaha')),
+       (310, 'i will share it!', 1, 'PUBLIC', '2025-08-11 21:20:59.513348 +00:00', 300, 'REPLY', false, 'EVERYONE',
+        'EVERYONE', to_tsvector('english', 'i will share it!')),
+       (325, 'LOL!', 3, 'PUBLIC', '2025-08-11 21:25:08.513348 +00:00', 300, 'REPLY', false, 'EVERYONE', 'EVERYONE',
+        to_tsvector('english', 'LOL!')),
+       (315, 'no problem haha', 2, 'PUBLIC', '2025-08-11 21:30:00.513348 +00:00', 310, 'REPLY', false, 'EVERYONE',
+        'EVERYONE', to_tsvector('english', 'no problem haha')),
+       (320, 'you all can share the post', 2, 'PUBLIC', '2025-08-11 21:31:00.513348 +00:00', 300, 'REPLY', false,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'you all can share the post')),
+
+
+       (350, 'Welcome back, mohbalor', 3, 'PUBLIC', '2025-08-09 10:30:49.513348 +00:00', 1, 'SHARE', false,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'Welcome back, mohbalor')),
+
+       (400, 'Spring boot', 4, 'PUBLIC', '2025-08-12 10:00:00.513348 +00:00', NULL, NULL, true,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'Spring boot')),
+
+       (450, 'Spring data jdbc', 4, 'PUBLIC', '2025-08-12 10:10:49.513348 +00:00', NULL, NULL, false,
+        'EVERYONE', 'FOLLOWERS', to_tsvector('english', 'Spring data jdbc')),
+       (455, 'JPA is better haha', 1, 'PUBLIC', '2025-08-12 10:17:00.513348 +00:00', 450, 'REPLY', false, 'EVERYONE',
+        'FOLLOWERS', to_tsvector('english', 'JPA is better haha')),
+
+       (500, 'Spring data jpq', 4, 'PUBLIC', '2025-08-12 10:20:49.513348 +00:00', NULL, NULL, false,
+        'EVERYONE', 'FOLLOWERS', to_tsvector('english', 'Spring data jpq')),
+
+       (550, 'Virtual threads in java 21', 4, 'PUBLIC', '2025-08-12 10:31:17.513348 +00:00', NULL, NULL, false,
+        'EVERYONE', 'EVERYONE', to_tsvector('english', 'Virtual threads in java 21')),
+
+       (600, 'Controversial topic analysis', 4, 'FOLLOWERS', '2025-08-12 10:45:29.513348 +00:00', NULL, NULL, false,
+        'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'Controversial topic analysis')),
+       (605, 'I disagree with your review.', 5, 'FOLLOWERS', '2025-08-12 10:55:10.513348 +00:00', 600, 'REPLY', false,
+        'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'I disagree with your review.')),
+       (610, 'Do you have anything to say?', 4, 'FOLLOWERS', '2025-08-12 10:57:29.513348 +00:00', 605, 'REPLY', false,
+        'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'Do you have anything to say?')),
+       (615, 'I will call you', 5, 'FOLLOWERS', '2025-08-12 10:59:03.513348 +00:00', 610, 'REPLY', false, 'FOLLOWERS',
+        'FOLLOWERS', to_tsvector('english', 'I will call you')),
+
+
+       (650, 'Good Luck, @sarah!', 5, 'PUBLIC', '2025-08-12 12:10:49.513348 +00:00', 450, 'SHARE', false, 'FOLLOWERS',
+        'ONLY_ME', to_tsvector('english', 'Good Luck, Sarah!')),
+
+       (700, 'Discussion on science', 5, 'PUBLIC', '2025-08-12 08:10:49.513348 +00:00', NULL, NULL, true, 'EVERYONE',
+        'EVERYONE', to_tsvector('english', 'Discussion on science')),
+
+       (750, 'Au Caire', 5, 'FOLLOWERS', '2025-08-12 10:10:49.513348 +00:00', NULL, NULL, false, 'FOLLOWERS',
+        'FOLLOWERS', to_tsvector('french', 'Au Caire')),
+
+       (800, 'Au Caire (2)', 5, 'FOLLOWERS', '2025-08-12 11:10:49.513348 +00:00', NULL, NULL, false, 'ONLY_ME',
+        'ONLY_ME', to_tsvector('french', 'Au Caire (2)')),
+       (805, 'Restez à l''écoute pour la partie 3 🔥', 5, 'FOLLOWERS', '2025-08-12 11:12:05.513348 +00:00', 800,
+        'REPLY', true, 'ONLY_ME', 'ONLY_ME', to_tsvector('french', 'Restez à l''écoute pour la partie 3 🔥')),
+
+       (850, 'Au Caire (3)', 5, 'FOLLOWERS', '2025-08-14 18:10:00.513348 +00:00', NULL, NULL, false, 'ONLY_ME',
+        'ONLY_ME', to_tsvector('french', 'Au Caire (3)')),
+
+       (900, 'Au Caire (4)', 5, 'FOLLOWERS', '2025-08-14 18:30:22.513348 +00:00', NULL, NULL, false, 'ONLY_ME',
+        'ONLY_ME', to_tsvector('french', 'Au Caire (4)')),
+       (905, '', 5, 'FOLLOWERS', '2025-08-14 18:32:22.513348 +00:00', 900, 'REPLY', false, 'ONLY_ME', 'ONLY_ME',
+        to_tsvector('french', ''));
+
+-- status likes
+INSERT INTO public.status_likes(status_id, user_id, created_at)
+VALUES (1, 1, '2025-08-10 10:23:15.513348 +00:00'),
+       (1, 2, '2025-08-10 10:23:15.513348 +00:00'),
+       (1, 3, '2025-08-10 10:25:15.513348 +00:00'),
+       (10, 1, '2025-08-10 11:00:15.513348 +00:00'),
+       (15, 1, '2025-08-10 11:11:15.513348 +00:00'),
+       (15, 3, '2025-08-10 11:33:15.513348 +00:00'),
+       (20, 2, '2025-08-10 10:27:15.513348 +00:00'),
+
+       (50, 3, '2025-08-10 10:20:55.513348 +00:00'),
+       (50, 4, '2025-08-10 23:27:15.513348 +00:00'),
+       (55, 1, '2025-08-10 12:30:11.513348 +00:00'),
+
+       (105, 1, '2025-08-10 23:01:15.513348 +00:00'),
+
+       (150, 1, '2025-08-11 19:16:23.513348 +00:00'),
+       (150, 2, '2025-08-11 19:30:23.513348 +00:00'),
+       (150, 4, '2025-08-11 19:30:23.513348 +00:00'),
+       (150, 3, '2025-08-11 20:15:23.513348 +00:00'),
+       (155, 1, '2025-08-11 19:33:23.513348 +00:00'),
+       (150, 5, '2025-08-12 08:15:30.513348 +00:00'),
+       (160, 5, '2025-08-12 08:16:50.513348 +00:00'),
+       (160, 1, '2025-08-12 10:15:23.513348 +00:00'),
+
+       (200, 2, '2025-08-11 20:45:00.513348 +00:00'),
+       (200, 6, '2025-08-11 20:58:18.513348 +00:00'),
+       (205, 1, '2025-08-12 10:15:23.513348 +00:00'),
+
+       (350, 1, '2025-08-10 05:30:08.513348 +00:00'),
+       (350, 2, '2025-08-09 10:40:00.513348 +00:00'),
+
+       (400, 1, '2025-08-12 10:05:00.513348 +00:00'),
+       (400, 5, '2025-08-12 10:50:00.513348 +00:00'),
+
+       (400, 1, '2025-08-12 10:05:00.513348 +00:00'),
+       (400, 5, '2025-08-12 10:50:00.513348 +00:00'),
+
+       (450, 1, '2025-08-12 10:15:00.513348 +00:00'),
+       (450, 5, '2025-08-12 10:50:50.513348 +00:00'),
+
+       (500, 1, '2025-08-12 10:25:00.513348 +00:00'),
+       (500, 5, '2025-08-12 10:52:00.513348 +00:00'),
+
+       (550, 1, '2025-08-12 10:35:00.513348 +00:00'),
+       (550, 5, '2025-08-12 10:53:00.513348 +00:00'),
+
+       (615, 4, '2025-08-12 11:01:44.513348 +00:00'),
+
+       (650, 4, '2025-08-12 14:10:49.513348 +00:00'),
+
+       (750, 4, '2025-08-12 11:01:44.513348 +00:00'),
+
+       (800, 4, '2025-08-12 11:15:44.513348 +00:00'),
+
+       (805, 5, '2025-08-12 11:13:44.513348 +00:00'),
+       (805, 4, '2025-08-12 11:14:59.513348 +00:00'),
+
+       (900, 4, '2025-08-14 19:13:17.513348 +00:00'),
+       (905, 4, '2025-08-14 19:15:55.513348 +00:00');
+
+-- status media
+INSERT INTO public.status_media(status_id, media_id, position)
+VALUES (750, 1, 1),
+       (750, 2, 2),
+       (750, 3, 3),
+       (750, 4, 4),
+
+       (800, 5, 1),
+       (800, 6, 2),
+       (800, 7, 3),
+       (800, 8, 4),
+
+       (850, 9, 1),
+       (850, 10, 2),
+       (850, 11, 3),
+       (850, 12, 4),
+
+       (900, 13, 1),
+       (900, 14, 2),
+       (900, 15, 3),
+       (900, 16, 4),
+
+       (905, 17, 1),
+       (905, 18, 2),
+
+       (50, 19, 1),
+       (50, 20, 2),
+
+       (55, 21, 1),
+
+       (300, 22, 2);

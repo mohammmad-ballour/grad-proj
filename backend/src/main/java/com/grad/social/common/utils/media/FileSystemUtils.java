@@ -1,7 +1,10 @@
 package com.grad.social.common.utils.media;
 
 import com.grad.social.common.AppConstants;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -12,15 +15,16 @@ import java.nio.file.StandardCopyOption;
 
 @Service
 @Slf4j
-public class MediaStorageService {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public class FileSystemUtils {
 
-    public Path resolvePath(String hashedFileName, String extension) {
+    public static Path resolvePath(String hashedFileName) {
         String storagePath = AppConstants.UPLOAD_DIR;
-        return Paths.get(storagePath, hashedFileName + "." + extension);
+        return Paths.get(storagePath, hashedFileName);
     }
 
-    public void saveFile(String hashedFileName, String extension, InputStream fileStream) throws Exception {
-        Path target = resolvePath(hashedFileName, extension);
+    public static void saveFile(String hashedFileName, InputStream fileStream) throws Exception {
+        Path target = resolvePath(hashedFileName);
         Files.createDirectories(target.getParent());
         long bytesWritten = Files.copy(fileStream, target, StandardCopyOption.REPLACE_EXISTING);
         if (bytesWritten > 0) {
@@ -28,13 +32,13 @@ public class MediaStorageService {
         }
     }
 
-    public InputStream loadFile(String hashedFileName, String extension) throws Exception {
-        Path path = resolvePath(hashedFileName, extension);
-        return Files.newInputStream(path);
+    public static FileSystemResource loadFile(String hashedFileName) {
+        Path path = resolvePath(hashedFileName);
+        return new FileSystemResource(path);
     }
 
-    public void deleteFile(String hashedFileName, String extension) throws Exception {
-        Path path = resolvePath(hashedFileName, extension);
+    public static void deleteFile(String hashedFileName) throws Exception {
+        Path path = resolvePath(hashedFileName);
         boolean b = Files.deleteIfExists(path);
         if (b) {
             log.info("Deleted file = %s".formatted(hashedFileName));

@@ -28,7 +28,6 @@ public class MediaRepository {
         return dsl.insertInto(ma)
                 .set(ma.CONTENT_HASH, newAsset.getContentHashed())
                 .set(ma.FILENAME_HASH, newAsset.getFileNameHashed())
-                .set(ma.EXTENSION, newAsset.getExtension())
                 .set(ma.SIZE_BYTES, newAsset.getSizeInBytes())
                 .set(ma.MIME_TYPE, newAsset.getMimeType())
                 .returning(ma.MEDIA_ID)
@@ -42,7 +41,6 @@ public class MediaRepository {
                     var asset = dsl.newRecord(ma);
                     asset.setContentHash(media.getContentHashed());
                     asset.setFilenameHash(media.getFileNameHashed());
-                    asset.setExtension(media.getExtension());
                     asset.setSizeBytes(media.getSizeInBytes());
                     asset.setMimeType(media.getMimeType());
                     return asset;
