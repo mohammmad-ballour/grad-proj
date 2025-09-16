@@ -1,4 +1,4 @@
-package com.grad.social.model.user;
+package com.grad.social.model.user.helper;
 
 import com.grad.social.model.enums.Gender;
 import lombok.AllArgsConstructor;

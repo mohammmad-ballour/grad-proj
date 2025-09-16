@@ -1,7 +1,7 @@
 package com.grad.social.common.security.keycloak;
 
-import com.grad.grad_proj.generated.api.model.SignInRequestDto;
 import com.grad.social.common.security.AuthService;
+import com.grad.social.common.security.SignInRequest;
 import com.grad.social.common.security.UserKey;
 import com.grad.social.common.security.event.LoginSuccessEvent;
 import jakarta.ws.rs.core.Response;
@@ -17,7 +17,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -99,8 +98,8 @@ public class KeycloakUserService implements AuthService {
     }
 
     @Override
-    public String loginWithPassword(SignInRequestDto request) throws BadCredentialsException {
-        var token = loginWithPassword(request.getEmail(), request.getPassword());
+    public String loginWithPassword(SignInRequest request) throws BadCredentialsException {
+        var token = loginWithPassword(request.email(), request.password());
         if (token != null) {
             this.eventPublisher.publishEvent(new LoginSuccessEvent(token));
         }

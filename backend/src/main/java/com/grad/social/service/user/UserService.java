@@ -1,6 +1,5 @@
 package com.grad.social.service.user;
 
-import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.Model;
 import com.grad.social.common.exceptionhandling.ModelNotFoundException;
@@ -8,8 +7,9 @@ import com.grad.social.common.security.AuthService;
 import com.grad.social.common.security.UserKey;
 import com.grad.social.common.validation.ErrorCode;
 import com.grad.social.exception.user.UserErrorCode;
-import com.grad.social.model.user.UserBasicData;
+import com.grad.social.model.user.helper.UserBasicData;
 import com.grad.social.model.tables.records.UsersRecord;
+import com.grad.social.model.user.request.CreateUser;
 import com.grad.social.model.user.response.ProfileResponse;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.service.user.validator.UserInfoValidator;
@@ -43,7 +43,7 @@ public class UserService {
         return this.userRepository.fetchUserProfileByName(currentUserId, nameToSearch);
     }
 
-    public void createUser(CreateUserDto user) {
+    public void createUser(CreateUser user) {
         this.userValidator.validateCreateUserRequest(user);
         try {
             Long userId = this.userRepository.save(user);

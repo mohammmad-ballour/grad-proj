@@ -6,7 +6,7 @@ import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.AssociationNotFoundException;
 import com.grad.social.common.utils.TemporalUtils;
 import com.grad.social.model.enums.FollowingPriority;
-import com.grad.social.model.user.MuteDuration;
+import com.grad.social.model.user.request.MuteDuration;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;

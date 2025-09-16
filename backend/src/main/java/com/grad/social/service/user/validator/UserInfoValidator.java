@@ -1,10 +1,10 @@
 package com.grad.social.service.user.validator;
 
-import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.validation.ValidationErrorCollector;
 import com.grad.social.exception.user.UserErrorCode;
-import com.grad.social.model.user.UserBasicData;
+import com.grad.social.model.user.helper.UserBasicData;
+import com.grad.social.model.user.request.CreateUser;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
@@ -18,7 +18,7 @@ public class UserInfoValidator {
 
     private final ValidationErrorCollector errorCollector = new ValidationErrorCollector();
 
-    public void validateCreateUserRequest(CreateUserDto createUserRequest) {
+    public void validateCreateUserRequest(CreateUser createUserRequest) {
         this.validateEmail(createUserRequest.getEmail());
         this.validateUsername(createUserRequest.getUsername());
         this.validatePassword(createUserRequest.getPassword());
