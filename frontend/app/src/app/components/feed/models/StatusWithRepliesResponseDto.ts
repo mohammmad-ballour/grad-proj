@@ -1,4 +1,4 @@
-import { UserAvatar } from "./ProfileResponseDto";
+import { UserAvatar } from "../../profile/models/ProfileResponseDto";
 
 export interface StatusWithRepliesResponse {
     statusResponse: StatusResponse,
@@ -11,6 +11,7 @@ export interface ReplySnippet {
     user: UserAvatar;
     numLikes: number;   // Integer → number (nullable in JSON)
     numReplies: number; // Integer → number (nullable in JSON)
+    numShares: number; // Integer → number (nullable in JSON)
     medias: MediaResponse[];
 }
 

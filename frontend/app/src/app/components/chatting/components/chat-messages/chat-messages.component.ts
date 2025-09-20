@@ -14,7 +14,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MessageDetailResponse } from '../../models/message-detail-response';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { finalize, Subscription } from 'rxjs';
-import { UserAvatar } from '../../../models/ProfileResponseDto';
+import { UserAvatar } from '../../../profile/models/ProfileResponseDto';
 import { MembersDialogComponent } from './members-dialog/members-dialog.component';
 
 export type ScrollDirectionCustameType = 'UP' | 'DOWN' | 'NOTCHANGE';

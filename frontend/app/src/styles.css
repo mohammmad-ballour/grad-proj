@@ -7,7 +7,12 @@ body {
 /* For WebKit browsers (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
     width: 8px;
-    /* slim scrollbar */
+    /*slimscrollbar*/
+    border-radius: 20px;
+    -webkit-border-radius: 20px;
+    -moz-border-radius: 20px;
+    -ms-border-radius: 20px;
+    -o-border-radius: 20px;
 }
 
 ::-webkit-scrollbar-track {
@@ -16,14 +21,14 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgb(255, 255, 255);
     /* light gray/black */
     border-radius: 10px;
     /* rounded */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.35);
+    background-color: rgba(23, 17, 17, 0.35);
     /* slightly darker on hover */
 }
 
@@ -31,7 +36,7 @@ body {
 * {
     scrollbar-width: thin;
     /* slim scrollbar */
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    scrollbar-color: rgba(0, 0, 0, 0.2);
 }
 
 /* For WebKit browsers (Chrome, Edge, Safari) */
@@ -40,9 +45,6 @@ body {
     /* slim scrollbar */
 }
 
-::-webkit-scrollbar-track {
-    background: transparent;
-}
 
 ::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.2);
@@ -58,5 +60,5 @@ body {
 /* For Firefox */
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    scrollbar-color: rgb(0, 0, 0);
 }

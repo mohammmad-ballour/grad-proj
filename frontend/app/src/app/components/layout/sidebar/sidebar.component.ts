@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule, RouterLinkActive } from '@angular/router';
-import { AppRoutes } from '../../config/app-routes.enum';
-import { AuthService } from '../../core/services/auth.service';
+import { AppRoutes } from '../../../config/app-routes.enum';
+import { AuthService } from '../../../core/services/auth.service';
+
 @Component({
   selector: 'app-sidebar',
   standalone: true,
@@ -31,7 +32,6 @@ export class SidebarComponent {
       { path: "explore", icon: 'explore', label: 'Explore' },
       { path: AppRoutes.NOTIFICATIONS, icon: 'notifications', label: 'Notifications' },
       { path: AppRoutes.MESSAGES, icon: 'messages', label: 'Messages' },
-      { path: AppRoutes.MORE, icon: 'more', label: 'More' },
     ];
   }
 }

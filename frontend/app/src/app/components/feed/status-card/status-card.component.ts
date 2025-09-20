@@ -13,8 +13,9 @@ import { MatIconModule } from '@angular/material/icon';
 import {
   StatusResponse,
   MediaResponse,
-} from '../../models/StatusWithRepliesResponseDto';
+} from '../models/StatusWithRepliesResponseDto';
 import { StatusParentCardComponent } from "../status-parent-card/status-parent-card.component";
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-status-card',
@@ -23,7 +24,7 @@ import { StatusParentCardComponent } from "../status-parent-card/status-parent-c
   template: `
     <mat-card class="post w-100">
       <!-- User Header -->
-      <mat-card-header class="header">
+      <mat-card-header class="header" (click)="displayProfile()">
         <img
           mat-card-avatar
           [src]="processMedia(statusData.userAvatar.profilePicture, 'image/png')"
@@ -63,7 +64,7 @@ import { StatusParentCardComponent } from "../status-parent-card/status-parent-c
           @for (media of statusData.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
-                [src]="'http://localhost:8080/uploads/'+media.mediaUrl"   
+                [src]="'http://localhost:8080/media/'+media.mediaId"   
                 class="media-item"
               />
             }
@@ -250,13 +251,16 @@ import { StatusParentCardComponent } from "../status-parent-card/status-parent-c
   ],
 })
 export class StatusCardComponent implements AfterViewInit {
+
   @Input() statusData!: StatusResponse;
   @ViewChild('contentElement') contentElement!: ElementRef;
   isExpanded = false;
   isContentOverflowing = false;
   isLiked = false;
 
-  constructor(private cdr: ChangeDetectorRef) { }
+  constructor(private cdr: ChangeDetectorRef,
+    private router: Router
+  ) { }
 
   ngAfterViewInit() {
     setTimeout(() => {
@@ -266,6 +270,9 @@ export class StatusCardComponent implements AfterViewInit {
         this.cdr.detectChanges();
       }
     }, 0);
+  }
+  displayProfile() {
+    this.router.navigate([this.statusData.userAvatar.username])
   }
 
   onImageError(event: Event, fallback: string): void {

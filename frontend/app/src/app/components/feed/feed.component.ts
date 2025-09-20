@@ -1,13 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { StatusServices } from '../services/status.services';
-import { StatusWithRepliesResponse } from '../models/StatusWithRepliesResponseDto';
-import { ActivatedRoute, Router } from '@angular/router';
-import { AppRoutes } from '../../config/app-routes.enum';
+import { StatusWithRepliesResponse } from './models/StatusWithRepliesResponseDto';
+import { ActivatedRoute } from '@angular/router';
 import { StatusDetailComponent } from "./status-detail/status-detail.component";
 import { Subject, takeUntil } from 'rxjs';
-import { StatusCardComponent } from './status-card/status-card.component';
+import { StatusServices } from './services/status.services';
 
 
 @Component({

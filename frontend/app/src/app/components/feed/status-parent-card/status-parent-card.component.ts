@@ -14,7 +14,7 @@ import {
   StatusResponse,
   MediaResponse,
   ParentStatusSnippet,
-} from '../../models/StatusWithRepliesResponseDto';
+} from '../models/StatusWithRepliesResponseDto';
 import { Router } from '@angular/router';
 import { AppRoutes } from '../../../config/app-routes.enum';
 
@@ -46,6 +46,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
         #contentElement
         class="post-content"
         [ngClass]="{ expanded: isExpanded }"
+        
       >
         {{ parentStatusSnippet.content }}
       </mat-card-content>
@@ -67,7 +68,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
           @for (media of parentStatusSnippet.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
-                [src]="media.mediaUrl"
+                [src]="'http://localhost:8080/media/'+media.mediaUrl"
                 [alt]="media.mimeType"
                 class="media-item"
               />

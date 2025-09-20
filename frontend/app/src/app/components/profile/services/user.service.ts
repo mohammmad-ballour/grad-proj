@@ -1,9 +1,9 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { catchError, Observable, throwError } from 'rxjs';
-import { BaseService } from '../../core/services/base.service';
-import { UpdatePriority } from '../models/UpdatePriority';
+import { BaseService } from '../../../core/services/base.service';
 import { MuteDuration } from '../models/MuteDurationDto';
 import { Injectable } from '@angular/core';
+import { UpdatePriority } from '../models/UpdatePriority';
 
 // Matches backend UserSeekResponse.java
 export interface UserResponse {

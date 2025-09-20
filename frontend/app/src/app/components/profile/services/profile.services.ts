@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BaseService } from '../../core/services/base.service';
 import { catchError, Observable, of, tap } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
+import { BaseService } from '../../../core/services/base.service';
 import { ProfileResponseDto } from '../models/ProfileResponseDto';
-import { AuthService } from '../../core/services/auth.service';
+
 
 
 @Injectable({ providedIn: 'root' })

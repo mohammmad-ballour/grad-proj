@@ -1,6 +1,6 @@
 
 
-import { UserAvatar } from "../../models/ProfileResponseDto";
+import { UserAvatar } from "../../profile/models/ProfileResponseDto";
 
 export interface UserResponse {
   userAvatar: UserAvatar;

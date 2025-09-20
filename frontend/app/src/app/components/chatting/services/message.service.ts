@@ -11,7 +11,7 @@ import { MessageDetailResponse } from '../models/message-detail-response';
 import { MessageResponse, ParentMessageWithNeighbours, TimestampSeekRequest } from '../models/message-response';
 import { ScrollDirection } from '@angular/material/tabs';
 import { ScrollDirectionCustameType } from '../components/chat-messages/chat-messages.component';
-import { UserAvatar } from '../../models/ProfileResponseDto';
+import { UserAvatar } from '../../profile/models/ProfileResponseDto';
 import { ChatService } from './chat.service';
 
 

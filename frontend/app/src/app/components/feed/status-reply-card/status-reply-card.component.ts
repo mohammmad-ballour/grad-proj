@@ -1,10 +1,7 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
-import { Observable, Subject, takeUntil } from 'rxjs';
-import { StatusServices } from '../../services/status.services';
-import { ReplySnippet, StatusWithRepliesResponse } from '../../models/StatusWithRepliesResponseDto';
-import { CommonModule, DatePipe } from '@angular/common';
-import { StatusCardComponent } from "../status-card/status-card.component"; // Import CommonModule and DatePipe
+import { Router } from '@angular/router';
+import { ReplySnippet } from '../models/StatusWithRepliesResponseDto';
+import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MatCardModule } from "@angular/material/card";
 import { AppRoutes } from '../../../config/app-routes.enum';
@@ -16,7 +13,9 @@ import { MatIconModule } from "@angular/material/icon";
   template: `
     <mat-card class="post" >
       <!-- User Header -->
-      <mat-card-header class="header">
+      <mat-card-header class="header"
+      (click)="displayProfile()"
+      >
         <img
           mat-card-avatar
           [src]="processImage(reply.user.profilePicture)"
@@ -36,6 +35,7 @@ import { MatIconModule } from "@angular/material/icon";
         #contentElement
         class="post-content"
         [ngClass]="{ expanded: isExpanded }"
+        (click)="displayStatus()"
       >
         {{ reply.content }}
       </mat-card-content>
@@ -54,10 +54,10 @@ import { MatIconModule } from "@angular/material/icon";
       <!-- Media Section -->
       @if ( reply. medias && reply.medias.length > 0) {
         <div class="media-grid">
-          @for (media of parentStatusSnippet.medias; track media.mediaId) {
+          @for (media of reply.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
-                [src]="media.mediaUrl"
+                [src]="'http://localhost:8080/media/'+media.mediaId"
                 [alt]="media.mimeType"
                 class="media-item"
               />
@@ -86,7 +86,7 @@ import { MatIconModule } from "@angular/material/icon";
           <i class="bi bi-chat"></i> {{ reply.numReplies }}
         </button>
         <button mat-button class="action-btn">
-         <i class="bi bi-repeat"></i> {{ reply.numReplies }}
+         <i class="bi bi-repeat"></i> {{ reply.numShares }}
         </button>
       </mat-card-actions>
       
@@ -225,6 +225,9 @@ import { MatIconModule } from "@angular/material/icon";
   imports: [CommonModule, MatCardModule, MatIconModule]
 })
 export class StatusRplyCardComponent {
+  displayProfile() {
+    this.router.navigate([`${this.reply.user.username}`])
+  }
 
 
   @Input() reply!: ReplySnippet;

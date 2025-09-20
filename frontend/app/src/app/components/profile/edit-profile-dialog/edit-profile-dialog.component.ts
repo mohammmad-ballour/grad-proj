@@ -7,11 +7,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { EditProfileDialogData } from '../models/EditProfileDialogData';
-import { TimezoneSelectorComponent } from '../../core/sharedComponent/Timezone/timezone-selector.component';
-import { TIMEZONES } from '../../core/constants/timezones.constant';
-import { CustomValidators } from '../../core/validators/CustomValidators';
+import { TimezoneSelectorComponent } from '../../../core/sharedComponent/Timezone/timezone-selector.component';
+import { TIMEZONES } from '../../../core/constants/timezones.constant';
+import { CustomValidators } from '../../../core/validators/CustomValidators';
 import { MatSelectModule } from '@angular/material/select';
-import { ResidenceSelectorComponent } from '../../core/sharedComponent/Country/country-selector.component';
+import { ResidenceSelectorComponent } from '../../../core/sharedComponent/Country/country-selector.component';
 import { ProfileServices } from '../services/profile.services';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 

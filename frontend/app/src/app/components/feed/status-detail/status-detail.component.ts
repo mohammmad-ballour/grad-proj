@@ -1,12 +1,12 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, Subject, takeUntil } from 'rxjs';
-import { StatusServices } from '../../services/status.services';
-import { StatusWithRepliesResponse } from '../../models/StatusWithRepliesResponseDto';
+import { StatusWithRepliesResponse } from '../models/StatusWithRepliesResponseDto';
 import { CommonModule, DatePipe } from '@angular/common';
 import { StatusCardComponent } from "../status-card/status-card.component"; // Import CommonModule and DatePipe
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { StatusRplyCardComponent } from "../status-reply-card/status-reply-card.component";
+import { MediaServices } from '../../services/media.services';
 
 @Component({
   selector: 'app-status-detail',
@@ -19,8 +19,8 @@ export class StatusDetailComponent {
   @Input() statusData!: StatusWithRepliesResponse;
 
   constructor(
-    private cdr: ChangeDetectorRef,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    mediaService: MediaServices
   ) { }
   processImage(image?: string): SafeUrl {
     if (!image) return 'assets/ProfileAvatar.png';
