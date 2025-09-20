@@ -110,13 +110,12 @@ public class ChattingService {
         if (mediaAssetId == null) {
             // Generate hashed filename + keep extension
             String hashedFileName = MediaUtils.hashFileName(attachment.getOriginalFilename());
-            String extension = MediaUtils.getExtension(attachment.getOriginalFilename());
 
             // Save to filesystem: uploads/posts/<hashedFileName>
             FileSystemUtils.saveFile(hashedFileName, attachment.getInputStream());
 
             // Insert into DB
-            var toSave = new MediaRepresentation(hashedFileName, hashedContent, extension, attachment.getContentType(), attachment.getSize());
+            var toSave = new MediaRepresentation(hashedFileName, hashedContent, attachment.getContentType(), attachment.getSize());
             mediaAssetId = this.mediaRepository.insertMediaAsset(toSave);
         }
         return mediaAssetId;
