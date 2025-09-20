@@ -1,29 +1,35 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { PostCardComponent } from '../post-card/post-card.component';
+import { StatusServices } from '../services/status.services';
+import { StatusWithRepliesResponse } from '../models/StatusWithRepliesResponseDto';
+import { ActivatedRoute, Router } from '@angular/router';
+import { AppRoutes } from '../../config/app-routes.enum';
+import { StatusDetailComponent } from "./status-detail/status-detail.component";
+import { Subject, takeUntil } from 'rxjs';
+import { StatusCardComponent } from './status-card/status-card.component';
 
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [CommonModule, MatCardModule, PostCardComponent],
+  imports: [CommonModule, MatCardModule, StatusDetailComponent],
   template: `
-    <div class="feed">
-      @for (post of posts; track post.content) {
-        <app-post-card [post]="post"></app-post-card>
+    <div class="feed w-100 rounded"  >
+      @if(statusId){
+      <app-status-detail [statusData]="statusData"></app-status-detail>
+
       }
+   
     </div>
   `,
   styles: [`
     .feed {
       display: flex;
-      padding:20px;
       flex-direction: column;
       gap: 16px;
-      width: calc(100% - 40px) ;
-      margin: 0 auto;
-    }
+      height:100%;
+     }
   `]
 })
 export class FeedComponent {
@@ -34,4 +40,45 @@ export class FeedComponent {
 
 
   ];
+
+
+  constructor(
+    private activatedRoute: ActivatedRoute,
+    private statusServices: StatusServices
+  ) { }
+  private destroy$ = new Subject<void>();
+  statusId!: string;
+
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+  ngOnInit(): void {
+    console.log('tedd')
+    this.activatedRoute.paramMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.initFeed();
+      });
+  }
+
+  statusData!: StatusWithRepliesResponse;
+  private initFeed(): void {
+    const statusId = this.activatedRoute.snapshot.paramMap.get('statusId');
+    console.log(statusId)
+    if (statusId) {
+
+      this.statusServices.getStatusById(statusId).subscribe(
+        {
+          next: (res) => {
+            this.statusId = statusId;
+            this.statusData = res;
+            console.log(res)
+          }
+        }
+      )
+    }
+  }
+
 }

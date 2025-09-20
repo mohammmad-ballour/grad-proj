@@ -10,6 +10,7 @@ import { AppRoutes } from './config/app-routes.enum';
 import { AuthGuard } from './core/guards/auth.guard';
 import { LogoutComponent } from './features/auth/logout/logout.component';
 import { ChatComponent } from './components/chatting/components/chat/chat.component';
+import { StatusDetailComponent } from './components/feed/status-detail/status-detail.component';
 
 export const routes: Routes = [
     { path: AppRoutes.LOGIN, component: LoginComponent },
@@ -25,8 +26,10 @@ export const routes: Routes = [
             { path: AppRoutes.NOTIFICATIONS, component: NotificationsComponent },
             { path: AppRoutes.MESSAGES, component: ChatComponent },
             { path: AppRoutes.MORE, component: MoreComponent },
+            // there is conflect
             // ⚠️ This must be **last** so it doesn't catch other static routes!
-            { path: `${AppRoutes.MESSAGES}/:chatId`, component: ChatComponent },//is not work
+            { path: `${AppRoutes.MESSAGES}/:chatId`, component: ChatComponent },
+            { path: `${AppRoutes.STATUS}/:statusId`, component: FeedComponent },
 
             { path: ':username', component: ProfileComponent },
         ],
