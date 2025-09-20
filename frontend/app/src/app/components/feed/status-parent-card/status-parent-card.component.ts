@@ -17,6 +17,7 @@ import {
 } from '../models/StatusWithRepliesResponseDto';
 import { Router } from '@angular/router';
 import { AppRoutes } from '../../../config/app-routes.enum';
+import { MediaService } from '../../services/media.service';
 
 @Component({
   selector: 'app-status-parent-card',
@@ -64,12 +65,13 @@ import { AppRoutes } from '../../../config/app-routes.enum';
 
       <!-- Media Section -->
       @if ( parentStatusSnippet. medias && parentStatusSnippet.medias.length > 0) {
+
         <div class="media-grid">
           @for (media of parentStatusSnippet.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
-                [src]="'http://localhost:8080/media/'+media.mediaUrl"
-                [alt]="media.mimeType"
+          
+                [src]="mediaServices.getMediaById(media.mediaId)"
                 class="media-item"
               />
             }
@@ -77,11 +79,12 @@ import { AppRoutes } from '../../../config/app-routes.enum';
               <video
                 controls
                 class="media-item"
-                [src]="media.mediaUrl"
+                [src]="mediaServices.getMediaById(media.mediaId)"
               ></video>
             }
           }
         </div>
+
       }
 
       
@@ -220,7 +223,8 @@ export class StatusParentCardComponent implements AfterViewInit {
 
   constructor(
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    public mediaServices: MediaService
 
   ) { }
   displayStatus() {

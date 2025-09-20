@@ -12,10 +12,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import {
   StatusResponse,
-  MediaResponse,
+
 } from '../models/StatusWithRepliesResponseDto';
 import { StatusParentCardComponent } from "../status-parent-card/status-parent-card.component";
 import { Router } from '@angular/router';
+import { MediaService } from '../../services/media.service';
 
 @Component({
   selector: 'app-status-card',
@@ -64,7 +65,7 @@ import { Router } from '@angular/router';
           @for (media of statusData.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
-                [src]="'http://localhost:8080/media/'+media.mediaId"   
+                [src]="mediaService.getMediaById(media.mediaId)"   
                 class="media-item"
               />
             }
@@ -72,7 +73,7 @@ import { Router } from '@angular/router';
               <video
                 controls
                 class="media-item"
-                [src]="processMedia(media.mediaUrl, media.mimeType)"
+                [src]="mediaService.getMediaById(media.mediaId)"
               ></video>
             }
           }
@@ -259,7 +260,8 @@ export class StatusCardComponent implements AfterViewInit {
   isLiked = false;
 
   constructor(private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    public mediaService: MediaService
   ) { }
 
   ngAfterViewInit() {

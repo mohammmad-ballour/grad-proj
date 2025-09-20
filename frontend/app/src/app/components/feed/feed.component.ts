@@ -6,15 +6,22 @@ import { ActivatedRoute } from '@angular/router';
 import { StatusDetailComponent } from "./status-detail/status-detail.component";
 import { Subject, takeUntil } from 'rxjs';
 import { StatusServices } from './services/status.services';
+import { MatIconModule } from "@angular/material/icon";
 
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [CommonModule, MatCardModule, StatusDetailComponent],
+  imports: [CommonModule, MatCardModule, StatusDetailComponent, MatIconModule],
   template: `
     <div class="feed w-100 rounded"  >
-      @if(statusId){
+      @if(statusNotFound){
+              <div class="unavailable-content rounded"  style="background-color: white; padding:20px; "> 
+          <mat-icon class="lock-icon">lock</mat-icon>
+          <h3>This content isn't available at the moment</h3>
+          <p>When this happens, it's usually because the owner only shared it with a small group of people, changed who can see it, or it's been deleted.</p>
+        </div>
+      }@else{
       <app-status-detail [statusData]="statusData"></app-status-detail>
 
       }
@@ -28,6 +35,21 @@ import { StatusServices } from './services/status.services';
       gap: 16px;
       height:100%;
      }
+
+     .unavailable-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;  /* vertical center */
+  align-items: center;      /* horizontal center */
+  text-align: center;
+  background-color: white;
+  padding: 20px;
+  margin: auto;             /* centers inside parent */
+  max-width: 600px;         /* keeps it neat */
+  border-radius: 8px;
+}
+ 
+
   `]
 })
 export class FeedComponent {
@@ -46,6 +68,7 @@ export class FeedComponent {
   ) { }
   private destroy$ = new Subject<void>();
   statusId!: string;
+  statusNotFound: boolean = false;
 
 
   ngOnDestroy() {
@@ -74,6 +97,9 @@ export class FeedComponent {
             this.statusData = res;
             console.log(res)
           }
+          , error: () => {
+            this.statusNotFound = true;
+          },
         }
       )
     }

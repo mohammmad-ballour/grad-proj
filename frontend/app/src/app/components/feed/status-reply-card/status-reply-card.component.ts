@@ -6,6 +6,7 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MatCardModule } from "@angular/material/card";
 import { AppRoutes } from '../../../config/app-routes.enum';
 import { MatIconModule } from "@angular/material/icon";
+import { MediaService } from '../../services/media.service';
 
 @Component({
   selector: 'app-status-reply-card',
@@ -57,7 +58,7 @@ import { MatIconModule } from "@angular/material/icon";
           @for (media of reply.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
-                [src]="'http://localhost:8080/media/'+media.mediaId"
+                [src]="mediaService.getMediaById(media.mediaId)"
                 [alt]="media.mimeType"
                 class="media-item"
               />
@@ -66,7 +67,7 @@ import { MatIconModule } from "@angular/material/icon";
               <video
                 controls
                 class="media-item"
-                [src]="media.mediaUrl"
+                [src]="mediaService.getMediaById(media.mediaId)"
               ></video>
             }
           }
@@ -242,7 +243,8 @@ export class StatusRplyCardComponent {
   constructor(
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer,
-    private router: Router
+    private router: Router,
+    public mediaService: MediaService
   ) { }
   processImage(image?: string): SafeUrl {
     if (!image) return 'assets/ProfileAvatar.png';
