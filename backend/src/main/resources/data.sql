@@ -125,7 +125,7 @@ VALUES (2, 1, '2025-08-09 09:15:49.513348 +00:00', '2025-08-10 09:15:49.513348 +
 
 -- blocks
 INSERT INTO public.user_blocks(user_id, blocked_user_id, blocked_at)
-VALUES (2, 3, '2025-08-09');
+VALUES (2, 11, '2025-08-09');
 
 -- media assets
 INSERT INTO public.media_asset (media_id, content_hash, filename_hash, mime_type, size_bytes)

@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.jooq.impl.DSL.row;
-import static org.jooq.impl.DSL.when;
 
 @Repository
 @RequiredArgsConstructor
@@ -53,6 +52,8 @@ public class UserStatusInteractionRepository {
     UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
     UserMutes um = UserMutes.USER_MUTES.as("um");
     UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
+    UserBlocks ub2 = UserBlocks.USER_BLOCKS.as("ub2");
+
 
     // currentUserId is the one who is viewing the status
     public StatusWithRepliesResponse getStatusById(Long currentUserId, Long statusIdToFetch) {
@@ -88,6 +89,9 @@ public class UserStatusInteractionRepository {
                                         DSL.coalesce(DSL.countDistinct(
                                                 DSL.when(sc_reply.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY), sc_reply.ID)
                                         ), 0).as("num_replies"),
+                                        DSL.coalesce(DSL.countDistinct(
+                                                DSL.when(sc_reply.PARENT_ASSOCIATION.eq(ParentAssociation.SHARE), sc_reply.ID)
+                                        ), 0).as("num_shares"),
                                         // nested medias multiset for this reply
                                         loadStatusMedia(ma_reply, sm_reply, sc).as("medias")
                                 )
@@ -97,6 +101,14 @@ public class UserStatusInteractionRepository {
                                 .leftJoin(sc_reply).on(sc_reply.PARENT_STATUS_ID.eq(sc.ID)) // replies of reply
                                 .where(sc.PARENT_STATUS_ID.eq(s.ID))
                                 .and(sc.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY))
+                                .and(
+                                        DSL.notExists(
+                                                DSL.selectOne()
+                                                        .from(ub2)
+                                                        .where(ub2.USER_ID.eq(currentUserId).and(ub2.BLOCKED_USER_ID.eq(sc.USER_ID))
+                                                                .or(ub2.USER_ID.eq(sc.USER_ID).and(ub2.BLOCKED_USER_ID.eq(currentUserId))))
+                                        )
+                                )
                                 .groupBy(sc.ID, u_reply.ID)
                                 .orderBy(sc.CREATED_AT.desc())
                                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
@@ -108,6 +120,7 @@ public class UserStatusInteractionRepository {
                                 rec.get("user", UserAvatar.class),
                                 rec.get("num_likes", Integer.class),
                                 rec.get("num_replies", Integer.class),
+                                rec.get("num_shares", Integer.class),
                                 rec.get("medias", List.class)
                         ))
                 )
@@ -270,8 +283,7 @@ public class UserStatusInteractionRepository {
         ).convertFrom(r ->
                 r.stream().map(rec -> {
                     try {
-                        return new MediaResponse(rec.getValue(maTable.MEDIA_ID), rec.getValue(maTable.FILENAME_HASH),
-                                rec.getValue(maTable.MIME_TYPE), rec.getValue(maTable.SIZE_BYTES), rec.getValue(smTable.POSITION));
+                        return new MediaResponse(rec.getValue(maTable.MEDIA_ID), rec.getValue(maTable.MIME_TYPE), rec.getValue(maTable.SIZE_BYTES), rec.getValue(smTable.POSITION));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }

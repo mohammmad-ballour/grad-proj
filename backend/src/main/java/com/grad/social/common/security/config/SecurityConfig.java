@@ -33,6 +33,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth ->
                         auth
                                 .requestMatchers(PUBLIC_API).permitAll()
+                                .requestMatchers("/media/**").permitAll() // allow anyone to fetch images
                                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()    // login endpoint
                                 .requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
                                 .anyRequest().authenticated()
