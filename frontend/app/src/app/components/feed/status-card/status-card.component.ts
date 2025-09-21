@@ -17,11 +17,13 @@ import {
 import { StatusParentCardComponent } from "../status-parent-card/status-parent-card.component";
 import { Router } from '@angular/router';
 import { MediaService } from '../../services/media.service';
+import { StatusActionCardComponent } from "../status-reaction-card/status-action-card.component";
+import { StatusActionDto } from '../models/ReactToStatusRequestDto';
 
 @Component({
   selector: 'app-status-card',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, StatusParentCardComponent],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, StatusParentCardComponent, StatusActionCardComponent],
   template: `
     <mat-card class="post w-100">
       <!-- User Header -->
@@ -91,20 +93,11 @@ import { MediaService } from '../../services/media.service';
         </div>
       }
 
-      <!-- Actions -->
-      <mat-card-actions class="actions">
-        <button mat-button class="action-btn" (click)="toggleLike()">
-          <i class="bi" [ngClass]="isLiked ? 'bi-heart-fill liked' : 'bi-heart'"></i>
-          {{ statusData.numLikes }}
-        </button>
-        <button mat-button class="action-btn">
-          <i class="bi bi-chat"></i> {{ statusData.numReplies }}
-        </button>
-        <button mat-button class="action-btn">
-          <i class="bi bi-repeat"></i> {{ statusData.numShares }}
-        </button>
-      </mat-card-actions>
-    </mat-card>
+    
+
+    <app-status-action-card [statusAction]="getStatusAction()">
+
+    </app-status-action-card>
   `,
   styles: [
     `
@@ -253,6 +246,7 @@ import { MediaService } from '../../services/media.service';
 })
 export class StatusCardComponent implements AfterViewInit {
 
+
   @Input() statusData!: StatusResponse;
   @ViewChild('contentElement') contentElement!: ElementRef;
   isExpanded = false;
@@ -294,5 +288,16 @@ export class StatusCardComponent implements AfterViewInit {
   toggleLike() {
     this.isLiked = !this.isLiked;
     this.cdr.detectChanges();
+  }
+
+  getStatusAction(): StatusActionDto {
+    return {
+      statusId: this.statusData.statusId,
+      statusOwnerId: this.statusData.userAvatar.userId,
+      numLikes: this.statusData.numLikes,
+      numReplies: this.statusData.numReplies,
+      numShares: this.statusData.numShares,
+      liked: false
+    };
   }
 }

@@ -17,6 +17,8 @@ export class BaseService {
     UPDATE_PRIORITY: '/api/users/update-priority/',
     USERS: '/api/users/',
     STATUS: '/api/status/public/',
+    LIKE: '/api/like',
+    UNLIKE: '/api/unlike',
     Media: '/media/' // base for followings/followers/mutual
   };
 

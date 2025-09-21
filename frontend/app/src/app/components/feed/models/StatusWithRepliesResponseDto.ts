@@ -13,6 +13,7 @@ export interface ReplySnippet {
     numReplies: number; // Integer → number (nullable in JSON)
     numShares: number; // Integer → number (nullable in JSON)
     medias: MediaResponse[];
+    isLikedByCurrentUser: boolean;
 }
 
 export interface StatusResponse {
@@ -31,7 +32,14 @@ export interface StatusResponse {
     numShares: number;
     medias: MediaResponse[];
     parentStatusSnippet: ParentStatusSnippet | null;
+    isStatusLikedByCurrentUser: boolean;
+    parentAssociation: ParentAssociation
 }
+export enum ParentAssociation {
+    REPLY = 'REPLY',
+    SHARE = 'SHARE'
+}
+
 
 export enum StatusPrivacy {
     PUBLIC = "PUBLIC",
