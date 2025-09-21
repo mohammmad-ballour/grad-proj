@@ -25,7 +25,7 @@ import { MediaService } from '../../services/media.service';
   template: `
     <mat-card class="post w-100">
       <!-- User Header -->
-      <mat-card-header class="header" (click)="displayProfile()">
+      <mat-card-header class="header cursor-pointer " (click)="displayProfile()">
         <img
           mat-card-avatar
           [src]="processMedia(statusData.userAvatar.profilePicture, 'image/png')"
@@ -125,7 +125,7 @@ import { MediaService } from '../../services/media.service';
       .header {
         display: flex;
         align-items: center;
-        padding: 0;
+        cursor: pointer;
       }
       .avatar {
         border-radius: 50%;

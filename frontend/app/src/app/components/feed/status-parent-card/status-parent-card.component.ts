@@ -24,9 +24,10 @@ import { MediaService } from '../../services/media.service';
   standalone: true,
   imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule],
   template: `
-    <mat-card class="post"  (click)="displayStatus()">
+      
+    <mat-card class="post " >
       <!-- User Header -->
-      <mat-card-header class="header">
+      <mat-card-header class="header"   (click)="displayProfile()">
         <img
           mat-card-avatar
           [src]="processImage(parentStatusSnippet.parentUserAvatar.profilePicture)"
@@ -47,6 +48,7 @@ import { MediaService } from '../../services/media.service';
         #contentElement
         class="post-content"
         [ngClass]="{ expanded: isExpanded }"
+        (click)="displayStatus()"
         
       >
         {{ parentStatusSnippet.content }}
@@ -110,6 +112,7 @@ import { MediaService } from '../../services/media.service';
         display: flex;
         align-items: center;
         padding: 0;
+        cursor: pointer;
       }
       .avatar {
         border-radius: 50%;
@@ -149,6 +152,7 @@ import { MediaService } from '../../services/media.service';
 
       /* Post Content */
       .post-content {
+        
         font-size: 15px;
         color: #f1f1f1ff;
         margin: 8px 0;
@@ -160,6 +164,8 @@ import { MediaService } from '../../services/media.service';
         text-overflow: ellipsis;
         white-space: normal;
         transition: all 0.3s ease;
+        cursor: pointer;
+
       }
       .post-content.expanded {
         -webkit-line-clamp: unset;
@@ -232,6 +238,10 @@ export class StatusParentCardComponent implements AfterViewInit {
     console.log('test')
     this.router.navigate([`${AppRoutes.STATUS}`, this.parentStatusSnippet.parentStatusId])
   }
+  displayProfile() {
+    this.router.navigate([this.parentStatusSnippet.parentUserAvatar.username])
+  }
+
 
   ngAfterViewInit() {
     setTimeout(() => {

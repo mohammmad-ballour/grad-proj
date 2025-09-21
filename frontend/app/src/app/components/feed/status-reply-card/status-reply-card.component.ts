@@ -14,7 +14,7 @@ import { MediaService } from '../../services/media.service';
   template: `
     <mat-card class="post" >
       <!-- User Header -->
-      <mat-card-header class="header"
+      <mat-card-header class="header  cursor-pointer"
       (click)="displayProfile()"
       >
         <img
@@ -34,9 +34,10 @@ import { MediaService } from '../../services/media.service';
          <!-- Post Content -->
       <mat-card-content
         #contentElement
-        class="post-content"
+        class="post-content cursor-pointer"
         [ngClass]="{ expanded: isExpanded }"
         (click)="displayStatus()"
+        
       >
         {{ reply.content }}
       </mat-card-content>
@@ -109,7 +110,9 @@ import { MediaService } from '../../services/media.service';
         border: 2px solid #cdd7e23b;
 
       }
-
+      .cursor-pointer {
+        cursor: pointer;
+      }
       /* Header */
       .header {
         display: flex;
