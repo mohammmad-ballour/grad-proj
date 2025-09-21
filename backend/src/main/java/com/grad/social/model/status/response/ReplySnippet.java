@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.List;
 
 public record ReplySnippet(Long replyId, String content, Instant postedAt, UserAvatar user, int numLikes,
-                           int numReplies, int numShares,
+                           int numReplies, int numShares, boolean isLikedByCurrentUser,
                            List<MediaResponse> medias
 ) {
 }
