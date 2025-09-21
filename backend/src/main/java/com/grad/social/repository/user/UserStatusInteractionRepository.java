@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.jooq.Records.mapping;
 import static org.jooq.impl.DSL.row;
 
 @Repository
@@ -160,6 +161,51 @@ public class UserStatusInteractionRepository {
                 .fetchOne();
 
         return this.mapToStatusWithRepliesResponse(record);
+    }
+
+    public List<ReplySnippet> fetchMoreReplies(Long currentUserId, Long statusId, Instant lastSeenCreatedAt, Long lastSeenStatusId) {
+        lastSeenCreatedAt = lastPageInstant(lastSeenCreatedAt, lastSeenStatusId);
+
+        // blocks: neither direction (current user blocked poster or poster blocked current user)
+        var notBlockedPredicate = DSL.notExists(
+                DSL.selectOne()
+                        .from(ub)
+                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(sc.USER_ID))
+                                .or(ub.USER_ID.eq(sc.USER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId))))
+        );
+
+        // Privacy predicate: allow if: own post, PUBLIC, FOLLOWERS and (current user follows poster)
+        var privacyPredicate = sc.USER_ID.eq(currentUserId)
+                .or(sc.PRIVACY.eq(StatusPrivacy.PUBLIC))
+                // check that the current user follows the poster
+                .or(sc.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
+
+        return dsl.select(sc.ID.as("reply_id"), sc.CONTENT.as("content"), sc.CREATED_AT.as("created_at"),
+                        row(u_reply.ID, u_reply.USERNAME, u_reply.DISPLAY_NAME, u_reply.PROFILE_PICTURE).mapping(UserAvatar::new).as("user"),
+                        DSL.coalesce(DSL.countDistinct(sl2.USER_ID), 0).as("num_likes"),
+                        DSL.coalesce(DSL.countDistinct(
+                                DSL.when(sc_reply.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY), sc_reply.ID)
+                        ), 0).as("num_replies"),
+                        DSL.coalesce(DSL.countDistinct(
+                                DSL.when(sc_reply.PARENT_ASSOCIATION.eq(ParentAssociation.SHARE), sc_reply.ID)
+                        ), 0).as("num_shares"),
+                        // nested medias multiset for this reply
+                        loadStatusMedia(ma_reply, sm_reply, sc).as("medias")
+                )
+                .from(sc)
+                .leftJoin(u_reply).on(u_reply.ID.eq(sc.USER_ID))
+                .leftJoin(uf).on(uf.FOLLOWED_USER_ID.eq(sc.USER_ID))
+                .leftJoin(sl2).on(sl2.STATUS_ID.eq(sc.ID))   // likes of reply
+                .leftJoin(sc_reply).on(sc_reply.PARENT_STATUS_ID.eq(sc.ID)) // replies of reply
+                .where(sc.PARENT_STATUS_ID.eq(statusId))
+                .and(privacyPredicate)
+                .and(notBlockedPredicate)
+                .and(sc.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY))
+                .groupBy(sc.ID, u_reply.ID)
+                .orderBy(sc.CREATED_AT.desc(), sc.ID.desc())
+                .seek(lastSeenCreatedAt, lastSeenStatusId)
+                .limit(AppConstants.DEFAULT_PAGE_SIZE)
+                .fetch(mapping(ReplySnippet::new));
     }
 
 

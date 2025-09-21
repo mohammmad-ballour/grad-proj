@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.statuses
 (
     id                 BIGINT
         CONSTRAINT pk_posts PRIMARY KEY,
-    content            VARCHAR(400)       NOT NULL,
+    content            VARCHAR(1000)       NOT NULL,
     content_tsvector   TSVECTOR,
     user_id            BIGINT             NOT NULL,
     privacy            STATUS_PRIVACY  DEFAULT 'PUBLIC',
