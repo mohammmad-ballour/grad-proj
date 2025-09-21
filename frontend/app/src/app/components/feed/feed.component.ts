@@ -96,6 +96,7 @@ export class FeedComponent {
             this.statusId = statusId;
             this.statusData = res;
             console.log(res)
+            console.log('fetch status')
           }
           , error: () => {
             this.statusNotFound = true;

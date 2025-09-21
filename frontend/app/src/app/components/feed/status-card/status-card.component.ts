@@ -5,6 +5,7 @@ import {
   ViewChild,
   ElementRef,
   ChangeDetectorRef,
+  SimpleChanges,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -12,7 +13,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import {
   StatusResponse,
-
+  ParentAssociation
 } from '../models/StatusWithRepliesResponseDto';
 import { StatusParentCardComponent } from "../status-parent-card/status-parent-card.component";
 import { Router } from '@angular/router';
@@ -26,6 +27,21 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
   imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, StatusParentCardComponent, StatusActionCardComponent],
   template: `
     <mat-card class="post w-100">
+
+      <!-- Parent Snippet for Replies (shown above like X app) -->
+      @if (statusData.parentAssociation === parentAssociation.REPLY) {
+        @if (statusData.parentStatusSnippet && statusData.parentStatusSnippet.parentStatusId) {
+          <app-status-parent-card [parentStatusSnippet]="statusData.parentStatusSnippet"></app-status-parent-card>
+        } @else {
+          <div class="unavailable-content">
+            <mat-icon class="lock-icon">lock</mat-icon>
+            <h3>This content isn't available at the moment</h3>
+            <p>When this happens, it's usually because the owner only shared it with a small group of people, changed who can see it, or it's been deleted.</p>
+          </div>
+        }
+        <div class="connecting-line"></div>
+      }
+
       <!-- User Header -->
       <mat-card-header class="header cursor-pointer " (click)="displayProfile()">
         <img
@@ -82,10 +98,10 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
         </div>
       }
 
-      <!-- Parent Snippet -->
-      @if (statusData.parentStatusSnippet && statusData.parentStatusSnippet.parentStatusId) {
+      <!-- Parent Snippet for Non-Replies (e.g., Quotes, shown below) -->
+      @if (statusData.parentAssociation !== parentAssociation.REPLY && statusData.parentStatusSnippet && statusData.parentStatusSnippet.parentStatusId) {
         <app-status-parent-card [parentStatusSnippet]="statusData.parentStatusSnippet"></app-status-parent-card>
-      } @else if (!statusData.parentStatusSnippet) {
+      } @else if (statusData.parentAssociation !== parentAssociation.REPLY && !statusData.parentStatusSnippet) {
         <div class="unavailable-content">
           <mat-icon class="lock-icon">lock</mat-icon>
           <h3>This content isn't available at the moment</h3>
@@ -93,11 +109,12 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
         </div>
       }
 
-    
+      <app-status-action-card
+        [statusAction]="statusAction"
+        (statusActionChange)="UpdateStatusAction($event)">
+      </app-status-action-card>
 
-    <app-status-action-card [statusAction]="getStatusAction()">
-
-    </app-status-action-card>
+    </mat-card>
   `,
   styles: [
     `
@@ -241,17 +258,24 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
       .liked {
         color: #e0245e !important;
       }
+
+      /* Connecting Line for Replies */
+      .connecting-line {
+        width: 2px;
+        background-color: #657786;
+        height: 20px;
+        margin: 8px 0 8px 20px;
+      }
     `,
   ],
 })
 export class StatusCardComponent implements AfterViewInit {
-
-
   @Input() statusData!: StatusResponse;
   @ViewChild('contentElement') contentElement!: ElementRef;
   isExpanded = false;
   isContentOverflowing = false;
   isLiked = false;
+  parentAssociation = ParentAssociation;
 
   constructor(private cdr: ChangeDetectorRef,
     private router: Router,
@@ -266,6 +290,17 @@ export class StatusCardComponent implements AfterViewInit {
         this.cdr.detectChanges();
       }
     }, 0);
+  }
+  statusAction!: StatusActionDto;
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['statusData']) {
+      this.ngOnInit()
+    }
+  }
+
+  ngOnInit() {
+    this.statusAction = this.getStatusAction();
   }
   displayProfile() {
     this.router.navigate([this.statusData.userAvatar.username])
@@ -297,7 +332,13 @@ export class StatusCardComponent implements AfterViewInit {
       numLikes: this.statusData.numLikes,
       numReplies: this.statusData.numReplies,
       numShares: this.statusData.numShares,
-      liked: false
+      liked: this.statusData.isStatusLikedByCurrentUser
+
     };
+  }
+  UpdateStatusAction(statusActionDto: StatusActionDto) {
+    this.statusAction = statusActionDto;
+    this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked
+
   }
 }

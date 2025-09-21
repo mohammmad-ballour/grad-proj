@@ -7,6 +7,8 @@ import { MatCardModule } from "@angular/material/card";
 import { AppRoutes } from '../../../config/app-routes.enum';
 import { MatIconModule } from "@angular/material/icon";
 import { MediaService } from '../../services/media.service';
+import { StatusActionCardComponent } from "../status-reaction-card/status-action-card.component";
+import { StatusActionDto } from '../models/ReactToStatusRequestDto';
 
 @Component({
   selector: 'app-status-reply-card',
@@ -75,22 +77,10 @@ import { MediaService } from '../../services/media.service';
         </div>
       }
         <!-- Actions -->
-      <mat-card-actions class="actions">
-        <button mat-button class="action-btn" (click)="toggleLike()">
-        
- 
-         <i class="bi" [ngClass]="isLiked ? 'bi-heart-fill liked' : 'bi-heart'"></i>
-{{ reply.numLikes }}
-
-        </button>
-
-        <button mat-button class="action-btn">
-          <i class="bi bi-chat"></i> {{ reply.numReplies }}
-        </button>
-        <button mat-button class="action-btn">
-         <i class="bi bi-repeat"></i> {{ reply.numShares }}
-        </button>
-      </mat-card-actions>
+ <app-status-action-card
+  [statusAction]="statusAction"
+  (statusActionChange)="UpdateStatusAction($event)">
+</app-status-action-card>
       
     </mat-card>
   `,
@@ -226,7 +216,7 @@ import { MediaService } from '../../services/media.service';
        
     `,
   ],
-  imports: [CommonModule, MatCardModule, MatIconModule]
+  imports: [CommonModule, MatCardModule, MatIconModule, StatusActionCardComponent]
 })
 export class StatusRplyCardComponent {
   displayProfile() {
@@ -239,8 +229,9 @@ export class StatusRplyCardComponent {
   isExpanded: any;
   isContentOverflowing: any;
   isLiked!: boolean;
+  statusAction!: StatusActionDto;
   ngOnInit() {
-    console.log(this.reply)
+    this.statusAction = this.getStatusAction();
   }
 
   constructor(
@@ -248,7 +239,9 @@ export class StatusRplyCardComponent {
     private sanitizer: DomSanitizer,
     private router: Router,
     public mediaService: MediaService
-  ) { }
+  ) {
+
+  }
   processImage(image?: string): SafeUrl {
     if (!image) return 'assets/ProfileAvatar.png';
     return this.sanitizer.bypassSecurityTrustUrl(`data:image/png;base64,${image}`);
@@ -269,8 +262,21 @@ export class StatusRplyCardComponent {
     this.cdr.detectChanges();
   }
 
-  toggleLike() {
-    this.isLiked = !this.isLiked;
-    this.cdr.detectChanges();
+
+  getStatusAction(): StatusActionDto {
+    return {
+      statusId: this.reply.replyId,
+      statusOwnerId: this.reply.user.userId,
+      numLikes: this.reply.numLikes,
+      numReplies: this.reply.numReplies,
+      numShares: this.reply.numShares,
+      liked: this.reply.isLikedByCurrentUser
+
+    };
+  }
+  UpdateStatusAction(statusActionDto: StatusActionDto) {
+    this.statusAction = statusActionDto;
+    this.reply.isLikedByCurrentUser = statusActionDto.liked
+
   }
 }

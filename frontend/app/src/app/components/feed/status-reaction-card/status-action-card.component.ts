@@ -1,4 +1,4 @@
-import { Component, Input, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -53,43 +53,50 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
   ],
 })
 export class StatusActionCardComponent {
-
   @Input() statusAction!: StatusActionDto;
+  @Output() statusActionChange = new EventEmitter<StatusActionDto>();
 
-
-  constructor(private cdr: ChangeDetectorRef,
-    public reactionService: StatusReactionService
-  ) {
-    console.log(this.statusAction)
+  constructor(public reactionService: StatusReactionService) {
 
   }
-  ngOnInit() {
-    console.log(this.statusAction)
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['statusAction']) {
+      console.log('statusAction changed:', this.statusAction);
+    }
   }
 
   toggleLike() {
     const request = {
-      statusId: this.statusAction.statusId,          // the post/status ID
-      statusOwnerId: this.statusAction.statusOwnerId // the user who owns the status
+      statusId: this.statusAction.statusId,
+      statusOwnerId: this.statusAction.statusOwnerId
     };
-    console.log('test')
-    console.log(this.statusAction.liked)
+
+    // Create optimistic update
+    const updated = {
+      ...this.statusAction,
+      liked: !this.statusAction.liked,
+      numLikes: this.statusAction.liked
+        ? this.statusAction.numLikes - 1
+        : this.statusAction.numLikes + 1
+    };
+
+    // Emit immediately so UI updates
+    this.statusActionChange.emit(updated);
 
     if (this.statusAction.liked) {
       this.reactionService.unlikeStatus(request).subscribe({
-        next: () => this.statusAction.liked = false,
-        complete() {
+        next: () => {
           console.log('unlike')
         },
+        error: () => this.statusActionChange.emit(this.statusAction) // rollback on error
       });
     } else {
       this.reactionService.likeStatus(request).subscribe({
-        next: () => this.statusAction.liked = true
-        , complete() {
+        next: () => {
           console.log('like')
-        }
+        },
+        error: () => this.statusActionChange.emit(this.statusAction) // rollback on error
       });
     }
   }
-
 }

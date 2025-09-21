@@ -33,7 +33,7 @@ export interface StatusResponse {
     medias: MediaResponse[];
     parentStatusSnippet: ParentStatusSnippet | null;
     isStatusLikedByCurrentUser: boolean;
-    parentAssociation: ParentAssociation
+    parentAssociation: ParentAssociation;
 }
 export enum ParentAssociation {
     REPLY = 'REPLY',
