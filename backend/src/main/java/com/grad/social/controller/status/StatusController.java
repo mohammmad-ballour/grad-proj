@@ -1,6 +1,7 @@
 package com.grad.social.controller.status;
 
 import com.grad.social.model.shared.TimestampSeekRequest;
+import com.grad.social.model.status.request.ReactToStatusRequest;
 import com.grad.social.model.status.response.ReplySnippet;
 import com.grad.social.model.status.response.StatusWithRepliesResponse;
 import com.grad.social.service.user.UserStatusInteractionService;
@@ -33,4 +34,22 @@ public class StatusController {
         Long currentUserId = jwt == null? -1 : Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userStatusInteractionService.fetchMoreReplies(currentUserId, Long.parseLong(statusId), seekRequest));
     }
+
+    // Like a status
+    @PostMapping("/like")
+    @PreAuthorize("@SecurityService.canViewStatus(#jwt, #reactRequest)")
+    public ResponseEntity<Void> likeStatus(@AuthenticationPrincipal Jwt jwt, @RequestBody ReactToStatusRequest reactRequest) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userStatusInteractionService.likeStatus(uid, reactRequest);
+        return ResponseEntity.ok().build();
+    }
+
+    // Unlike a status
+    @PostMapping("/unlike")
+    public ResponseEntity<Void> unlikeStatus(@AuthenticationPrincipal Jwt jwt, @RequestBody ReactToStatusRequest reactRequest) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.userStatusInteractionService.unlikeStatus(uid, reactRequest);
+        return ResponseEntity.ok().build();
+    }
+
 }

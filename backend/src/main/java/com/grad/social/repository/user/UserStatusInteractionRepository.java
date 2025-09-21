@@ -1,6 +1,7 @@
 package com.grad.social.repository.user;
 
 import com.grad.social.common.AppConstants;
+import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.ParentAssociation;
 import com.grad.social.model.enums.StatusAudience;
 import com.grad.social.model.enums.StatusPrivacy;
@@ -9,10 +10,8 @@ import com.grad.social.model.status.response.*;
 import com.grad.social.model.tables.*;
 import com.grad.social.service.status.utils.StatusUtils;
 import lombok.RequiredArgsConstructor;
-import org.jooq.DSLContext;
-import org.jooq.Field;
+import org.jooq.*;
 import org.jooq.Record;
-import org.jooq.SelectOnConditionStep;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
@@ -209,12 +208,96 @@ public class UserStatusInteractionRepository {
     }
 
 
+    public Integer likeStatus(Long currentUserId, Long statusId) {
+        return dsl.insertInto(sl, sl.USER_ID, sl.STATUS_ID)
+                .values(currentUserId, statusId)
+                .execute();
+    }
+
+    public Integer unlikeStatus(Long currentUserId, Long statusId) {
+        return JooqUtils.delete(dsl, sl, sl.USER_ID.eq(currentUserId).and(sl.STATUS_ID.eq(statusId)));
+    }
+
+
     // Helpers
+    public boolean canViewStatus(Long currentUserId, Long statusId) {
+        return dsl.fetchExists(dsl.selectOne()
+                .from(s).join(uf).on(s.USER_ID.eq(uf.FOLLOWED_USER_ID))
+                .where(s.ID.eq(statusId)
+                        .and((s.USER_ID.eq(currentUserId))
+                                .or(s.PRIVACY.eq(StatusPrivacy.PUBLIC)
+                                        .or(s.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)))
+                                ))));
+    }
+
     public List<String> validUsernamesInUsernames(List<String> mentionedUsernames) {
         return dsl.select(u.USERNAME)
                 .from(u)
                 .where(u.USERNAME.in(mentionedUsernames))
                 .fetchInto(String.class);
+    }
+
+    private List<StatusResponse> mapToStatusResponseList(Result<Record> records) {
+        return records.stream()
+                .map(this::mapToStatusResponse)
+                .toList();
+    }
+
+    private StatusResponse mapToStatusResponse(Record record) {
+        // Extract all fields manually
+        if (record == null) {
+            return null;
+        }
+
+        // Extract all fields manually
+        Long statusId = record.get("id", Long.class);
+        String content = record.get("content", String.class);
+        StatusPrivacy privacy = record.get("privacy", StatusPrivacy.class);
+        StatusAudience replyAudience = record.get("reply_audience", StatusAudience.class);
+        StatusAudience shareAudience = record.get("share_audience", StatusAudience.class);
+        Instant postedAt = record.get("posted_at", Instant.class);
+
+        Long statusOwnerId = record.get("owner_id", Long.class);
+        String username = record.get("username", String.class);
+        String displayName = record.get("display_name", String.class);
+        byte[] profilePicture = record.get("profile_picture", byte[].class);
+
+        Integer numLikes = record.get("num_likes", Integer.class);
+        Integer numReplies = record.get("num_replies", Integer.class);
+        Integer numShares = record.get("num_shares", Integer.class);
+
+        List<MediaResponse> medias = record.get("medias", List.class);
+
+        Long parentOwnerId = record.get("parent_owner_id", Long.class);
+        String parentUsername = record.get("parent_username", String.class);
+        String parentDisplayName = record.get("parent_display_name", String.class);
+        byte[] parentProfilePicture = record.get("parent_profile_picture", byte[].class);
+
+        Long parentStatusId = record.get("parent_id", Long.class);
+        String parentStatusContent = record.get("parent_content", String.class);
+        StatusPrivacy parentStatusPrivacy = record.get("parent_privacy", StatusPrivacy.class);
+        Instant parentPostedAt = record.get("parent_posted_at", Instant.class);
+        List<MediaResponse> parentMedias = record.get("parent_medias", List.class);
+
+        // Extract mentions
+        List<String> mentions = StatusUtils.extractMentions(content);
+        List<String> mentionedUsernames = !mentions.isEmpty() ? this.validUsernamesInUsernames(mentions) : new ArrayList<>();
+
+        Boolean isStatusOwnerFollowedByCurrentUser = record.get("is_status_owner_followed_by_current_user", Boolean.class);
+        boolean isAllowedToReply = replyAudience == StatusAudience.EVERYONE || (isStatusOwnerFollowedByCurrentUser && replyAudience == StatusAudience.FOLLOWERS);
+        boolean isAllowedToShare = shareAudience == StatusAudience.EVERYONE || (isStatusOwnerFollowedByCurrentUser && shareAudience == StatusAudience.FOLLOWERS);
+
+        // Build StatusResponse
+        ParentStatusSnippet parentSnippet = parentStatusId == null ? null :
+                new ParentStatusSnippet(
+                        new UserAvatar(parentOwnerId, parentUsername, parentDisplayName, parentProfilePicture),
+                        parentStatusId, parentStatusContent, parentStatusPrivacy, parentPostedAt, parentMedias);
+
+        return new StatusResponse(new UserAvatar(statusOwnerId, username, displayName, profilePicture),
+                statusId, content, privacy, replyAudience, isAllowedToReply, shareAudience, isAllowedToShare, mentionedUsernames, postedAt,
+                numLikes, numReplies, numShares,
+                medias, parentSnippet
+        );
     }
 
     private StatusWithRepliesResponse mapToStatusWithRepliesResponse(Record record) {
@@ -294,6 +377,7 @@ public class UserStatusInteractionRepository {
 
         return dsl.select(s.ID.as("id"), s.CONTENT.as("content"), s.PRIVACY.as("privacy"), s.REPLY_AUDIENCE, s.SHARE_AUDIENCE, s.CREATED_AT.as("posted_at"),
                         s.USER_ID.as("owner_id"), u.USERNAME.as("username"), u.DISPLAY_NAME.as("display_name"), u.PROFILE_PICTURE.as("profile_picture"),
+                        DSL.when(uf.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_status_owner_followed_by_current_user"),
                         DSL.coalesce(DSL.countDistinct(sl.USER_ID), 0).as("num_likes"),
                         DSL.coalesce(DSL.countDistinct(
                                 DSL.when(sc.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY), sc.ID)
