@@ -16,6 +16,7 @@ import {
 import { Router } from '@angular/router';
 import { AppRoutes } from '../../../config/app-routes.enum';
 import { MediaService } from '../../services/media.service';
+import { CdkAutofill } from "@angular/cdk/text-field";
 
 @Component({
   selector: 'app-status-parent-card',
@@ -25,7 +26,7 @@ import { MediaService } from '../../services/media.service';
       
     <mat-card class="post " >
       <!-- User Header -->
-      <mat-card-header class="header"   (click)="displayProfile()">
+      <mat-card-header class="header"  >
         <img
           mat-card-avatar
           [src]="processImage(parentStatusSnippet.parentUserAvatar.profilePicture)"
@@ -34,7 +35,7 @@ import { MediaService } from '../../services/media.service';
           alt="avatar"
           class="avatar"
         />
-        <div class="header-info">
+        <div class="header-info"   (click)="displayProfile()">
           <span class="display-name">{{ parentStatusSnippet.parentUserAvatar.displayName }}</span>
           <span class="username">{{ '@'+parentStatusSnippet.parentUserAvatar.username }}</span>
           <span class="dot">·</span>
@@ -43,11 +44,10 @@ import { MediaService } from '../../services/media.service';
       </mat-card-header>
          <!-- Post Content -->
       <mat-card-content
-        #contentElement
+        #contentElement 
         class="post-content"
         [ngClass]="{ expanded: isExpanded }"
         (click)="displayStatus()"
-        
       >
         {{ parentStatusSnippet.content }}
       </mat-card-content>
@@ -66,7 +66,7 @@ import { MediaService } from '../../services/media.service';
       <!-- Media Section -->
       @if ( parentStatusSnippet. medias && parentStatusSnippet.medias.length > 0) {
 
-        <div class="media-grid">
+        <div class="media-grid"   (click)="displayStatus()">
           @for (media of parentStatusSnippet.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
@@ -110,7 +110,6 @@ import { MediaService } from '../../services/media.service';
         display: flex;
         align-items: center;
         padding: 0;
-        cursor: pointer;
       }
       .avatar {
         border-radius: 50%;
@@ -123,6 +122,7 @@ import { MediaService } from '../../services/media.service';
         gap: 4px;
         margin-left: 8px;
         font-size: 13px;
+        cursor: pointer;
       }
       .display-name {
         font-weight: 600;
@@ -178,6 +178,7 @@ import { MediaService } from '../../services/media.service';
 
       /* Media Grid */
       .media-grid {
+          cursor: pointer;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 6px;

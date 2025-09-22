@@ -20,6 +20,7 @@ import { Router } from '@angular/router';
 import { MediaService } from '../../services/media.service';
 import { StatusActionCardComponent } from "../status-reaction-card/status-action-card.component";
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
+import { AppRoutes } from '../../../config/app-routes.enum';
 
 @Component({
   selector: 'app-status-card',
@@ -41,9 +42,9 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
         }
         <div class="connecting-line"></div>
       }
-
-      <!-- User Header -->
-      <mat-card-header class="header cursor-pointer " (click)="displayProfile()">
+ 
+      <!-- User Header --> 
+      <mat-card-header class="header ">
         <img
           mat-card-avatar
           [src]="processMedia(statusData.userAvatar.profilePicture, 'image/png')"
@@ -51,7 +52,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
           alt="avatar"
           class="avatar"
         />
-        <div class="header-info text-center">
+        <div class="header-info text-center  cursor-pointer"  (click)="displayProfile()">
           <span class="display-name">{{ statusData.userAvatar.displayName }}</span>
           <span class="username">{{ '@'+statusData.userAvatar.username }}</span>
           <span class="dot">·</span>
@@ -64,6 +65,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
         #contentElement
         class="post-content"
         [ngClass]="{ expanded: isExpanded }"
+        
       >
         {{ statusData.content }}
       </mat-card-content>
@@ -79,7 +81,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
 
       <!-- Media Section -->
       @if (statusData.medias && statusData.medias.length > 0) {
-        <div class="media-grid">
+        <div class="media-grid ">
           @for (media of statusData.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
@@ -324,7 +326,11 @@ export class StatusCardComponent implements AfterViewInit {
     this.isLiked = !this.isLiked;
     this.cdr.detectChanges();
   }
-
+  displayStatus() {
+    console.log(this.statusData.statusId)
+    console.log('test')
+    this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId])
+  }
   getStatusAction(): StatusActionDto {
     return {
       statusId: this.statusData.statusId,
