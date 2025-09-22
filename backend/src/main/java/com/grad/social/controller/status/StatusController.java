@@ -28,7 +28,7 @@ public class StatusController {
         return ResponseEntity.ok(this.userStatusInteractionService.getStatusById(currentUserId, Long.parseLong(statusId)));
     }
 
-    @GetMapping("/status/{statusId}/replies")
+    @PostMapping ("/status/{statusId}/replies")
     public ResponseEntity<List<ReplySnippet>> fetchMoreReplies(@AuthenticationPrincipal Jwt jwt, @PathVariable String statusId,
                                                                @RequestBody(required = false) TimestampSeekRequest seekRequest) {
         Long currentUserId = jwt == null? -1 : Long.parseLong(jwt.getClaimAsString("uid"));

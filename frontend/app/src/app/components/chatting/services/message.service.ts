@@ -8,11 +8,12 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { BaseService } from '../../../core/services/base.service';
 import { MessageDetailResponse } from '../models/message-detail-response';
-import { MessageResponse, ParentMessageWithNeighbours, TimestampSeekRequest } from '../models/message-response';
+import { MessageResponse, ParentMessageWithNeighbours } from '../models/message-response';
 import { ScrollDirection } from '@angular/material/tabs';
 import { ScrollDirectionCustameType } from '../components/chat-messages/chat-messages.component';
 import { UserAvatar } from '../../profile/models/ProfileResponseDto';
 import { ChatService } from './chat.service';
+import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
 
 
 @Injectable({ providedIn: 'root' })

@@ -5,7 +5,7 @@ export interface StatusWithRepliesResponse {
     replies: ReplySnippet[];
 }
 export interface ReplySnippet {
-    replyId: string;           // Long → safest as string (to avoid JS number overflow)
+    replyId: number;           // Long → safest as string (to avoid JS number overflow)
     content: string;
     postedAt: string;          // Instant → ISO date string
     user: UserAvatar;
@@ -18,7 +18,7 @@ export interface ReplySnippet {
 
 export interface StatusResponse {
     userAvatar: UserAvatar;
-    statusId: string; // serialized with ToStringSerializer → use string in TS
+    statusId: number; // serialized with ToStringSerializer → use string in TS
     content: string;
     privacy: StatusPrivacy;
     replyAudience: StatusAudience;

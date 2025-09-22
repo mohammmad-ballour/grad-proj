@@ -13,7 +13,7 @@ export class StatusServices extends BaseService {
         super();
     }
     getStatusById(statusId: string): Observable<StatusWithRepliesResponse> {
-        return this.httpClient.get<StatusWithRepliesResponse>(`${this.baseUrl}${this.ENDPOINTS.STATUS}${statusId}`)
+        return this.httpClient.get<StatusWithRepliesResponse>(`${this.baseUrl}${this.ENDPOINTS.PUBLICSTATUS}${statusId}`)
 
     }
 }

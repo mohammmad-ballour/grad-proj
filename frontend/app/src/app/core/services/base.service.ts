@@ -16,7 +16,8 @@ export class BaseService {
     UNMUTE: '/api/users/unmute/',
     UPDATE_PRIORITY: '/api/users/update-priority/',
     USERS: '/api/users/',
-    STATUS: '/api/status/public/',
+    PUBLICSTATUS: '/api/status/public/',
+    REPLYSTATUS: '/api/status/{statusId}/replies',
     LIKE: '/api/like',
     UNLIKE: '/api/unlike',
     Media: '/media/' // base for followings/followers/mutual

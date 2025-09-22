@@ -120,7 +120,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
     `
       .post {
         width: 100%;
-        height: 100%;
+       
         margin: 8px auto;
         border: none;
         border-radius: 12px;

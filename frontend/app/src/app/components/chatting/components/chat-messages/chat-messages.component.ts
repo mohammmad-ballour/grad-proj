@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, QueryList, signal, ViewChildren, V
 import { ChatService } from '../../services/chat.service';
 import { MessageService } from '../../services/message.service';
 import { ChatResponse } from '../../models/chat-response';
-import { MessageResponse, MessageStatus, TimestampSeekRequest, ParentMessageWithNeighbours } from '../../models/message-response';
+import { MessageResponse, MessageStatus, ParentMessageWithNeighbours } from '../../models/message-response';
 import { MatMenuTrigger, MatMenu, MatMenuPanel } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CommonModule, DatePipe } from '@angular/common';
@@ -16,6 +16,7 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { finalize, Subscription } from 'rxjs';
 import { UserAvatar } from '../../../profile/models/ProfileResponseDto';
 import { MembersDialogComponent } from './members-dialog/members-dialog.component';
+import { TimestampSeekRequest } from '../../../models/TimestampSeekRequestDto';
 
 export type ScrollDirectionCustameType = 'UP' | 'DOWN' | 'NOTCHANGE';
 

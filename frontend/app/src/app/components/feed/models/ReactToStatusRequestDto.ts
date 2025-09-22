@@ -1,10 +1,10 @@
 export interface ReactToStatusRequest {
-    statusId: string;
+    statusId: number;
     statusOwnerId: number;
 }
 
 export interface StatusActionDto {
-    statusId: string;
+    statusId: number;
     statusOwnerId: number;
     numLikes: number;
     numReplies: number;

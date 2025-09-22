@@ -4,6 +4,16 @@ body {
     height: 100vb;
 }
 
+/* These styles allow the entire page to scroll */
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    /* Use min-height to allow expansion */
+    overflow-y: auto;
+    /* Ensures a scrollbar when content overflows vertically */
+}
+
 /* For WebKit browsers (Chrome, Edge, Safari) */
 ::-webkit-scrollbar {
     width: 8px;

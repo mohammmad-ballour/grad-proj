@@ -17,10 +17,7 @@ export interface MessageResponse {
 }
 
 
-export interface TimestampSeekRequest {
-  lastHappenedAt: string;
-  lastEntityId: number;
-}
+
 
 export interface ParentMessageSnippet {
   parentMessageId: number;
