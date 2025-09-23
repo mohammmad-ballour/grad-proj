@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { StatusReactionService } from '../services/status-reaction.service';
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-status-action-card',
@@ -32,7 +33,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
         </button>
         <mat-menu #shareMenu="matMenu">
           <button mat-menu-item (click)="copyLink()"> <i class="bi bi-link-45deg"></i> Copy link </button>
-          <button mat-menu-item (click)="shareVia()"> <i class="bi bi-share-fill"></i> Share via </button>
+          <button mat-menu-item (click)="shareVia()"> <i class="bi bi-share-fill"></i> Share via DM</button>
         </mat-menu>
       </mat-card-actions>
   `,
@@ -70,7 +71,10 @@ export class StatusActionCardComponent {
   @Input() statusAction!: StatusActionDto;
   @Output() statusActionChange = new EventEmitter<StatusActionDto>();
 
-  constructor(public reactionService: StatusReactionService) { }
+  constructor(public reactionService: StatusReactionService,
+    private snackBar: MatSnackBar,
+
+  ) { }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['statusAction']) {
@@ -115,6 +119,7 @@ export class StatusActionCardComponent {
 
   toggleSave() {
     this.statusAction.saved = this.statusAction.saved;
+    this.snackBar.open(this.statusAction.saved ? 'Post saved' : 'Post unsaved', 'Close', { duration: 2000 });
     // const request = {
     //   statusId: this.statusAction.statusId,
     //   statusOwnerId: this.statusAction.statusOwnerId
