@@ -10,7 +10,6 @@ import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
   selector: 'app-status-detail',
   template: `
     <div #scrollContainer class="container-status-detail" (scroll)="onScroll()">
-<div>
 
       @if (statusData; as data) {
         @if (data.statusResponse) {
@@ -30,6 +29,7 @@ import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
       } @else {
         <p>Loading status...</p>
       }
+
     </div>
   `,
   styleUrls: ['./status-detail.component.css'],

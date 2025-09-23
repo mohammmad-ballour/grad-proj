@@ -221,7 +221,7 @@ import { CdkAutofill } from "@angular/cdk/text-field";
 export class StatusParentCardComponent implements AfterViewInit {
 
   @Input() parentStatusSnippet!: ParentStatusSnippet;
-  @ViewChild('contentElement') contentElement!: ElementRef;
+  @ViewChild('parentcontentElement') parentcontentElement!: ElementRef;
   isExpanded = false;
   isContentOverflowing = false;
   isLiked = false;
@@ -244,8 +244,8 @@ export class StatusParentCardComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     setTimeout(() => {
-      if (this.contentElement?.nativeElement) {
-        const element = this.contentElement.nativeElement;
+      if (this.parentcontentElement?.nativeElement) {
+        const element = this.parentcontentElement.nativeElement;
         this.isContentOverflowing = element.scrollHeight > element.clientHeight;
         this.cdr.detectChanges();
       }
