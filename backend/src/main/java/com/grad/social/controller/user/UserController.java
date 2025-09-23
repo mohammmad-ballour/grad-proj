@@ -72,36 +72,36 @@ public class UserController {
     }
 
     @PostMapping("/users/feed")
-    public ResponseEntity<List<StatusResponse>> fetchUserFeed(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+    public ResponseEntity<List<StatusResponse>> fetchUserFeed(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserFeed(currentUserId, seekRequest));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserFeed(currentUserId, page));
     }
 
     @PostMapping("/users/{profileOwnerId}/posts")
     public ResponseEntity<List<StatusResponse>> fetchUserPosts(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
-                                                               @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+                                                               @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserPosts(currentUserId, profileOwnerId, seekRequest));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserPosts(currentUserId, profileOwnerId, page));
     }
 
     @PostMapping("/users/{profileOwnerId}/replies")
     public ResponseEntity<List<StatusResponse>> fetchUserReplies(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
-                                                                 @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+                                                                 @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserReplies(currentUserId, profileOwnerId, seekRequest));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserReplies(currentUserId, profileOwnerId, page));
     }
 
     @PostMapping("/users/{profileOwnerId}/media")
     public ResponseEntity<List<StatusMediaResponse>> fetchUserMedia(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
-                                                                    @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+                                                                    @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserMedia(currentUserId, profileOwnerId, seekRequest));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserMedia(currentUserId, profileOwnerId, page));
     }
 
     @PostMapping("/users/likes")
-    public ResponseEntity<List<StatusResponse>> fetchStatusesLiked(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+    public ResponseEntity<List<StatusResponse>> fetchStatusesLiked(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.userStatusInteractionService.fetchStatusesLiked(currentUserId, seekRequest));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchStatusesLiked(currentUserId, page));
     }
 
 

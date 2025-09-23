@@ -13,7 +13,10 @@ import com.grad.social.repository.user.UserStatusInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -33,29 +36,36 @@ public class UserStatusInteractionService {
                 seekRequest == null ? null : (seekRequest.lastHappenedAt()), seekRequest == null ? null : seekRequest.lastEntityId());
     }
 
-    public List<StatusResponse> fetchUserFeed(Long currentUserId, TimestampSeekRequest seekRequest) {
-        return this.userStatusInteractionRepository.fetchFeed(currentUserId,
-                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    public List<StatusResponse> fetchUserFeed(Long currentUserId, int offset) {
+        return this.userStatusInteractionRepository.fetchFeed(currentUserId, offset);
     }
 
-    public List<StatusResponse> fetchUserPosts(Long currentUserId, Long profileOwnerId, TimestampSeekRequest seekRequest) {
-        return this.userStatusInteractionRepository.fetchPosts(currentUserId, profileOwnerId,
-                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    public List<StatusResponse> fetchUserPosts(Long currentUserId, Long profileOwnerId, int offset) {
+        return this.userStatusInteractionRepository.fetchPosts(currentUserId, profileOwnerId, offset);
     }
 
-    public List<StatusResponse> fetchUserReplies(Long currentUserId, Long profileOwnerId, TimestampSeekRequest seekRequest) {
-        return this.userStatusInteractionRepository.fetchReplies(currentUserId, profileOwnerId,
-                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    public List<StatusResponse> fetchUserReplies(Long currentUserId, Long profileOwnerId, int offset) {
+        return this.userStatusInteractionRepository.fetchReplies(currentUserId, profileOwnerId, offset);
     }
 
-    public List<StatusMediaResponse> fetchUserMedia(Long currentUserId, Long profileOwnerId, TimestampSeekRequest seekRequest) {
-        return this.userStatusInteractionRepository.fetchMedia(currentUserId, profileOwnerId,
-                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    public List<StatusMediaResponse> fetchUserMedia(Long currentUserId, Long profileOwnerId, int offset) {
+        var medias = this.userStatusInteractionRepository.fetchMedia(currentUserId, profileOwnerId, offset);
+
+        // Step 1: remember the original order of statusIds
+        Map<Long, Integer> statusOrder = new LinkedHashMap<>();
+        for (StatusMediaResponse m : medias) {
+            statusOrder.putIfAbsent(m.statusId(), statusOrder.size());
+        }
+
+        // Step 2: sort by (statusId original order, position ascending)
+        return medias.stream()
+                .sorted(Comparator.comparing((StatusMediaResponse m) -> statusOrder.get(m.statusId()))
+                        .thenComparing(StatusMediaResponse::position))
+                .toList();
     }
 
-    public List<StatusResponse> fetchStatusesLiked(Long currentUserId, TimestampSeekRequest seekRequest) {
-        return this.userStatusInteractionRepository.fetchStatusesLiked(currentUserId,
-                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    public List<StatusResponse> fetchStatusesLiked(Long currentUserId, int offset) {
+        return this.userStatusInteractionRepository.fetchStatusesLiked(currentUserId, offset);
     }
 
     public void likeStatus(Long currentUserId, ReactToStatusRequest reactToStatusRequest) {

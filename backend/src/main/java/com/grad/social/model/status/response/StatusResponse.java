@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.List;
 
 public record StatusResponse(UserAvatar userAvatar, @JsonSerialize(using = ToStringSerializer.class) Long statusId,
-                             String content, StatusPrivacy privacy, StatusAudience replyAudience,
+                             String content, boolean isPinned, StatusPrivacy privacy, StatusAudience replyAudience,
                              boolean isCurrentUserAllowedToReply, StatusAudience shareAudience,
                              boolean isCurrentUserAllowedToShare,
                              List<String> mentionedUsers, Instant postedAt, boolean isStatusLikedByCurrentUser,
