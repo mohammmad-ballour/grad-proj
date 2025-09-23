@@ -270,7 +270,8 @@ export class StatusRplyCardComponent {
       numLikes: this.reply.numLikes,
       numReplies: this.reply.numReplies,
       numShares: this.reply.numShares,
-      liked: this.reply.isLikedByCurrentUser
+      liked: this.reply.isLikedByCurrentUser,
+      saved: false
 
     };
   }

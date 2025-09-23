@@ -344,7 +344,8 @@ export class StatusCardComponent implements AfterViewInit {
       numLikes: this.statusData.numLikes,
       numReplies: this.statusData.numReplies,
       numShares: this.statusData.numShares,
-      liked: this.statusData.isStatusLikedByCurrentUser
+      liked: this.statusData.isStatusLikedByCurrentUser,
+      saved: false
     };
   }
 
