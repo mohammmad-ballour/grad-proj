@@ -2,6 +2,7 @@ package com.grad.social.repository.user;
 
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.JooqUtils;
+import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.enums.ParentAssociation;
 import com.grad.social.model.enums.StatusAudience;
 import com.grad.social.model.enums.StatusPrivacy;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.jooq.*;
 import org.jooq.Record;
 import org.jooq.impl.DSL;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -27,6 +29,7 @@ import static org.jooq.impl.DSL.row;
 @RequiredArgsConstructor
 public class UserStatusInteractionRepository {
     private final DSLContext dsl;
+    private final RedisTemplate<String, String> redisTemplate;
 
     // Aliases
     Statuses s = Statuses.STATUSES.as("s");
@@ -55,6 +58,9 @@ public class UserStatusInteractionRepository {
     UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
     UserBlocks ub2 = UserBlocks.USER_BLOCKS.as("ub2");
 
+    private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
+    private final Messages m = Messages.MESSAGES;
+    private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
 
     // currentUserId is the one who is viewing the status
     public StatusWithRepliesResponse getStatusById(Long currentUserId, Long statusIdToFetch) {
@@ -405,8 +411,28 @@ public class UserStatusInteractionRepository {
         return this.mapToStatusResponseList(result);
     }
 
+    public int getUnreadMessages(Long currentUserId) {
+        return Objects.requireNonNull(dsl.selectCount()
+                .from(ms)
+                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .where(ms.USER_ID.eq(currentUserId)
+                        .and(ms.READ_AT.isNull())
+                        .and(m.SENT_AT.greaterThan(getLastOnline(currentUserId)))
+                )
+                .fetchOneInto(int.class));
+    }
+
 
     // Helpers
+    private Instant getLastOnline(Long userId) {
+        Object lastOnlineObj = this.redisTemplate.opsForHash().get(RedisConstants.USERS_SESSION_META_PREFIX.concat(userId.toString()), RedisConstants.LAST_ONLINE_HASH_KEY);
+        if (lastOnlineObj == null) {
+            // User is currently online
+            return AppConstants.DEFAULT_MIN_TIMESTAMP;
+        }
+        return Instant.parse(lastOnlineObj.toString());
+    }
+
     public boolean canViewStatus(Long currentUserId, Long statusId) {
         return dsl.fetchExists(dsl.selectOne()
                 .from(s).join(uf).on(s.USER_ID.eq(uf.FOLLOWED_USER_ID))

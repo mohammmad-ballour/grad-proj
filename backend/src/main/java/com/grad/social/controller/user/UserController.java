@@ -2,6 +2,7 @@ package com.grad.social.controller.user;
 
 import com.grad.social.model.enums.Gender;
 import com.grad.social.model.shared.TimestampSeekRequest;
+import com.grad.social.model.status.response.FeedResponse;
 import com.grad.social.model.status.response.StatusMediaResponse;
 import com.grad.social.model.status.response.StatusResponse;
 import com.grad.social.model.user.helper.UserBasicData;
@@ -72,7 +73,7 @@ public class UserController {
     }
 
     @PostMapping("/users/feed")
-    public ResponseEntity<List<StatusResponse>> fetchUserFeed(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
+    public ResponseEntity<FeedResponse> fetchUserFeed(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userStatusInteractionService.fetchUserFeed(currentUserId, page));
     }

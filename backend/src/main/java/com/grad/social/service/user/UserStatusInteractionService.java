@@ -5,10 +5,7 @@ import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.exception.status.StatusErrorCode;
 import com.grad.social.model.shared.TimestampSeekRequest;
 import com.grad.social.model.status.request.ReactToStatusRequest;
-import com.grad.social.model.status.response.ReplySnippet;
-import com.grad.social.model.status.response.StatusMediaResponse;
-import com.grad.social.model.status.response.StatusResponse;
-import com.grad.social.model.status.response.StatusWithRepliesResponse;
+import com.grad.social.model.status.response.*;
 import com.grad.social.repository.user.UserStatusInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,8 +33,10 @@ public class UserStatusInteractionService {
                 seekRequest == null ? null : (seekRequest.lastHappenedAt()), seekRequest == null ? null : seekRequest.lastEntityId());
     }
 
-    public List<StatusResponse> fetchUserFeed(Long currentUserId, int offset) {
-        return this.userStatusInteractionRepository.fetchFeed(currentUserId, offset);
+    public FeedResponse fetchUserFeed(Long currentUserId, int offset) {
+        List<StatusResponse> statuses = this.userStatusInteractionRepository.fetchFeed(currentUserId, offset);
+        int unreadMessagesCount = this.userStatusInteractionRepository.getUnreadMessages(currentUserId);
+        return new FeedResponse(statuses, unreadMessagesCount, 0);
     }
 
     public List<StatusResponse> fetchUserPosts(Long currentUserId, Long profileOwnerId, int offset) {

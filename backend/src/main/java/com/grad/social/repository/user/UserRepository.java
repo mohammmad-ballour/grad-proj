@@ -1,8 +1,6 @@
 package com.grad.social.repository.user;
 
-import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.JooqUtils;
-import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
 import com.grad.social.model.shared.UserAvatar;
@@ -17,7 +15,6 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -25,17 +22,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.grad.social.model.enums.PrivacySettings.FRIENDS;
-import static com.grad.social.model.enums.PrivacySettings.FOLLOWERS;
-import static com.grad.social.model.enums.PrivacySettings.EVERYONE;
-import static com.grad.social.model.enums.PrivacySettings.NONE;
 import static org.jooq.Records.mapping;
 
 @Repository
 @RequiredArgsConstructor
 public class UserRepository {
     private final DSLContext dsl;
-    private final RedisTemplate<String, String> redisTemplate;
 
     private final Users u = Users.USERS.as("u");
     private final UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
@@ -105,23 +97,14 @@ public class UserRepository {
                                 )))
         ).as("isMuted");
 
-        Field<Integer> unreadMessagesCount = Objects.equals(currentUserId, profileOwnerId) ? DSL.selectCount()
-                .from(ms)
-                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
-                .where(ms.USER_ID.eq(currentUserId)
-                        .and(ms.READ_AT.isNull())
-                        .and(m.SENT_AT.greaterThan(getLastOnline(currentUserId)))
-                )
-                .asField("unread_messages_count") : DSL.val((Integer) null);
-
         return dsl.select(u.ID, u.DISPLAY_NAME, u.USERNAME, u.JOINED_AT, u.PROFILE_PICTURE, u.PROFILE_COVER_PHOTO, u.PROFILE_BIO, u.DOB, u.RESIDENCE, u.GENDER,
                         u.TIMEZONE_ID, u.WHO_CAN_MESSAGE, followingNumberField, followerNumberField, isFollowingCurrentUserField, isBeingFollowedField, followingPriorityField,
-                        isBlockedField, isMutedField, unreadMessagesCount)
+                        isBlockedField, isMutedField)
                 .from(u)
                 .where(u.ID.eq(profileOwnerId))
                 .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender,
                                    timezoneId, whoCanMessage, followingNumber, followerNumber, isFollowingCurrentUser, isBeingFollowed, followingPriority,
-                                   isBlocked, isMuted, unreadMessages) -> {
+                                   isBlocked, isMuted) -> {
                     var profile = new ProfileResponse(new UserAvatar(userId, username, displayName, profilePicture), profileCover, bio, joinedAt,
                             new UserAbout(gender, dob, residence, timezoneId));
                     profile.setFollowerNo(followerNumber);
@@ -139,8 +122,6 @@ public class UserRepository {
                                 default -> throw new IllegalStateException("Unexpected value: " + whoCanMessage);
                             }
                     );
-                    profile.setUnreadMessagesCount(unreadMessages);
-                    System.out.println("Unread messages = " + unreadMessages);
                     return profile;
                 }));
     }
@@ -161,15 +142,6 @@ public class UserRepository {
                 .from(u)
                 .where(u.ID.eq(userId))
                 .fetchOptional(mapping(UserBasicData::new));
-    }
-
-    private Instant getLastOnline(Long userId) {
-        Object lastOnlineObj = this.redisTemplate.opsForHash().get(RedisConstants.USERS_SESSION_META_PREFIX.concat(userId.toString()), RedisConstants.LAST_ONLINE_HASH_KEY);
-        if (lastOnlineObj == null) {
-            // User is currently online
-            return AppConstants.DEFAULT_MIN_TIMESTAMP;
-        }
-        return Instant.parse(lastOnlineObj.toString());
     }
 
 
