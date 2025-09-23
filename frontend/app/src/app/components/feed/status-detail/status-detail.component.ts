@@ -9,7 +9,8 @@ import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
 @Component({
   selector: 'app-status-detail',
   template: `
-    <div #scrollContainer class="container" (scroll)="onScroll()">
+    <div #scrollContainer class="container-status-detail" (scroll)="onScroll()">
+<div>
 
       @if (statusData; as data) {
         @if (data.statusResponse) {

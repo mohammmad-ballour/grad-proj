@@ -42,9 +42,9 @@ import { AppRoutes } from '../../../config/app-routes.enum';
         }
         <div class="connecting-line"></div>
       }
-
+ 
       <!-- User Header -->
-      <mat-card-header class="header cursor-pointer " (click)="displayProfile()">
+      <mat-card-header class="header ">
         <img
           mat-card-avatar
           [src]="processMedia(statusData.userAvatar.profilePicture, 'image/png')"
@@ -62,12 +62,12 @@ import { AppRoutes } from '../../../config/app-routes.enum';
 
       <!-- Post Content -->
       <mat-card-content
-        #contentElement
+     
         class="post-content"
         [ngClass]="{ expanded: isExpanded }"
         (click)="displayStatus()"
       >
-        {{ statusData.content }}
+        {{ statusData.content }}  //search if there is taged user in ccontent and macke it clicable 
       </mat-card-content>
 
       <!-- See More Button -->
@@ -81,7 +81,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
 
       <!-- Media Section -->
       @if (statusData.medias && statusData.medias.length > 0) {
-        <div class="media-grid">
+        <div class="media-grid " >
           @for (media of statusData.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
@@ -112,6 +112,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
       }
 
       <app-status-action-card
+        #contentElement
         [statusAction]="statusAction"
         (statusActionChange)="UpdateStatusAction($event)">
       </app-status-action-card>
@@ -282,16 +283,20 @@ export class StatusCardComponent implements AfterViewInit {
 
   constructor(private cdr: ChangeDetectorRef,
     private router: Router,
-    public mediaService: MediaService
+    public mediaService: MediaService,
+    private el: ElementRef
   ) { }
 
   ngAfterViewInit() {
+
     setTimeout(() => {
       if (this.contentElement?.nativeElement) {
         const element = this.contentElement.nativeElement;
         this.isContentOverflowing = element.scrollHeight > element.clientHeight;
         this.cdr.detectChanges();
       }
+      console.log('from auto scroll')
+      this.el.nativeElement.scrollIntoView({ block: 'end' });
     }, 0);
   }
   statusAction!: StatusActionDto;
@@ -299,10 +304,12 @@ export class StatusCardComponent implements AfterViewInit {
   ngOnChanges(changes: SimpleChanges) {
     if (changes['statusData']) {
       this.ngOnInit()
+      this.ngAfterViewInit();
     }
   }
 
   ngOnInit() {
+
     this.statusAction = this.getStatusAction();
   }
   displayProfile() {
@@ -349,4 +356,7 @@ export class StatusCardComponent implements AfterViewInit {
     this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked
 
   }
+
+
+
 }
