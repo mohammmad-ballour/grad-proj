@@ -8,6 +8,6 @@ export enum AppRoutes {
     HOME = 'home',
     NOTIFICATIONS = 'notifications',
     MESSAGES = 'chats',
-    MORE = 'more',
+    STATUS = 'status',
 }
 

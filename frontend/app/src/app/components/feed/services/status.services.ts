@@ -1,0 +1,20 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { catchError, Observable, of, tap } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
+import { BaseService } from '../../../core/services/base.service';
+import { StatusWithRepliesResponse } from '../models/StatusWithRepliesResponseDto';
+
+
+
+@Injectable({ providedIn: 'root' })
+export class StatusServices extends BaseService {
+    constructor(private httpClient: HttpClient, private authService: AuthService) {
+        super();
+    }
+    getStatusById(statusId: string): Observable<StatusWithRepliesResponse> {
+        return this.httpClient.get<StatusWithRepliesResponse>(`${this.baseUrl}${this.ENDPOINTS.PUBLICSTATUS}${statusId}`)
+
+    }
+}
+

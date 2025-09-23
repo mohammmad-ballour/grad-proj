@@ -1,10 +1,17 @@
 package com.grad.social.common.security;
 
+import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
+import com.grad.social.common.model.exception.AuthErrorCode;
+import com.grad.social.exception.status.StatusErrorCode;
 import com.grad.social.model.enums.PrivacySettings;
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.model.shared.UserConnectionInfo;
+import com.grad.social.model.status.request.ReactToStatusRequest;
+import com.grad.social.model.status.response.StatusPrivacyInfo;
 import com.grad.social.repository.chat.ChattingRepository;
+import com.grad.social.repository.status.StatusRepository;
 import com.grad.social.repository.user.UserRepository;
+import com.grad.social.repository.user.UserStatusInteractionRepository;
 import com.grad.social.repository.user.UserUserInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +33,9 @@ public class SecurityService {
     private final UserUserInteractionRepository userUserInteractionRepository;
     private final ChattingRepository chattingRepository;
     private final UserRepository userRepository;
+    private final StatusRepository statusRepository;
+    private final UserStatusInteractionRepository userStatusInteractionRepository;
+
 
     public boolean hasUserLongId(Authentication authentication, Long requestedId) {
         if (authentication instanceof JwtAuthenticationToken jwtAuthenticationTokenT) {
@@ -36,7 +46,7 @@ public class SecurityService {
 
     public boolean canAccessProfileProtectedData(Jwt jwt, Long profileOwnerId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (isAnonymous(currentUserId)) return false;
+        checkAnonymous(currentUserId);
         ProfileStatus profileStatus = this.userUserInteractionRepository.getProfileStatus(profileOwnerId, currentUserId);
         boolean isTargetProfileBlockedByCurrentUser = profileStatus.isProfileBlockedByCurrentUser();
         if (isTargetProfileBlockedByCurrentUser) {
@@ -51,26 +61,26 @@ public class SecurityService {
 
     public boolean isParticipantInChat(Jwt jwt, Long chatId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (isAnonymous(currentUserId)) return false;
+        checkAnonymous(currentUserId);
         return this.chattingRepository.isParticipant(chatId, currentUserId);
     }
 
     public boolean isSelfMessage(Jwt jwt, Long messageId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (isAnonymous(currentUserId)) return false;
+        checkAnonymous(currentUserId);
         return this.chattingRepository.isSelfMessage(currentUserId, messageId);
     }
 
     public boolean isPermittedToMessage(Jwt jwt, Long recipientId) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (isAnonymous(currentUserId)) return false;
+        checkAnonymous(currentUserId);
         Map<Long, UserConnectionInfo> connectionWithOthersInfo = userUserInteractionRepository.getConnectionWithOthersInfo(Set.of(recipientId), currentUserId);
         return checkPrivacySettings(connectionWithOthersInfo, "WHO_CAN_MESSAGE");
     }
 
     public boolean isPermittedToAddToGroup(Jwt jwt, Set<Long> recipientIds) {
         long currentUserId = extractUserIdFromAuthentication(jwt);
-        if (isAnonymous(currentUserId)) return false;
+        checkAnonymous(currentUserId);
         Map<Long, UserConnectionInfo> connectionWithOthersInfo = userUserInteractionRepository.getConnectionWithOthersInfo(recipientIds, currentUserId);
         return checkPrivacySettings(connectionWithOthersInfo, "WHO_CAN_ADD_TO_GROUPS");
     }
@@ -100,8 +110,33 @@ public class SecurityService {
         return result;
     }
 
-    private boolean isAnonymous(long currentUserId) {
-        return currentUserId == -1;
+    public boolean isStatusOwner(Jwt jwt, Long statusId) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        checkAnonymous(currentUserId);
+
+        StatusPrivacyInfo statusPrivacyInfo = this.statusRepository.getStatusPrivacyInfo(statusId);
+        var res = statusPrivacyInfo.statusOwnerId().equals(currentUserId);
+        if (!res) {
+            throw new ActionNotAllowedException(StatusErrorCode.NOT_ALLOWED_TO_EDIT_STATUS);
+        }
+        return true;
+    }
+
+    public boolean canViewStatus(Jwt jwt, ReactToStatusRequest request) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        checkAnonymous(currentUserId);
+        var res = this.userStatusInteractionRepository.canViewStatus(currentUserId, request.statusId());
+        if (!res) {
+            throw new ActionNotAllowedException(StatusErrorCode.NOT_ALLOWED_TO_VIEW_STATUS);
+        }
+        return true;
+    }
+
+    private void checkAnonymous(long currentUserId) {
+        boolean isAnonymous = currentUserId == -1;
+        if (isAnonymous) {
+            throw new ActionNotAllowedException(AuthErrorCode.NOT_AVAILABLE_TO_ANONYMOUS_USERS);
+        }
     }
 
     private long extractUserIdFromAuthentication(Jwt jwt) {

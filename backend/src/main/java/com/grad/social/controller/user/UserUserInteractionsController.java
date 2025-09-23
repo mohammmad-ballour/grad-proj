@@ -1,7 +1,7 @@
 package com.grad.social.controller.user;
 
-import com.grad.social.model.user.MuteDuration;
-import com.grad.social.model.user.UpdatePriority;
+import com.grad.social.model.user.request.MuteDuration;
+import com.grad.social.model.user.request.UpdatePriority;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.service.user.UserUserInteractionService;
 import lombok.RequiredArgsConstructor;

@@ -1,18 +1,17 @@
 package com.grad.social.repository.user;
 
-import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
-import com.grad.social.model.enums.PrivacySettings;
 import com.grad.social.model.shared.UserAvatar;
 import com.grad.social.model.tables.UserBlocks;
 import com.grad.social.model.tables.UserFollowers;
 import com.grad.social.model.tables.UserMutes;
 import com.grad.social.model.tables.Users;
 import com.grad.social.model.tables.records.UsersRecord;
-import com.grad.social.model.user.UserBasicData;
-import com.grad.social.model.user.UsernameTimezoneId;
+import com.grad.social.model.user.helper.UserBasicData;
+import com.grad.social.model.user.helper.UsernameTimezoneId;
+import com.grad.social.model.user.request.CreateUser;
 import com.grad.social.model.user.response.ProfileResponse;
 import com.grad.social.model.user.response.UserAbout;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static com.grad.social.model.enums.PrivacySettings.*;
 import static org.jooq.Records.mapping;
 
 @Repository
@@ -121,16 +119,17 @@ public class UserRepository {
                                 case FOLLOWERS -> isBeingFollowed;
                                 case FRIENDS -> isBeingFollowed && isFollowingCurrentUser;
                                 case NONE -> false;
+                                default -> throw new IllegalStateException("Unexpected value: " + whoCanMessage);
                             }
                     );
                     return profile;
                 }));
     }
 
-    public Long save(CreateUserDto user) {
+    public Long save(CreateUser user) {
         // by default, display_name = username, edited by account owner later
         return dsl.insertInto(u, u.EMAIL, u.USERNAME, u.DISPLAY_NAME, u.DOB, u.GENDER, u.RESIDENCE, u.TIMEZONE_ID)
-                .values(user.getEmail(), user.getUsername(), user.getUsername(), user.getDob(), Gender.valueOf(user.getGender().name().toUpperCase()), user.getResidence(), user.getTimezoneId())
+                .values(user.getEmail(), user.getUsername(), user.getUsername(), user.getDob(), Gender.valueOf(user.getGender().toUpperCase()), user.getResidence(), user.getTimezoneId())
                 .returning(u.ID).fetchOne().getId();
     }
 

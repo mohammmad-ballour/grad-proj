@@ -4,10 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.TsidUtils;
-import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
 import com.grad.social.common.messaging.redis.RedisConstants;
-import com.grad.social.common.utils.media.MediaStorageService;
-import com.grad.social.exception.chat.ChattingErrorCode;
+import com.grad.social.common.utils.media.FileSystemUtils;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
 import com.grad.social.model.chat.response.ChatResponse;
@@ -52,7 +50,6 @@ public class ChattingRepository {
     private final TSID.Factory tsidFactory = TsidUtils.getTsidFactory(2);
     private final UserUserInteractionRepository userUserInteractionRepository;
     private final ObjectMapper objectMapper;
-    private final MediaStorageService mediaStorageService;
 
     // Aliases for subqueries
     private final Messages m = Messages.MESSAGES;
@@ -248,11 +245,11 @@ public class ChattingRepository {
                 .asField("undelivered_count");
 
         return dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, m.CONTENT, m.SENT_AT,
-                        m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION, unreadCountField, undeliveredCountField,
+                        m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, unreadCountField, undeliveredCountField,
                         m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
                         u2.ID.as("parent_owner_id"), u2.DISPLAY_NAME.as("parent_display_name"),
                         ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
-                        ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
+                        ma2.FILENAME_HASH.as("parent_filename_hash"))
                 .from(m)
                 .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
                 .leftJoin(m2).on(m.PARENT_MESSAGE_ID.eq(m2.MESSAGE_ID))
@@ -269,17 +266,17 @@ public class ChattingRepository {
                 .seek(lastMessageSentAt, lastMessageId)
                 .limit(Math.min(missingMessagesCount, AppConstants.DEFAULT_PAGE_SIZE))
                 .fetch(mapping((messageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
-                                messageType, mediaId, fileNameHashed, extension, unreadCount, undeliveredCount,
+                                messageType, mediaId, fileNameHashed, unreadCount, undeliveredCount,
                                 parentMessageId, parentContent, parentOwnerId, parentSenderDisplayName,
-                                parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
+                                parentMediaId, parentMessageType, parentFileNameHashed) -> {
                     com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
                     if (unreadCount == 0) {
                         messageStatus = READ;
                     } else if (undeliveredCount == 0) {
                         messageStatus = DELIVERED;
                     }
-                    byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
-                    byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
+                    byte[] media = this.loadMedia(mediaId, fileNameHashed);
+                    byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed);
                     var parentMessageSnippet = parentMessageId == null ? null : new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent,
                             parentOwnerId, parentSenderDisplayName, parentMessageType, parentMedia);
                     return new ChatMessageResponse(messageId, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
@@ -292,11 +289,11 @@ public class ChattingRepository {
 
         // 1. Fetch the parent message
         ChatMessageResponse parent = dsl.select(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
-                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
+                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH,
                         m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
                         u2.ID.as("parent_id"), u2.DISPLAY_NAME.as("parent_display_name"),
                         ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
-                        ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
+                        ma2.FILENAME_HASH.as("parent_filename_hash"))
                 .from(m)
                 .leftJoin(m2).on(m.PARENT_MESSAGE_ID.eq(m2.MESSAGE_ID))
                 .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
@@ -316,11 +313,11 @@ public class ChattingRepository {
 
         // 2. Fetch 5 previous neighbours
         List<ChatMessageResponse> previousMessages = dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
-                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
+                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH,
                         m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
                         u2.ID.as("parent_id"), u2.DISPLAY_NAME.as("parent_display_name"),
                         ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
-                        ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
+                        ma2.FILENAME_HASH.as("parent_filename_hash"))
                 .from(m)
                 .leftJoin(m2).on(m.PARENT_MESSAGE_ID.eq(m2.MESSAGE_ID))
                 .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
@@ -335,11 +332,11 @@ public class ChattingRepository {
 
         // 3. Fetch 5 next neighbours
         List<ChatMessageResponse> nextMessages = dsl.selectDistinct(m.MESSAGE_ID, u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE,
-                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH, ma.EXTENSION,
+                        m.CONTENT, m.SENT_AT, m.MESSAGE_TYPE, ma.MEDIA_ID, ma.FILENAME_HASH,
                         m2.MESSAGE_ID.as("parent_message_id"), m2.CONTENT.as("parent_content"),
                         u2.ID.as("parent_id"), u2.DISPLAY_NAME.as("parent_display_name"),
                         ma2.MEDIA_ID.as("parent_media_id"), m2.MESSAGE_TYPE.as("parent_message_type"),
-                        ma2.FILENAME_HASH.as("parent_filename_hash"), ma2.EXTENSION.as("parent_extension"))
+                        ma2.FILENAME_HASH.as("parent_filename_hash"))
                 .from(m)
                 .leftJoin(m2).on(m.PARENT_MESSAGE_ID.eq(m2.MESSAGE_ID))
                 .leftJoin(ma).on(m.MEDIA_ID.eq(ma.MEDIA_ID))
@@ -593,14 +590,14 @@ public class ChattingRepository {
                             content, media, messageType, sentAt, messageStatus);
                 }));
      */
-    private RecordMapper<Record19<Long, Long, String, String, byte[], String, Instant, MediaType, Long, String, String, Long, String, Long, String, Long, MediaType, String, String>, ChatMessageResponse> mapRowToChatMessage() {
+    private RecordMapper<Record17<Long, Long, String, String, byte[], String, Instant, MediaType, Long, String, Long, String, Long, String, Long, MediaType, String>, ChatMessageResponse> mapRowToChatMessage() {
         return mapping((messageId2, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
-                        messageType, mediaId, fileNameHashed, extension,
-                        parentMessageId, parentContent, parentSenderId, parentSenderDisplayName, parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
-            byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
+                        messageType, mediaId, fileNameHashed,
+                        parentMessageId, parentContent, parentSenderId, parentSenderDisplayName, parentMediaId, parentMessageType, parentFileNameHashed) -> {
+            byte[] media = this.loadMedia(mediaId, fileNameHashed);
             ChatMessageResponse.ParentMessageSnippet parentMessageSnippet = null;
             if (parentMessageId != null) {
-                byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
+                byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed);
                 parentMessageSnippet = new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent, parentSenderId, parentSenderDisplayName, parentMessageType, parentMedia);
             }
             return new ChatMessageResponse(messageId2, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
@@ -608,12 +605,12 @@ public class ChattingRepository {
         });
     }
 
-    private byte[] loadMedia(Long mediaId, String fileNameHashed, String extension) {
+    private byte[] loadMedia(Long mediaId, String fileNameHashed) {
         if (mediaId == null) {
             return null;
         }
         try {
-            return this.mediaStorageService.loadFile(fileNameHashed, extension).readAllBytes();
+            return FileSystemUtils.loadFile(fileNameHashed).getContentAsByteArray();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

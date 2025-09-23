@@ -1,7 +1,7 @@
 package com.grad.social.service.chat;
 
 import com.grad.social.common.model.MediaRepresentation;
-import com.grad.social.common.utils.media.MediaStorageService;
+import com.grad.social.common.utils.media.FileSystemUtils;
 import com.grad.social.common.utils.media.MediaUtils;
 import com.grad.social.model.chat.request.CreateMessageRequest;
 import com.grad.social.model.chat.response.ChatMessageResponse;
@@ -31,7 +31,6 @@ import java.util.Set;
 public class ChattingService {
     private final ChattingRepository chattingRepository;
     private final MediaRepository mediaRepository;
-    private final MediaStorageService mediaStorageService;
     private final ChattingValidator chattingValidator;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -111,13 +110,12 @@ public class ChattingService {
         if (mediaAssetId == null) {
             // Generate hashed filename + keep extension
             String hashedFileName = MediaUtils.hashFileName(attachment.getOriginalFilename());
-            String extension = MediaUtils.getExtension(attachment.getOriginalFilename());
 
-            // Save to filesystem: uploads/posts/<hashedFileName>.<ext>
-            this.mediaStorageService.saveFile(hashedFileName, extension, attachment.getInputStream());
+            // Save to filesystem: uploads/posts/<hashedFileName>
+            FileSystemUtils.saveFile(hashedFileName, attachment.getInputStream());
 
             // Insert into DB
-            var toSave = new MediaRepresentation(hashedFileName, hashedContent, extension, attachment.getContentType(), attachment.getSize());
+            var toSave = new MediaRepresentation(hashedFileName, hashedContent, attachment.getContentType(), attachment.getSize());
             mediaAssetId = this.mediaRepository.insertMediaAsset(toSave);
         }
         return mediaAssetId;

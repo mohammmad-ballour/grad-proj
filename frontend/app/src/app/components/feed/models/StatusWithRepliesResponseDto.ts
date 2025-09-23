@@ -1,0 +1,69 @@
+import { UserAvatar } from "../../profile/models/ProfileResponseDto";
+
+export interface StatusWithRepliesResponse {
+    statusResponse: StatusResponse,
+    replies: ReplySnippet[];
+}
+export interface ReplySnippet {
+    replyId: number;           // Long → safest as string (to avoid JS number overflow)
+    content: string;
+    postedAt: string;          // Instant → ISO date string
+    user: UserAvatar;
+    numLikes: number;   // Integer → number (nullable in JSON)
+    numReplies: number; // Integer → number (nullable in JSON)
+    numShares: number; // Integer → number (nullable in JSON)
+    medias: MediaResponse[];
+    isLikedByCurrentUser: boolean;
+}
+
+export interface StatusResponse {
+    userAvatar: UserAvatar;
+    statusId: number; // serialized with ToStringSerializer → use string in TS
+    content: string;
+    privacy: StatusPrivacy;
+    replyAudience: StatusAudience;
+    isCurrentUserAllowedToReply: boolean;
+    shareAudience: StatusAudience;
+    isCurrentUserAllowedToShare: boolean;
+    mentionedUsers: string[];
+    postedAt: string; // Instant → ISO string in TS
+    numLikes: number;
+    numReplies: number;
+    numShares: number;
+    medias: MediaResponse[];
+    parentStatusSnippet: ParentStatusSnippet | null;
+    isStatusLikedByCurrentUser: boolean;
+    parentAssociation: ParentAssociation;
+}
+export enum ParentAssociation {
+    REPLY = 'REPLY',
+    SHARE = 'SHARE'
+}
+
+
+export enum StatusPrivacy {
+    PUBLIC = "PUBLIC",
+    FOLLOWERS = "FOLLOWERS",
+    PRIVATE = "PRIVATE"
+}
+export enum StatusAudience {
+    EVERYONE = "EVERYONE",
+    FOLLOWERS = "FOLLOWERS",
+    ONLY_ME = "ONLY_ME"
+}
+export interface MediaResponse {
+    mediaId: string;      // Long → serialized as string in JSON (safe choice)
+    mediaUrl: string;
+    mimeType: string;
+    sizeInBytes: number;  // Java long → number in TS
+    position: number;
+}
+
+export interface ParentStatusSnippet {
+    parentUserAvatar: UserAvatar;
+    parentStatusId: string;   // Long with ToStringSerializer → string
+    content: string;
+    privacy: StatusPrivacy;   // your enum/type
+    postedAt: string;         // Instant → ISO date string
+    medias: MediaResponse[];
+}

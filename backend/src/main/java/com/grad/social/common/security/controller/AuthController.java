@@ -1,7 +1,7 @@
 package com.grad.social.common.security.controller;
 
-import com.grad.grad_proj.generated.api.model.SignInRequestDto;
 import com.grad.social.common.security.AuthService;
+import com.grad.social.common.security.SignInRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +20,7 @@ public class AuthController {
 
     @PostMapping("/auth/login")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<String> login(@Valid @RequestBody SignInRequestDto signInRequestDto) {
+    public ResponseEntity<String> login(@Valid @RequestBody SignInRequest signInRequestDto) {
         return ResponseEntity.ok(this.authService.loginWithPassword(signInRequestDto));
     }
 

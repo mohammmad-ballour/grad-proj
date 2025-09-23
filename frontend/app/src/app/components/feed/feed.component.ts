@@ -1,29 +1,55 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { PostCardComponent } from '../post-card/post-card.component';
+import { StatusWithRepliesResponse } from './models/StatusWithRepliesResponseDto';
+import { ActivatedRoute } from '@angular/router';
+import { StatusDetailComponent } from "./status-detail/status-detail.component";
+import { Subject, takeUntil } from 'rxjs';
+import { StatusServices } from './services/status.services';
+import { MatIconModule } from "@angular/material/icon";
 
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [CommonModule, MatCardModule, PostCardComponent],
+  imports: [CommonModule, MatCardModule, StatusDetailComponent, MatIconModule],
   template: `
-    <div class="feed">
-      @for (post of posts; track post.content) {
-        <app-post-card [post]="post"></app-post-card>
+    <div class="feed w-100 rounded"  >
+      @if(statusNotFound){
+              <div class="unavailable-content rounded"  style="background-color: white; padding:20px; "> 
+          <mat-icon class="lock-icon">lock</mat-icon>
+          <h3>This content isn't available at the moment</h3>
+          <p>When this happens, it's usually because the owner only shared it with a small group of people, changed who can see it, or it's been deleted.</p>
+        </div>
+      }@else{
+      <app-status-detail [statusData]="statusData"></app-status-detail>
+
       }
+   
     </div>
   `,
   styles: [`
     .feed {
       display: flex;
-      padding:20px;
       flex-direction: column;
       gap: 16px;
-      width: calc(100% - 40px) ;
-      margin: 0 auto;
-    }
+      height:100%;
+     }
+
+     .unavailable-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;  /* vertical center */
+  align-items: center;      /* horizontal center */
+  text-align: center;
+  background-color: white;
+  padding: 20px;
+  margin: auto;             /* centers inside parent */
+  max-width: 600px;         /* keeps it neat */
+  border-radius: 8px;
+}
+ 
+
   `]
 })
 export class FeedComponent {
@@ -34,4 +60,50 @@ export class FeedComponent {
 
 
   ];
+
+
+  constructor(
+    private activatedRoute: ActivatedRoute,
+    private statusServices: StatusServices
+  ) { }
+  private destroy$ = new Subject<void>();
+  statusId!: string;
+  statusNotFound: boolean = false;
+
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+  ngOnInit(): void {
+    console.log('tedd')
+    this.activatedRoute.paramMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.initFeed();
+      });
+  }
+
+  statusData!: StatusWithRepliesResponse;
+  private initFeed(): void {
+    const statusId = this.activatedRoute.snapshot.paramMap.get('statusId');
+    console.log(statusId)
+    if (statusId) {
+
+      this.statusServices.getStatusById(statusId).subscribe(
+        {
+          next: (res) => {
+            this.statusId = statusId;
+            this.statusData = res;
+            console.log(res)
+            console.log('fetch status')
+          }
+          , error: () => {
+            this.statusNotFound = true;
+          },
+        }
+      )
+    }
+  }
+
 }

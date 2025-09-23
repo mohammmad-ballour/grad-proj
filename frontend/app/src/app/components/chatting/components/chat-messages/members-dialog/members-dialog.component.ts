@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { Component, Inject } from "@angular/core";
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from "@angular/material/dialog";
 import { MatIconModule } from "@angular/material/icon";
-import { UserAvatar } from "../../../../models/ProfileResponseDto";
+import { UserAvatar } from "../../../../profile/models/ProfileResponseDto";
 import { ChatService } from "../../../services/chat.service";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { Router } from "@angular/router";

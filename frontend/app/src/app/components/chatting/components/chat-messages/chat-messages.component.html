@@ -82,7 +82,8 @@
           @if(item.senderAvatar.userId!=activeUserId) {
             <img class="rounded-circle me-2 align-self-end" width="28" height="28"
                  [src]="processImage(item.senderAvatar.profilePicture)"
-                 (error)="onImageError($event,'assets/ProfileAvatar.png')" />
+                 (error)="onImageError($event,'assets/ProfileAvatar.png')" 
+                 />
           }
 
           <!-- Chat Bubble -->

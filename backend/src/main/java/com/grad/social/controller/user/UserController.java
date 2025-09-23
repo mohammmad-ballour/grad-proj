@@ -1,9 +1,8 @@
 package com.grad.social.controller.user;
 
-import com.grad.grad_proj.generated.api.model.CreateUserDto;
-import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
 import com.grad.social.model.enums.Gender;
-import com.grad.social.model.user.UserBasicData;
+import com.grad.social.model.user.helper.UserBasicData;
+import com.grad.social.model.user.request.CreateUser;
 import com.grad.social.model.user.response.ProfileResponse;
 import com.grad.social.service.user.UserService;
 import jakarta.validation.Valid;
@@ -29,8 +28,8 @@ public class UserController {
 
     @PostMapping("/users")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Void> signupUser(@Valid @RequestBody CreateUserDto createUserDto) {
-        this.userService.createUser(createUserDto);
+    public ResponseEntity<Void> signupUser(@Valid @RequestBody CreateUser createUser) {
+        this.userService.createUser(createUser);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 

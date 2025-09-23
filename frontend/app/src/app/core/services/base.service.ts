@@ -15,7 +15,12 @@ export class BaseService {
     MUTE: '/api/users/mute/',
     UNMUTE: '/api/users/unmute/',
     UPDATE_PRIORITY: '/api/users/update-priority/',
-    USERS: '/api/users/' // base for followings/followers/mutual
+    USERS: '/api/users/',
+    PUBLICSTATUS: '/api/status/public/',
+    REPLYSTATUS: '/api/status/{statusId}/replies',
+    LIKE: '/api/like',
+    UNLIKE: '/api/unlike',
+    Media: '/media/' // base for followings/followers/mutual
   };
 
   protected readonly baseUrl = environment.apiBaseUrl;
