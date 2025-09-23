@@ -365,7 +365,7 @@ public class UserStatusInteractionRepository {
                 .or(s.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
 
         // Long statusId, Long mediaId, String mediaUrl, String mimeType, long sizeInBytes
-        return dsl.select(s.ID, sm.MEDIA_ID, ma.FILENAME_HASH, ma.MIME_TYPE, ma.SIZE_BYTES)
+        return dsl.selectDistinct(s.ID, sm.MEDIA_ID, ma.MIME_TYPE, ma.SIZE_BYTES, sm.POSITION, s.CREATED_AT)
                 .from(s)
                 .join(sm).on(sm.STATUS_ID.eq(s.ID))
                 .join(ma).on(ma.MEDIA_ID.eq(sm.MEDIA_ID))
@@ -376,7 +376,8 @@ public class UserStatusInteractionRepository {
                 .orderBy(s.CREATED_AT.desc(), s.ID.desc())
                 .seek(lastSeenCreatedAt, lastSeenStatusId)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
-                .fetch(mapping(StatusMediaResponse::new));
+                .fetch(mapping((statusId, mediaId, mimeType, sizeInBytes, postion,postedAt) ->
+                        new StatusMediaResponse(statusId, mediaId, mimeType, sizeInBytes, postion)));
     }
 
     public List<StatusResponse> fetchStatusesLiked(Long currentUserId, Instant lastSeenCreatedAt, Long lastSeenStatusId) {
