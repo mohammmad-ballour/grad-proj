@@ -21,6 +21,7 @@ import { MediaService } from '../../services/media.service';
 import { StatusActionCardComponent } from "../status-reaction-card/status-action-card.component";
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
 import { AppRoutes } from '../../../config/app-routes.enum';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-status-card',
@@ -29,7 +30,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
   template: `
     <mat-card class="post w-100">
 
-      <!-- Parent Snippet for Replies (shown above like X app) -->
+      <!-- Parent Snippet for Replies -->
       @if (statusData.parentAssociation === parentAssociation.REPLY) {
         @if (statusData.parentStatusSnippet && statusData.parentStatusSnippet.parentStatusId) {
           <app-status-parent-card [parentStatusSnippet]="statusData.parentStatusSnippet"></app-status-parent-card>
@@ -52,7 +53,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
           alt="avatar"
           class="avatar"
         />
-        <div class="header-info text-center  cursor-pointer"  (click)="displayProfile()">
+        <div class="header-info text-center cursor-pointer" (click)="displayProfile()">
           <span class="display-name">{{ statusData.userAvatar.displayName }}</span>
           <span class="username">{{ '@'+statusData.userAvatar.username }}</span>
           <span class="dot">·</span>
@@ -62,12 +63,11 @@ import { AppRoutes } from '../../../config/app-routes.enum';
 
       <!-- Post Content -->
       <mat-card-content
-     
+        #contentElement
         class="post-content"
+        [innerHTML]="processedContent"
         [ngClass]="{ expanded: isExpanded }"
-        
       >
-        {{ statusData.content }}  //search if there is taged user in ccontent and macke it clicable 
       </mat-card-content>
 
       <!-- See More Button -->
@@ -81,7 +81,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
 
       <!-- Media Section -->
       @if (statusData.medias && statusData.medias.length > 0) {
-        <div class="media-grid " >
+        <div class="media-grid">
           @for (media of statusData.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
@@ -100,7 +100,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
         </div>
       }
 
-      <!-- Parent Snippet for Non-Replies (e.g., Quotes, shown below) -->
+      <!-- Parent Snippet for Non-Replies -->
       @if (statusData.parentAssociation !== parentAssociation.REPLY && statusData.parentStatusSnippet && statusData.parentStatusSnippet.parentStatusId) {
         <app-status-parent-card [parentStatusSnippet]="statusData.parentStatusSnippet"></app-status-parent-card>
       } @else if (statusData.parentAssociation !== parentAssociation.REPLY && !statusData.parentStatusSnippet) {
@@ -112,18 +112,15 @@ import { AppRoutes } from '../../../config/app-routes.enum';
       }
 
       <app-status-action-card
-        #contentElement
         [statusAction]="statusAction"
         (statusActionChange)="UpdateStatusAction($event)">
       </app-status-action-card>
 
     </mat-card>
   `,
-  styles: [
-    `
+  styles: [`
       .post {
         width: 100%;
-       
         margin: 8px auto;
         border: none;
         border-radius: 12px;
@@ -159,21 +156,17 @@ import { AppRoutes } from '../../../config/app-routes.enum';
       .username {
         color: #657786;
       }
-      .dot {
-        color: #657786;
-      }
-      .time {
+      .dot, .time {
         color: #657786;
       }
 
-      /* Parent Snippet */
-      .parent-snippet {
-        margin: 4px 0 6px 48px;
-        font-size: 13px;
-        color: #657786;
-      }
+      /* Mentions */
       .mention {
         color: #1da1f2;
+        cursor: pointer;
+      }
+      .mention:hover {
+        text-decoration: underline;
       }
 
       /* Post Content */
@@ -239,80 +232,62 @@ import { AppRoutes } from '../../../config/app-routes.enum';
         margin: 0;
       }
 
-      /* Actions */
-      .actions {
-        display: flex;
-        justify-content: space-around;
-        padding: 8px 0 0;
-        border-top: 1px solid #e6ecf0;
-        margin-top: 8px;
-      }
-      .action-btn {
-        font-size: 13px;
-        color: #657786;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .action-btn:hover {
-        color: #1da1f2;
-        background: none;
-      }
-      .liked {
-        color: #e0245e !important;
-      }
-
-      /* Connecting Line for Replies */
+      /* Connecting Line */
       .connecting-line {
         width: 2px;
         background-color: #657786;
         height: 20px;
         margin: 8px 0 8px 20px;
       }
-    `,
-  ],
+
+  `],
 })
 export class StatusCardComponent implements AfterViewInit {
   @Input() statusData!: StatusResponse;
   @ViewChild('contentElement') contentElement!: ElementRef;
+
   isExpanded = false;
   isContentOverflowing = false;
   isLiked = false;
   parentAssociation = ParentAssociation;
 
-  constructor(private cdr: ChangeDetectorRef,
+  processedContent!: SafeHtml;
+  statusAction!: StatusActionDto;
+
+  constructor(
+    private cdr: ChangeDetectorRef,
     private router: Router,
     public mediaService: MediaService,
-    private el: ElementRef
+    private el: ElementRef,
+    private sanitizer: DomSanitizer
   ) { }
 
   ngAfterViewInit() {
-
     setTimeout(() => {
       if (this.contentElement?.nativeElement) {
         const element = this.contentElement.nativeElement;
         this.isContentOverflowing = element.scrollHeight > element.clientHeight;
         this.cdr.detectChanges();
       }
-      console.log('from auto scroll')
-      this.el.nativeElement.scrollIntoView({ block: 'end' });
+      // scroll to center
+      this.el.nativeElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }, 0);
   }
-  statusAction!: StatusActionDto;
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['statusData']) {
-      this.ngOnInit()
+      this.ngOnInit();
       this.ngAfterViewInit();
     }
   }
 
   ngOnInit() {
-
     this.statusAction = this.getStatusAction();
+    this.processContent();
   }
+
   displayProfile() {
-    this.router.navigate([this.statusData.userAvatar.username])
+    this.router.navigate([this.statusData.userAvatar.username]);
   }
 
   onImageError(event: Event, fallback: string): void {
@@ -324,6 +299,30 @@ export class StatusCardComponent implements AfterViewInit {
     return `data:${mimeType};base64,${content}`;
   }
 
+  processContent() {
+    if (!this.statusData?.content) return;
+
+    let content = this.statusData.content;
+
+    if (this.statusData.mentionedUsers?.length > 0) {
+      for (const username of this.statusData.mentionedUsers) {
+        const regex = new RegExp(`@${username}`, 'g');
+        content = content.replace(
+          regex,
+          `<span class="mention" style="color:#5f7fcb ; cursor:pointer" onclick="window.dispatchEvent(new CustomEvent('mentionClick',{detail:'${username}'}))">@${username}</span>`
+        );
+      }
+    }
+
+    this.processedContent = this.sanitizer.bypassSecurityTrustHtml(content);
+
+    // listen for custom click events
+    window.addEventListener('mentionClick', (e: any) => {
+      this.router.navigate([e.detail]);
+
+    });
+  }
+
   toggleExpand() {
     this.isExpanded = !this.isExpanded;
     this.cdr.detectChanges();
@@ -333,11 +332,11 @@ export class StatusCardComponent implements AfterViewInit {
     this.isLiked = !this.isLiked;
     this.cdr.detectChanges();
   }
+
   displayStatus() {
-    console.log(this.statusData.statusId)
-    console.log('test')
-    this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId])
+    this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId]);
   }
+
   getStatusAction(): StatusActionDto {
     return {
       statusId: this.statusData.statusId,
@@ -346,15 +345,11 @@ export class StatusCardComponent implements AfterViewInit {
       numReplies: this.statusData.numReplies,
       numShares: this.statusData.numShares,
       liked: this.statusData.isStatusLikedByCurrentUser
-
     };
   }
+
   UpdateStatusAction(statusActionDto: StatusActionDto) {
     this.statusAction = statusActionDto;
-    this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked
-
+    this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked;
   }
-
-
-
 }
