@@ -244,7 +244,6 @@ public class UserStatusInteractionRepository {
         return JooqUtils.delete(dsl, sl, sl.USER_ID.eq(currentUserId).and(sl.STATUS_ID.eq(statusId)));
     }
 
-
     public List<StatusResponse> fetchFeed(Long currentUserId, Instant lastSeenCreatedAt, Long lastSeenStatusId) {
         lastSeenCreatedAt = lastPageInstant(lastSeenCreatedAt, lastSeenStatusId);
 
