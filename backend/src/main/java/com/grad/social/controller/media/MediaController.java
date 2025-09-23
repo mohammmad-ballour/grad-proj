@@ -53,9 +53,6 @@ public class MediaController {
         InputStream inputStream = new BufferedInputStream(new FileInputStream(fileSystemResource.getFile()));
         inputStream.skip(start);
         InputStreamResource resource = new InputStreamResource(new LimitedInputStream(inputStream, contentLength));
-
-        System.out.println("HELLO");
-
         return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
                 .contentType(MediaType.parseMediaType(media.getMimeType()))
                 .header(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileLength)

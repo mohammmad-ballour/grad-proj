@@ -1,10 +1,14 @@
 package com.grad.social.controller.user;
 
 import com.grad.social.model.enums.Gender;
+import com.grad.social.model.shared.TimestampSeekRequest;
+import com.grad.social.model.status.response.StatusMediaResponse;
+import com.grad.social.model.status.response.StatusResponse;
 import com.grad.social.model.user.helper.UserBasicData;
 import com.grad.social.model.user.request.CreateUser;
 import com.grad.social.model.user.response.ProfileResponse;
 import com.grad.social.service.user.UserService;
+import com.grad.social.service.user.UserStatusInteractionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -12,19 +16,22 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class UserController {
-
     private final UserService userService;
+    private final UserStatusInteractionService userStatusInteractionService;
 
     @PostMapping("/users")
     @PreAuthorize("permitAll()")
@@ -63,5 +70,39 @@ public class UserController {
         Long currentUserId = Long.parseLong(authentication.getToken().getClaimAsString("uid"));
         return ResponseEntity.ok(this.userService.fetchUserAccountByName(currentUserId, nameToSearch));
     }
+
+    @PostMapping("/users/feed")
+    public ResponseEntity<List<StatusResponse>> fetchUserFeed(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+        Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserFeed(currentUserId, seekRequest));
+    }
+
+    @PostMapping("/users/{profileOwnerId}/posts")
+    public ResponseEntity<List<StatusResponse>> fetchUserPosts(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
+                                                               @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+        Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserPosts(currentUserId, profileOwnerId, seekRequest));
+    }
+
+    @PostMapping("/users/{profileOwnerId}/replies")
+    public ResponseEntity<List<StatusResponse>> fetchUserReplies(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
+                                                                 @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+        Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserReplies(currentUserId, profileOwnerId, seekRequest));
+    }
+
+    @PostMapping("/users/{profileOwnerId}/media")
+    public ResponseEntity<List<StatusMediaResponse>> fetchUserMedia(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
+                                                                    @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+        Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchUserMedia(currentUserId, profileOwnerId, seekRequest));
+    }
+
+    @PostMapping("/users/likes")
+    public ResponseEntity<List<StatusResponse>> fetchStatusesLiked(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) TimestampSeekRequest seekRequest) {
+        Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
+        return ResponseEntity.ok(this.userStatusInteractionService.fetchStatusesLiked(currentUserId, seekRequest));
+    }
+
 
 }

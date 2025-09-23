@@ -29,6 +29,8 @@ public class SocialApplication {
                 keycloakUserService.createUserAccount("3", "baraa@gmail.com", "baraa", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
                 keycloakUserService.createUserAccount("4", "sarahhhh@gmail.com", "sarah", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
                 keycloakUserService.createUserAccount("5", "lucy@gmail.com", "lucy", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
+                keycloakUserService.createUserAccount("11", "mshokor2011@gmail.com", "moh11", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
+                keycloakUserService.createUserAccount("12", "mshokor2012@gmail.com", "moh12", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
             } catch (Exception e) {
 
             }

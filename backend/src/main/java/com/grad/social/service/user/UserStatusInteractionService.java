@@ -33,6 +33,31 @@ public class UserStatusInteractionService {
                 seekRequest == null ? null : (seekRequest.lastHappenedAt()), seekRequest == null ? null : seekRequest.lastEntityId());
     }
 
+    public List<StatusResponse> fetchUserFeed(Long currentUserId, TimestampSeekRequest seekRequest) {
+        return this.userStatusInteractionRepository.fetchFeed(currentUserId,
+                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    }
+
+    public List<StatusResponse> fetchUserPosts(Long currentUserId, Long profileOwnerId, TimestampSeekRequest seekRequest) {
+        return this.userStatusInteractionRepository.fetchPosts(currentUserId, profileOwnerId,
+                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    }
+
+    public List<StatusResponse> fetchUserReplies(Long currentUserId, Long profileOwnerId, TimestampSeekRequest seekRequest) {
+        return this.userStatusInteractionRepository.fetchReplies(currentUserId, profileOwnerId,
+                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    }
+
+    public List<StatusMediaResponse> fetchUserMedia(Long currentUserId, Long profileOwnerId, TimestampSeekRequest seekRequest) {
+        return this.userStatusInteractionRepository.fetchMedia(currentUserId, profileOwnerId,
+                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    }
+
+    public List<StatusResponse> fetchStatusesLiked(Long currentUserId, TimestampSeekRequest seekRequest) {
+        return this.userStatusInteractionRepository.fetchStatusesLiked(currentUserId,
+                seekRequest == null ? null : seekRequest.lastHappenedAt(), seekRequest == null ? null : seekRequest.lastEntityId());
+    }
+
     public void likeStatus(Long currentUserId, ReactToStatusRequest reactToStatusRequest) {
         Long statusId = reactToStatusRequest.statusId();
         int recordsInserted = this.userStatusInteractionRepository.likeStatus(currentUserId, statusId);
