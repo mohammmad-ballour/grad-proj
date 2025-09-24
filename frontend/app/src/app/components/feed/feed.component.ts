@@ -9,6 +9,7 @@ import { StatusServices } from './services/status.services';
 import { MatIconModule } from "@angular/material/icon";
 import { StatusCardComponent } from "./status-card/status-card.component";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { NotificationService } from '../services/notification.service';
 
 
 @Component({
@@ -95,7 +96,8 @@ export class FeedComponent {
 
   constructor(
     private activatedRoute: ActivatedRoute,
-    private statusServices: StatusServices
+    private statusServices: StatusServices,
+    private notificationService: NotificationService,
   ) { }
 
   ngOnDestroy() {
@@ -154,6 +156,7 @@ export class FeedComponent {
         if (res.statuses.length > 0) {
           this.page++;
         }
+        this.notificationService.updateUnreadCounts(res.unreadMessagesCount, res.unreadNotificationsCount);
         this.hasMoreFeed = res.statuses.length > 0;
       },
       error: (err) => {

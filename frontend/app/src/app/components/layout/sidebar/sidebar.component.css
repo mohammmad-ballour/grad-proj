@@ -24,3 +24,35 @@ mat-nav-list {
     background-color: rgb(60 63 68 / 68%);
     font-weight: 500;
 }
+
+/* Sidebar badge styles */
+.nav-item {
+    position: relative;
+    /* This is crucial for positioning the badge */
+}
+
+.badge {
+    position: absolute;
+    /* Position the badge relative to the .nav-item */
+    top: 10px;
+    /* Adjust as needed for vertical alignment */
+    right: 8px;
+    /* Adjust as needed for horizontal alignment */
+    background-color: transparent;
+    /* A common color for notifications (red) */
+    color: red;
+    /* Text color for visibility */
+    border-radius: 50%;
+    /* Makes the badge a circle */
+
+    /* Adjust padding to control the size */
+    font-size: 12px;
+    /* Small font size for the count */
+    font-weight: bold;
+    /* Make the number stand out */
+    width: 40px;
+    /* Ensures the circle is big enough for single digits */
+    text-align: center;
+    line-height: 16px;
+    /* Vertically centers the number */
+}

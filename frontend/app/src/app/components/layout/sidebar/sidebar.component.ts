@@ -1,10 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule, RouterLinkActive } from '@angular/router';
 import { AppRoutes } from '../../../config/app-routes.enum';
 import { AuthService } from '../../../core/services/auth.service';
+import { takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -16,23 +19,49 @@ import { AuthService } from '../../../core/services/auth.service';
         <a mat-list-item [routerLink]="item.path" routerLinkActive="active" class="nav-item">
           <mat-icon matListItemIcon>{{ item.icon }}</mat-icon> 
           <span class="nav-label">{{ item.label }}</span>
+          @if (item.label === 'Messages' && unreadMessages > 0) {
+            <span class="badge"><i class="bi bi-bell-fill"></i>{{ unreadMessages }}</span>
+          }
+          @if (item.label === 'Notifications' && unreadNotifications > 0) {
+            <span class="badge"><i class="bi bi-bell-fill"></i>{{ unreadNotifications }}</span>
+          }
         </a>
       }
     </mat-nav-list>
   `,
   styleUrl: "sidebar.component.css"
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
   navItems: { path: string | null, icon: string, label: string }[];
+  unreadMessages: number = 0;
+  unreadNotifications: number = 0;
+  private destroy$ = new Subject<void>();
 
-  constructor(private authService: AuthService) {
+  constructor(
+    private authService: AuthService,
+    private notificationService: NotificationService
+  ) {
     this.navItems = [
       { path: AppRoutes.HOME, icon: 'home', label: 'Home' },
-      { path: this.authService.UserName, icon: 'person', label: 'Profile' }, // just username
+      { path: this.authService.UserName, icon: 'person', label: 'Profile' },
       { path: "explore", icon: 'explore', label: 'Explore' },
       { path: AppRoutes.NOTIFICATIONS, icon: 'notifications', label: 'Notifications' },
       { path: AppRoutes.MESSAGES, icon: 'messages', label: 'Messages' },
     ];
   }
-}
 
+  ngOnInit(): void {
+    this.notificationService.unreadMessagesCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(count => this.unreadMessages = count);
+
+    this.notificationService.unreadNotificationsCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(count => this.unreadNotifications = count);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}
