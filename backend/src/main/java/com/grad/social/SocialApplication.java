@@ -38,6 +38,7 @@ public class SocialApplication {
             redisTemplate.opsForSet().add("user:sessions:1", "session-1.1", "session-1.2");
             redisTemplate.opsForSet().add("user:sessions:2", "session-2");
             redisTemplate.opsForSet().add("user:sessions:4", "session-4");
+            redisTemplate.opsForSet().add("user:sessions:11", "session-11");
 
             // users 3 and 5 are offline
             redisTemplate.opsForHash().put("user:meta:3", RedisConstants.LAST_ONLINE_HASH_KEY, Instant.now().minus(15, ChronoUnit.MINUTES).toString());

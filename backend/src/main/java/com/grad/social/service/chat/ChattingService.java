@@ -129,11 +129,6 @@ public class ChattingService {
         return this.chattingRepository.getMessageDetails(messageId);
     }
 
-    // used in FeedService to update unread message count badge in frontend
-    public Integer getNumberOfUnreadMessagesSinceLastOnline(Long userId) {
-        return this.chattingRepository.getNumberOfUnreadMessagesSinceLastOnline(userId);
-    }
-
     // called whenever the user comes online again (in LoginSuccessEventHandler)
     public void confirmDelivery(Long userId) {
         this.chattingRepository.updateDeliveryStatusForUserId(userId);

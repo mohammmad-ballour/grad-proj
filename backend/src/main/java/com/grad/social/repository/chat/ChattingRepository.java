@@ -495,27 +495,6 @@ public class ChattingRepository {
                 .execute();
     }
 
-    public Integer getNumberOfUnreadMessagesSinceLastOnline(Long userId) {
-        Instant lastOnline = getLastOnline(userId);
-        return dsl.selectCount()
-                .from(ms)
-                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
-                .join(u).on(ms.USER_ID.eq(u.ID))
-                .where(ms.USER_ID.eq(userId).and(ms.READ_AT.isNull()
-                                .and(m.SENT_AT.greaterThan(lastOnline))
-                        )
-                )
-                .fetchOneInto(Integer.class);
-    }
-
-    private Instant getLastOnline(Long userId) {
-        Object lastOnlineObj = this.redisTemplate.opsForHash().get(RedisConstants.USERS_SESSION_META_PREFIX.concat(userId.toString()), RedisConstants.LAST_ONLINE_HASH_KEY);
-        if (lastOnlineObj == null) {
-            return Instant.MAX;
-        }
-        return Instant.parse(lastOnlineObj.toString());
-    }
-
     public void updateDeliveryStatusForUserId(Long userId) {
         dsl.update(ms)
                 .set(ms.DELIVERED_AT, Instant.now())
@@ -550,7 +529,7 @@ public class ChattingRepository {
 
     // Utils
     public boolean isUserOnline(Long userId) {
-        Long size = redisTemplate.opsForSet().size(RedisConstants.USERS_SESSION_KEY_PREFIX + userId);
+        Long size = this.redisTemplate.opsForSet().size(RedisConstants.USERS_SESSION_KEY_PREFIX + userId);
         return size != null && size > 0;
     }
 
@@ -571,25 +550,6 @@ public class ChattingRepository {
         );
     }
 
-    /*
-      .fetch(mapping((messageId, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
-                                messageType, mediaId, fileNameHashed, extension, unreadCount, undeliveredCount,
-                                parentMessageId, parentContent, parentOwnerId, parentSenderUsername, parentSenderDisplayName, parentSenderProfilePicture,
-                                parentMediaId, parentMessageType, parentFileNameHashed, parentExtension) -> {
-                    com.grad.social.model.chat.response.MessageStatus messageStatus = SENT;
-                    if (unreadCount == 0) {
-                        messageStatus = READ;
-                    } else if (undeliveredCount == 0) {
-                        messageStatus = DELIVERED;
-                    }
-                    byte[] media = this.loadMedia(mediaId, fileNameHashed, extension);
-                    byte[] parentMedia = this.loadMedia(parentMediaId, parentFileNameHashed, parentExtension);
-                    var parentMessageSnippet = parentMessageId == null ? null : new ChatMessageResponse.ParentMessageSnippet(parentMessageId, parentContent,
-                            new UserAvatar(parentOwnerId, parentSenderUsername, parentSenderDisplayName, parentSenderProfilePicture), parentMessageType, parentMedia);
-                    return new ChatMessageResponse(messageId, parentMessageSnippet, new UserAvatar(senderId, senderUsername, senderDisplayName, senderProfilePicture),
-                            content, media, messageType, sentAt, messageStatus);
-                }));
-     */
     private RecordMapper<Record17<Long, Long, String, String, byte[], String, Instant, MediaType, Long, String, Long, String, Long, String, Long, MediaType, String>, ChatMessageResponse> mapRowToChatMessage() {
         return mapping((messageId2, senderId, senderUsername, senderDisplayName, senderProfilePicture, content, sentAt,
                         messageType, mediaId, fileNameHashed,
