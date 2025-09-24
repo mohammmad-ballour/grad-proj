@@ -1,29 +1,53 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { StatusWithRepliesResponse } from './models/StatusWithRepliesResponseDto';
+import { StatusResponse, StatusWithRepliesResponse } from './models/StatusWithRepliesResponseDto';
 import { ActivatedRoute } from '@angular/router';
 import { StatusDetailComponent } from "./status-detail/status-detail.component";
 import { Subject, takeUntil } from 'rxjs';
 import { StatusServices } from './services/status.services';
 import { MatIconModule } from "@angular/material/icon";
+import { StatusCardComponent } from "./status-card/status-card.component";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [CommonModule, MatCardModule, StatusDetailComponent, MatIconModule],
+  imports: [CommonModule, MatCardModule, StatusDetailComponent, MatIconModule, StatusCardComponent, MatProgressSpinnerModule],
   template: `
-    <div class="feed w-100 rounded"  >
-      @if(statusNotFound){
-              <div class="unavailable-content rounded"  style="background-color: white; padding:20px; "> 
-          <mat-icon class="lock-icon">lock</mat-icon>
-          <h3>This content isn't available at the moment</h3>
-          <p>When this happens, it's usually because the owner only shared it with a small group of people, changed who can see it, or it's been deleted.</p>
-        </div>
-      }@else{
-      <app-status-detail [statusData]="statusData"></app-status-detail>
+    <div class="feed w-100 rounded"   #scrollContainer (scroll)="onScroll()"  style=" overflow-y: auto;">
+      @if(feedMode){
+        <div  style="padding: 10px; ">
+              @if(isLoading && feed.length == 0){
+                  <div class="loading-spinner">
+                    <mat-spinner diameter="40"></mat-spinner>
+                  </div>
+            }@else{
 
+               @for(post of feed; track post.statusId){
+                  <app-status-card [statusData]="post"></app-status-card>
+                }
+
+               
+            }
+        </div>
+          @if(isLoading && feed.length > 0){
+                <div class="loading-spinner">
+                <mat-spinner diameter="40"></mat-spinner>
+                  </div>
+          }
+
+      }@else {
+          @if(statusNotFound){
+                  <div class="unavailable-content rounded"  style="background-color: white; padding:20px; "> 
+              <mat-icon class="lock-icon">lock</mat-icon>
+              <h3>This content isn't available at the moment</h3>
+              <p>When this happens, it's usually because the owner only shared it with a small group of people, changed who can see it, or it's been deleted.</p>
+            </div>
+          }@else{
+            <app-status-detail [statusData]="statusData"></app-status-detail>
+          } 
       }
    
     </div>
@@ -33,43 +57,46 @@ import { MatIconModule } from "@angular/material/icon";
       display: flex;
       flex-direction: column;
       gap: 16px;
-      height:100%;
-     }
+      height: 100%;
 
-     .unavailable-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;  /* vertical center */
-  align-items: center;      /* horizontal center */
-  text-align: center;
-  background-color: white;
-  padding: 20px;
-  margin: auto;             /* centers inside parent */
-  max-width: 600px;         /* keeps it neat */
-  border-radius: 8px;
-}
- 
+    }
 
+    .unavailable-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center; 
+      align-items: center;     
+      text-align: center;
+      background-color: white;
+      padding: 20px;
+      margin: auto; 
+      max-width: 600px; 
+      border-radius: 8px;
+    }
+
+    .loading-spinner {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
   `]
 })
 export class FeedComponent {
-  posts = [
-    { user: 'User1', time: '2h ago', content: 'WelcomeLddddddddddddd Lorem ipsum dolor, sit amet consectetur adipisicing elit. Praesentium deserunt ea quis nam modi odit veritatis, sequi maxime corrupti hic fugiat nisi quas fuga aliquam, rem iusto reprehenderit itaque amet!Lorem orem ipsum dolor sit amet consectetur, adipisicing elit. Veniam dolorem provident tempora vitae aliquam vero doloribus magni, incidunt dolore officia distinctio enim quaerat expedita quas ipsum adipisci modi reiciendis est. Just posted my first update!Lddddddddddddd Lorem ip ium deserunt ea quis nam modi odit veritatis, sequi maxime corrupti hic fugiat nisi quas fuga aliquam, rem iusto reprehenderit itaque amet!Lorem orem ipsum dolor sit amet consectetur, adipisicing elit. Veniam dolorem p date! to my social media app!' },
-    { user: 'User2', time: '1h ago', content: 'This app is awesome!' },
-    { user: 'User3', time: '30m ago', content: 'Just posted my first update!' },
 
-
-  ];
-
+  feedMode: boolean = false;
+  private destroy$ = new Subject<void>();
+  statusId!: string;
+  statusNotFound: boolean = false;
+  @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
+  feed: StatusResponse[] = [];
+  page: number = 0;
+  isLoading: boolean = false;
+  hasMoreFeed: boolean = true;
 
   constructor(
     private activatedRoute: ActivatedRoute,
     private statusServices: StatusServices
   ) { }
-  private destroy$ = new Subject<void>();
-  statusId!: string;
-  statusNotFound: boolean = false;
-
 
   ngOnDestroy() {
     this.destroy$.next();
@@ -103,7 +130,59 @@ export class FeedComponent {
           },
         }
       )
+    } else {
+      this.feedMode = true;
+      this.loadFeed();
+    }
+
+  }
+
+
+  loadFeed(): void {
+    if (this.isLoading) return;
+    console.log('Loading feed page', this.page);
+
+    this.isLoading = true;
+
+
+    this.statusServices.fetchUserFeed(this.page).subscribe({
+      next: (res) => {
+        console.log('Feed data received', res);
+
+        this.feed.push(...res.statuses);
+
+        if (res.statuses.length > 0) {
+          this.page++;
+        }
+        this.hasMoreFeed = res.statuses.length > 0;
+      },
+      error: (err) => {
+        console.error('Failed to load feed', err);
+      },
+      complete: () => {
+        this.isLoading = false;
+      }
+    });
+  }
+
+  ngAfterViewInit(): void {
+    if (!this.scrollContainer) {
+      return;
+    }
+    this.scrollContainer.nativeElement.addEventListener('scroll', () => {
+      this.onScroll();
+    });
+  }
+
+  onScroll(): void {
+    const container = this.scrollContainer.nativeElement;
+    const threshold = 150;
+    const position = container.scrollTop + container.clientHeight;
+    const height = container.scrollHeight;
+    if (position >= height - threshold && !this.isLoading && this.hasMoreFeed) {
+      this.loadFeed();
     }
   }
 
 }
+
