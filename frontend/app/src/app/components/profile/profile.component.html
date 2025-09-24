@@ -15,9 +15,9 @@
 </div>
 }
 @else {
-<div class="profile-container">
-  <div class="profile-header">
-    <img [src]="profile.profileCoverPhoto " (error)="onImageError($event,'assets/coverPhoto.png')" class="cover-img" />
+<div  #scrollContainer class="profile-container"    (scroll)="onScroll()">
+  <div class="profile-header "  >
+    <img [src]="profile.profileCoverPhoto " (error)="onImageError($event,'assets/coverPhoto.png')" class="cover-img  " />
 
     <div class="avatar-section">
       <img [src]="profile.userAvatar.profilePicture" (error)="onImageError($event,'assets/ProfileAvatar.png')"
@@ -222,63 +222,95 @@
     </div>
   </div>
 
-<mat-tab-group>
+ <mat-tab-group (selectedIndexChange)="onTabChange($event)">
   <!-- Posts -->
-  <mat-tab label="Posts">
-    @if (isPostsLoading) {
+  <mat-tab label="Posts"  style="padding: 20px;">
+    @if (isPostsLoading && posts.length === 0) {
       <div>Loading posts...</div>
     } @else {
       @for (post of posts; track post.statusId) {
         <app-status-card [statusData]="post"></app-status-card>
+      }
+      @if (isPostsLoading && posts.length > 0) {
+        <div>Loading more posts...</div>
+      }
+      @if (!hasMorePosts) {
+        <div class="end-message">No more posts</div>
       }
     }
   </mat-tab>
 
   <!-- Replies -->
   <mat-tab label="Replies">
-    @if (isRepliesLoading) {
+    @if (isRepliesLoading && replies.length === 0) {
       <div>Loading replies...</div>
     } @else {
       @for (reply of replies; track reply.statusId) {
         <app-status-card [statusData]="reply"></app-status-card>
       }
+      @if (isRepliesLoading && replies.length > 0) {
+        <div>Loading more replies...</div>
+      }
+      @if (!hasMoreReplies) {
+        <div class="end-message">No more replies</div>
+      }
     }
   </mat-tab>
 
   <!-- Media -->
- <mat-tab label="Media">
-  @if (isMediaLoading) {
-    <div class="loading">Loading media...</div>
-  } @else {
-    <div class="media-grid">
-      @for (m of media; track m.mediaId) {
-        <div class="media-card">
+  <mat-tab label="Media">
+    @if (isMediaLoading && media.length === 0) {
+      <div>Loading media...</div>
+    } @else {
+      <div class="media-grid">
+        @for (m of media; track m.mediaId) {
           @if (m.mimeType.startsWith('image/')) {
-            <img [src]="mediaService.getMediaById(m.mediaId)" alt="media image" />
+            <img [src]="mediaService.getMediaById(m.mediaId)" width="200" />
           }
           @if (m.mimeType.startsWith('video/')) {
-            <video [src]="mediaService.getMediaById(m.mediaId)" controls></video>
+            <video width="200" controls>
+              <source [src]="mediaService.getMediaById(m.mediaId)" [type]="m.mimeType" />
+            </video>
           }
-        </div>
+        }
+      </div>
+      @if (isMediaLoading && media.length > 0) {
+        <div>Loading more media...</div>
       }
-    </div>
-  }
-</mat-tab>
-
-
-  <!-- Likes -->
-   @if(isPersonalProfile){
-  <mat-tab label="Likes">
-    @if (isLikesLoading) {
-      <div>Loading liked statuses...</div>
-    } @else {
-      @for (like of likes; track like.statusId) {
-        <app-status-card [statusData]="like"></app-status-card>
+      @if (!hasMoreMedia) {
+        <div class="end-message">No more media</div>
       }
     }
   </mat-tab>
-} 
+
+  <!-- Likes -->
+  @if (isPersonalProfile) {
+    <mat-tab label="Likes">
+      @if (isLikesLoading && likes.length === 0) {
+        <div>Loading likes...</div>
+      } @else {
+        @for (like of likes; track like.statusId) {
+          <app-status-card [statusData]="like"></app-status-card>
+        }
+        @if (isLikesLoading && likes.length > 0) {
+          <div>Loading more likes...</div>
+        }
+        @if (!hasMoreLikes) {
+          <div class="end-message">No more likes</div>
+        }
+      }
+    </mat-tab>
+  }
 </mat-tab-group>
+
+<!-- Back to top floating button -->
+@if (showBackToTop) {
+  <button mat-fab color="primary" class="back-to-top" (click)="scrollToTop()">
+    <mat-icon>arrow_upward</mat-icon>
+  </button>
+}
+
+
 
 </div>
 

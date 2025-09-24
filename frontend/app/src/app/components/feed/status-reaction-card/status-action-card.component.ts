@@ -59,11 +59,7 @@ export class StatusActionCardComponent {
   constructor(public reactionService: StatusReactionService) {
 
   }
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes['statusAction']) {
-      console.log('statusAction changed:', this.statusAction);
-    }
-  }
+
 
   toggleLike() {
     const request = {

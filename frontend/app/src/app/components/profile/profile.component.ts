@@ -1,11 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, HostListener, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ProfileResponseDto } from './models/ProfileResponseDto';
 import { EditProfileDialogComponent } from './edit-profile-dialog/edit-profile-dialog.component';
 import { UserResponse, UserService } from './services/user.service';
 import { MatIconModule } from "@angular/material/icon";
-import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatMenuModule } from "@angular/material/menu";
@@ -18,15 +17,17 @@ import { Observable, Subscription } from 'rxjs';
 import { UserListDialogComponent } from './user-list-dialog-component/user-list-dialog-component.component';
 import { ChatService } from '../chatting/services/chat.service';
 import { AppRoutes } from '../../config/app-routes.enum';
-import { AuthService } from '../../core/services/auth.service';
 import { ProfileServices } from './services/profile.services';
 import { MuteDialogComponent } from './mute-dialog-component/mute-dialog-component.component';
 import { UserStatusService } from './services/user-status.service';
 import { TimestampSeekRequest } from '../models/TimestampSeekRequestDto';
 import { StatusResponse } from '../feed/models/StatusWithRepliesResponseDto';
 import { StatusMediaResponse } from './models/StatusMediaResponse';
-import { StatusCardComponent } from "../feed/status-card/status-card.component";
 import { MediaService } from '../services/media.service';
+import { Component, ViewChild, ElementRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { StatusCardComponent } from '../feed/status-card/status-card.component';
+
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
@@ -50,7 +51,7 @@ export interface UserSeek {
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, AfterViewInit {
 
 
   profile!: ProfileResponseDto;
@@ -90,74 +91,40 @@ export class ProfileComponent implements OnInit {
 
   ) { }
 
+
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
-      this.CurrentUserName = params.get('username') || '';
-      this.isPersonalProfile = this.CurrentUserName === this.profileServices.userName;
-      this.fetchProfileData(true);
+      const username = params.get('username') || '';
+      if (this.CurrentUserName !== username) {
+        this.CurrentUserName = username;
+        this.isPersonalProfile = this.CurrentUserName === this.profileServices.userName;
+        this.resetUserContent();
+        this.fetchProfileData(true);
 
+      }
     });
-
-
   }
-  //call userStatusService ENDPOINTS
-
-
-  private fetchProfileData(isInitialCall: boolean): void {
+  /** ---------- Fetch Profile ---------- **/
+  private fetchProfileData(isInitialCall: boolean) {
     this.initialSpinner = isInitialCall;
     this.profileServices.GetDataOfProfile(this.CurrentUserName).subscribe({
       next: (result) => {
-        console.log(result)
         if (result) {
           this.profile = result;
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
           this.isNotFound = false;
-          this.loadUserContent();
 
         }
         this.initialSpinner = false;
       },
-      complete: () => { if (!this.profile.isBlocked && !this.isPersonalProfile) this.getSomeMutualFollowings() }
+      complete: () => {
+        if (!this.profile.isBlocked && !this.isPersonalProfile) {
+          this.getSomeMutualFollowings();
+        }
+        this.onTabChange(0);
+      }
     });
-  }
-  private loadUserContent(): void {
-    const profileOwnerId = this.profile.userAvatar.userId;
-
-    // // Posts
-    // this.isPostsLoading = true;
-    // this.userStatusService.fetchUserPosts(profileOwnerId, this.seekRequest).subscribe({
-    //   next: (res) => this.posts = res,
-    //   error: (err) => console.error('Error loading posts', err),
-    //   complete: () => this.isPostsLoading = false
-    // });
-
-    // // Replies
-    // this.isRepliesLoading = true;
-    // this.userStatusService.fetchUserReplies(profileOwnerId, this.seekRequest).subscribe({
-    //   next: (res) => this.replies = res,
-    //   error: (err) => console.error('Error loading replies', err),
-    //   complete: () => this.isRepliesLoading = false
-    // });
-
-    // // Media
-    // this.isMediaLoading = true;
-    // this.userStatusService.fetchUserMedia(profileOwnerId, this.seekRequest).subscribe({
-    //   next: (res) => { this.media = res; console.log(this.media); },
-    //   error: (err) => console.error('Error loading media', err),
-    //   complete: () => this.isMediaLoading = false
-    // });
-
-
-    // Likes (doesn’t need profileOwnerId)
-    if (this.isPersonalProfile) {
-      this.isLikesLoading = true;
-      this.userStatusService.fetchStatusesLiked(this.seekRequest).subscribe({
-        next: (res) => { this.likes = res, console.log(this.likes); },
-        error: (err) => console.error('Error loading likes', err),
-        complete: () => this.isLikesLoading = false
-      });
-    }
   }
 
 
@@ -376,12 +343,6 @@ export class ProfileComponent implements OnInit {
   }
 
 
-
-  /** ---------- UTILITIES ---------- **/
-  private showSnackBar(message: string): void {
-
-    this.snackBar.open(message, 'Close', { duration: 1500 });
-  }
   isFollowersLoading = false;
   isFollowingLoading = false;
 
@@ -477,6 +438,7 @@ export class ProfileComponent implements OnInit {
         }
       });
   }
+
   openChat() {
     this.chatService.createOneOnOneChat(this.profile.userAvatar.userId).subscribe({
       next: (chatId: string) => {
@@ -493,5 +455,194 @@ export class ProfileComponent implements OnInit {
   }
 
 
+
+
+  // pagination
+  pagePosts = 0;
+  pageReplies = 0;
+  pageMedia = 0;
+  pageLikes = 0;
+
+  hasMorePosts = true;
+  hasMoreReplies = true;
+  hasMoreMedia = true;
+  hasMoreLikes = true;
+
+  activeTab: 'posts' | 'replies' | 'media' | 'likes' = 'posts';
+  showBackToTop = false;
+  readonly PAGE_SIZE = 10;
+
+  // scroll throttling
+  private scrollTimeout: any;
+
+
+  /** ---------- Reset content when switching profiles ---------- **/
+  private resetUserContent() {
+    this.posts = [];
+    this.replies = [];
+    this.media = [];
+    this.likes = [];
+
+    this.pagePosts = 0;
+    this.pageReplies = 0;
+    this.pageMedia = 0;
+    this.pageLikes = 0;
+
+    this.hasMorePosts = true;
+    this.hasMoreReplies = true;
+    this.hasMoreMedia = true;
+    this.hasMoreLikes = true;
+  }
+
+
+  // ======= Loaders =======
+  loadPosts() {
+    console.log("from load posts");
+    this.loadItems<StatusResponse>(
+      'isPostsLoading',
+      'hasMorePosts',
+      'pagePosts',
+      () => this.userStatusService.fetchUserPosts(this.profile.userAvatar.userId, this.pagePosts),
+      'posts'
+    );
+  }
+
+  loadReplies() {
+    this.loadItems<StatusResponse>(
+      'isRepliesLoading',
+      'hasMoreReplies',
+      'pageReplies',
+      () => this.userStatusService.fetchUserReplies(this.profile.userAvatar.userId, this.pageReplies),
+      'replies'
+    );
+  }
+
+  loadMedia() {
+    this.loadItems<StatusMediaResponse>(
+      'isMediaLoading',
+      'hasMoreMedia',
+      'pageMedia',
+      () => this.userStatusService.fetchUserMedia(this.profile.userAvatar.userId, this.pageMedia),
+      'media'
+    );
+  }
+
+  loadLikes() {
+    this.loadItems<StatusResponse>(
+      'isLikesLoading',
+      'hasMoreLikes',
+      'pageLikes',
+      () => this.userStatusService.fetchStatusesLiked(this.pageLikes),
+      'likes'
+    );
+  }
+
+  /** ---------- Tab Change ---------- **/
+  onTabChange(index: number) {
+    switch (index) {
+      case 0: this.activeTab = 'posts'; if (this.posts.length === 0) this.loadPosts(); break;
+      case 1: this.activeTab = 'replies'; if (this.replies.length === 0) this.loadReplies(); break;
+      case 2: this.activeTab = 'media'; if (this.media.length === 0) this.loadMedia(); break;
+      case 3: this.activeTab = 'likes'; if (this.likes.length === 0) this.loadLikes(); break;
+    }
+  }
+
+
+  scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /** ---------- Snackbar ---------- **/
+  private showSnackBar(message: string) {
+    this.snackBar.open(message, 'Close', { duration: 1500 });
+  }
+  @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
+
+  ngAfterViewInit(): void {
+    if (!this.scrollContainer) {
+      return;
+    }
+
+    // You can safely use this.scrollContainer.nativeElement here
+    this.scrollContainer.nativeElement.addEventListener('scroll', () => {
+      this.onScroll();
+    });
+  }
+
+  onScroll(): void {
+    const container = this.scrollContainer.nativeElement;
+    const threshold = 150;
+    const position = container.scrollTop + container.clientHeight;
+    const height = container.scrollHeight;
+
+    if (position >= height - threshold && !this.lockScroll) {
+      this.onScrollDown();
+    }
+  }
+  private loadItems<T>(
+    loaderFlag: 'isPostsLoading' | 'isRepliesLoading' | 'isMediaLoading' | 'isLikesLoading',
+    hasMoreFlag: 'hasMorePosts' | 'hasMoreReplies' | 'hasMoreMedia' | 'hasMoreLikes',
+    pageKey: 'pagePosts' | 'pageReplies' | 'pageMedia' | 'pageLikes',
+    fetchFn: () => Observable<T[]>,
+    targetArray: 'posts' | 'replies' | 'media' | 'likes'
+  ): void {
+    this[loaderFlag] = true;
+    this.lockScroll = true;
+    fetchFn().subscribe({
+      next: (res) => {
+        if (res.length > 0) {
+          (this[targetArray] as T[]).push(...res);
+          this[pageKey]++;
+          console.log(res);
+
+        }
+        this[hasMoreFlag] = res.length == this.PAGE_SIZE;
+      },
+      error: (err) => {
+        console.error(`Error loading ${targetArray}:`, err);
+        this.showSnackBar('Failed to load more content.');
+        this[loaderFlag] = false;
+      },
+      complete: () => {
+        this[loaderFlag] = false;
+        console.log(this[targetArray] as T[]);
+        console.log(`page key ${this[pageKey]}`);
+        console.log(this[hasMoreFlag]);
+        this.lockScroll = false;
+      }
+    });
+  }
+  lockScroll = false;
+  onScrollDown(): void {
+
+    console.log("from onScrollDown ")
+    // Load more items based on active tab
+    switch (this.activeTab) {
+      case 'posts':
+        if (this.hasMorePosts) {
+          console.log("from onScrollDown case posts")
+
+          this.loadPosts();
+        }
+        break;
+      case 'replies':
+        if (this.hasMoreReplies) {
+          this.loadReplies();
+        }
+        break;
+      case 'media':
+        if (this.hasMoreMedia) {
+          this.loadMedia();
+        }
+        break;
+      case 'likes':
+        if (this.hasMoreLikes) {
+          console.log("from onScrollDown case posts")
+
+          this.loadLikes();
+        }
+        break;
+    }
+  }
 
 }

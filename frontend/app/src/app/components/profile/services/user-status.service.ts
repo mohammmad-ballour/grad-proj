@@ -3,43 +3,40 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BaseService } from '../../../core/services/base.service';
 import { StatusResponse } from '../../feed/models/StatusWithRepliesResponseDto';
-import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
 import { StatusMediaResponse } from '../models/StatusMediaResponse';
-
-
 
 @Injectable({
     providedIn: 'root'
 })
 export class UserStatusService extends BaseService {
-
     constructor(private http: HttpClient) {
         super();
     }
 
-    fetchUserPosts(profileOwnerId: number, seekRequest?: TimestampSeekRequest): Observable<StatusResponse[]> {
+    fetchUserPosts(profileOwnerId: number, page: number = 0): Observable<StatusResponse[]> {
         return this.http.post<StatusResponse[]>(
-            `${this.baseUrl}${this.ENDPOINTS.USERS}${profileOwnerId}/posts`,
-            seekRequest ?? {}
+            `${this.baseUrl}${this.ENDPOINTS.USERS}${profileOwnerId}/posts?page=${page}`,
+            {}
         );
     }
 
-    fetchUserReplies(profileOwnerId: number, seekRequest?: TimestampSeekRequest): Observable<StatusResponse[]> {
+    fetchUserReplies(profileOwnerId: number, page: number = 0): Observable<StatusResponse[]> {
         return this.http.post<StatusResponse[]>(
-            `${this.baseUrl}${this.ENDPOINTS.USERS}${profileOwnerId}/replies`,
-            seekRequest ?? {}
+            `${this.baseUrl}${this.ENDPOINTS.USERS}${profileOwnerId}/replies?page=${page}`,
+            {}
         );
     }
 
-    fetchUserMedia(profileOwnerId: number, seekRequest?: TimestampSeekRequest): Observable<StatusMediaResponse[]> {
+    fetchUserMedia(profileOwnerId: number, page: number = 0): Observable<StatusMediaResponse[]> {
         return this.http.post<StatusMediaResponse[]>(
-            `${this.baseUrl}${this.ENDPOINTS.USERS}${profileOwnerId}/media`,
-            seekRequest ?? {}
+            `${this.baseUrl}${this.ENDPOINTS.USERS}${profileOwnerId}/media?page=${page}`,
+            {}
         );
     }
-    fetchStatusesLiked(seekRequest?: TimestampSeekRequest): Observable<StatusResponse[]> {
+
+    fetchStatusesLiked(page: number = 0): Observable<StatusResponse[]> {
         return this.http.post<StatusResponse[]>(
-            `${this.baseUrl}${this.ENDPOINTS.USERS}likes`,
+            `${this.baseUrl}${this.ENDPOINTS.USERS}likes?page=${page}`,
             {}
         );
     }
