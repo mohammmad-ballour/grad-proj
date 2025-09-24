@@ -21,6 +21,12 @@ import { AppRoutes } from '../../config/app-routes.enum';
 import { AuthService } from '../../core/services/auth.service';
 import { ProfileServices } from './services/profile.services';
 import { MuteDialogComponent } from './mute-dialog-component/mute-dialog-component.component';
+import { UserStatusService } from './services/user-status.service';
+import { TimestampSeekRequest } from '../models/TimestampSeekRequestDto';
+import { StatusResponse } from '../feed/models/StatusWithRepliesResponseDto';
+import { StatusMediaResponse } from './models/StatusMediaResponse';
+import { StatusCardComponent } from "../feed/status-card/status-card.component";
+import { MediaService } from '../services/media.service';
 
 type Priority = 'RESTRICTED' | 'FAVOURITE' | 'DEFAULT';
 const PRIORITIES: Priority[] = ['RESTRICTED', 'FAVOURITE', 'DEFAULT'];
@@ -38,7 +44,8 @@ export interface UserSeek {
   imports: [
     MatTabsModule, MatIconModule, CommonModule,
     MatProgressSpinnerModule, MatMenuModule,
-    MatInputModule, MatAutocompleteModule, MatSliderModule
+    MatInputModule, MatAutocompleteModule, MatSliderModule,
+    StatusCardComponent
   ],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css'
@@ -57,6 +64,19 @@ export class ProfileComponent implements OnInit {
   dialogViewisOpen = false;
   blockSpinner: any;
   displaySnackBar = true;
+
+
+  // track loading states
+  isPostsLoading = false;
+  isRepliesLoading = false;
+  isMediaLoading = false;
+  isLikesLoading = false;
+  posts: StatusResponse[] = [];
+  replies: StatusResponse[] = [];
+  media: StatusMediaResponse[] = [];
+  likes: StatusResponse[] = []
+  // optional: keep a seek request for pagination
+  seekRequest?: TimestampSeekRequest;
   constructor(
     private dialog: MatDialog,
     private profileServices: ProfileServices,
@@ -64,7 +84,10 @@ export class ProfileComponent implements OnInit {
     private route: ActivatedRoute,
     private snackBar: MatSnackBar,
     private chatService: ChatService,
-    private router: Router
+    private router: Router,
+    private userStatusService: UserStatusService,
+    public mediaService: MediaService,
+
   ) { }
 
   ngOnInit(): void {
@@ -77,6 +100,8 @@ export class ProfileComponent implements OnInit {
 
 
   }
+  //call userStatusService ENDPOINTS
+
 
   private fetchProfileData(isInitialCall: boolean): void {
     this.initialSpinner = isInitialCall;
@@ -88,13 +113,53 @@ export class ProfileComponent implements OnInit {
           this.profile.userAvatar.profilePicture = `data:image/png;base64,${this.profile.userAvatar.profilePicture}`;
           this.profile.profileCoverPhoto = `data:image/png;base64,${this.profile.profileCoverPhoto}`;
           this.isNotFound = false;
+          this.loadUserContent();
 
         }
         this.initialSpinner = false;
       },
-      complete: () => { if (!this.profile.isBlocked) this.getSomeMutualFollowings() }
+      complete: () => { if (!this.profile.isBlocked && !this.isPersonalProfile) this.getSomeMutualFollowings() }
     });
   }
+  private loadUserContent(): void {
+    const profileOwnerId = this.profile.userAvatar.userId;
+
+    // // Posts
+    // this.isPostsLoading = true;
+    // this.userStatusService.fetchUserPosts(profileOwnerId, this.seekRequest).subscribe({
+    //   next: (res) => this.posts = res,
+    //   error: (err) => console.error('Error loading posts', err),
+    //   complete: () => this.isPostsLoading = false
+    // });
+
+    // // Replies
+    // this.isRepliesLoading = true;
+    // this.userStatusService.fetchUserReplies(profileOwnerId, this.seekRequest).subscribe({
+    //   next: (res) => this.replies = res,
+    //   error: (err) => console.error('Error loading replies', err),
+    //   complete: () => this.isRepliesLoading = false
+    // });
+
+    // // Media
+    // this.isMediaLoading = true;
+    // this.userStatusService.fetchUserMedia(profileOwnerId, this.seekRequest).subscribe({
+    //   next: (res) => { this.media = res; console.log(this.media); },
+    //   error: (err) => console.error('Error loading media', err),
+    //   complete: () => this.isMediaLoading = false
+    // });
+
+
+    // Likes (doesn’t need profileOwnerId)
+    if (this.isPersonalProfile) {
+      this.isLikesLoading = true;
+      this.userStatusService.fetchStatusesLiked(this.seekRequest).subscribe({
+        next: (res) => { this.likes = res, console.log(this.likes); },
+        error: (err) => console.error('Error loading likes', err),
+        complete: () => this.isLikesLoading = false
+      });
+    }
+  }
+
 
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;

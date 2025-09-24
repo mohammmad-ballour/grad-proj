@@ -222,17 +222,64 @@
     </div>
   </div>
 
-  <mat-tab-group class="tabs" mat-align-tabs="start">
-    <mat-tab label="Posts">
-      <div class="tab-content">Post content goes here</div>
-    </mat-tab>
-    <mat-tab label="Replies">
-      <div class="tab-content">Reply content goes here</div>
-    </mat-tab>
-    <mat-tab label="Media">
-      <div class="tab-content">Media content goes here</div>
-    </mat-tab>
-  </mat-tab-group>
+<mat-tab-group>
+  <!-- Posts -->
+  <mat-tab label="Posts">
+    @if (isPostsLoading) {
+      <div>Loading posts...</div>
+    } @else {
+      @for (post of posts; track post.statusId) {
+        <app-status-card [statusData]="post"></app-status-card>
+      }
+    }
+  </mat-tab>
+
+  <!-- Replies -->
+  <mat-tab label="Replies">
+    @if (isRepliesLoading) {
+      <div>Loading replies...</div>
+    } @else {
+      @for (reply of replies; track reply.statusId) {
+        <app-status-card [statusData]="reply"></app-status-card>
+      }
+    }
+  </mat-tab>
+
+  <!-- Media -->
+ <mat-tab label="Media">
+  @if (isMediaLoading) {
+    <div class="loading">Loading media...</div>
+  } @else {
+    <div class="media-grid">
+      @for (m of media; track m.mediaId) {
+        <div class="media-card">
+          @if (m.mimeType.startsWith('image/')) {
+            <img [src]="mediaService.getMediaById(m.mediaId)" alt="media image" />
+          }
+          @if (m.mimeType.startsWith('video/')) {
+            <video [src]="mediaService.getMediaById(m.mediaId)" controls></video>
+          }
+        </div>
+      }
+    </div>
+  }
+</mat-tab>
+
+
+  <!-- Likes -->
+   @if(isPersonalProfile){
+  <mat-tab label="Likes">
+    @if (isLikesLoading) {
+      <div>Loading liked statuses...</div>
+    } @else {
+      @for (like of likes; track like.statusId) {
+        <app-status-card [statusData]="like"></app-status-card>
+      }
+    }
+  </mat-tab>
+} 
+</mat-tab-group>
+
 </div>
 
 }
