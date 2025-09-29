@@ -6,6 +6,8 @@ import {
   ElementRef,
   ChangeDetectorRef,
   SimpleChanges,
+  ChangeDetectionStrategy,
+  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -13,7 +15,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import {
   StatusResponse,
-  ParentAssociation
+  ParentAssociation,
+  MediaResponse
 } from '../models/StatusWithRepliesResponseDto';
 import { StatusParentCardComponent } from "../status-parent-card/status-parent-card.component";
 import { Router } from '@angular/router';
@@ -22,6 +25,8 @@ import { StatusActionCardComponent } from "../status-reaction-card/status-action
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
 import { AppRoutes } from '../../../config/app-routes.enum';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { MatDialog } from '@angular/material/dialog';
+import { MediaViewerComponent } from '../media-viewer-component/media-viewer-component.component';
 
 @Component({
   selector: 'app-status-card',
@@ -80,27 +85,29 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         </div>
       }
 
-      <!-- Media Section -->
-      @if (statusData.medias && statusData.medias.length > 0) {
-        <div class="media-grid " >
-          @for (media of statusData.medias; track media.mediaId) {
-            @if (media.mimeType.startsWith('image/')) {
-              <img
-                [src]="mediaService.getMediaById(media.mediaId)"   
-                class="media-item"
-              />
-            }
-            @if (media.mimeType.startsWith('video/')) {
-              <video
-                controls
-                class="media-item"
-                [src]="mediaService.getMediaById(media.mediaId)"
-              ></video>
-            }
-          }
-        </div>
-      }
+@if (statusData.medias && statusData.medias.length > 0) {
+  <div class="media-grid">
+    @for (media of statusData.medias; track media.mediaId) {
+      @if (media.mimeType.startsWith('image/')) {
+        <img
+          [src]="mediaService.getMediaById(media.mediaId)"
+          class="media-item"
+          (click)="openMediaViewer(media)"
+          alt="Media content"
 
+        />
+      }
+      @if (media.mimeType.startsWith('video/')) {
+        <video
+          controls
+          class="media-item"
+          [src]="mediaService.getMediaById(media.mediaId)"
+          aria-label="Video content"
+        ></video>
+      }
+    }
+  </div>
+}
       <!-- Parent Snippet for Non-Replies -->
       @if (statusData.parentAssociation !== parentAssociation.REPLY && statusData.parentStatusSnippet && statusData.parentStatusSnippet.parentStatusId) {
         <app-status-parent-card [parentStatusSnippet]="statusData.parentStatusSnippet"></app-status-parent-card>
@@ -211,6 +218,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         border-radius: 12px;
         object-fit: cover;
         max-height: 300px;
+        cursor:pointer;
       }
 
       /* Unavailable Content */
@@ -244,15 +252,16 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
       }
 
   `],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StatusCardComponent implements AfterViewInit {
+export class StatusCardComponent implements AfterViewInit, OnDestroy {
   @Input() statusData!: StatusResponse;
   @ViewChild('contentElement') contentElement!: ElementRef;
 
   isExpanded = false;
   isContentOverflowing = false;
   isLiked = false;
-  parentAssociation = ParentAssociation;
+  readonly parentAssociation = ParentAssociation;
 
   processedContent!: SafeHtml;
   statusAction!: StatusActionDto;
@@ -262,11 +271,12 @@ export class StatusCardComponent implements AfterViewInit {
     private router: Router,
     public mediaService: MediaService,
     private el: ElementRef,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private dialog: MatDialog // Add this
   ) { }
 
-  ngAfterViewInit() {
 
+  ngAfterViewInit() {
     setTimeout(() => {
       if (this.contentElement?.nativeElement) {
         const element = this.contentElement.nativeElement;
@@ -285,19 +295,37 @@ export class StatusCardComponent implements AfterViewInit {
     }
   }
 
+  openMediaViewer(media: MediaResponse) {
+    this.dialog.open(MediaViewerComponent, {
+      data: { mimeType: media.mimeType, mediaUrl: this.mediaService.getMediaById(media.mediaId) },
+      width: '80%',
+      height: '80%',
+      panelClass: 'media-viewer-dialog' // Optional: for custom dialog styling
+    });
+  }
   ngOnInit() {
+    if (!this.statusData) {
+      console.error('statusData is undefined');
+      return;
+    }
 
     this.statusAction = this.getStatusAction();
     this.processContent();
   }
+
+  ngOnDestroy() {
+    window.removeEventListener('mentionClick', this.handleMentionClick);
+  }
+
+  private handleMentionClick = (e: any) => {
+    this.router.navigate([e.detail]);
+  };
 
   displayProfile() {
     this.router.navigate([this.statusData.userAvatar.username]);
   }
 
   displayStatus() {
-    console.log(this.statusData.statusId)
-    console.log('test')
     this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId])
   }
   onImageError(event: Event, fallback: string): void {
@@ -327,10 +355,7 @@ export class StatusCardComponent implements AfterViewInit {
     this.processedContent = this.sanitizer.bypassSecurityTrustHtml(content);
 
     // listen for custom click events
-    window.addEventListener('mentionClick', (e: any) => {
-      this.router.navigate([e.detail]);
-
-    });
+    window.addEventListener('mentionClick', this.handleMentionClick);
   }
 
   toggleExpand() {
