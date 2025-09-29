@@ -343,9 +343,6 @@ export class StatusCardComponent implements AfterViewInit {
     this.cdr.detectChanges();
   }
 
-  displayStatus() {
-    this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId]);
-  }
 
   getStatusAction(): StatusActionDto {
     return {
