@@ -644,5 +644,8 @@ export class ProfileComponent implements OnInit, AfterViewInit {
         break;
     }
   }
-
+  displayOwendStatus(statusId: number) {
+    console.log('test')
+    this.router.navigate([`${AppRoutes.STATUS}`, statusId])
+  }
 }

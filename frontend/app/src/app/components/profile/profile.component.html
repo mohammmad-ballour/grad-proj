@@ -265,7 +265,7 @@
       <div class="media-grid">
         @for (m of media; track m.mediaId) {
           @if (m.mimeType.startsWith('image/')) {
-            <img [src]="mediaService.getMediaById(m.mediaId)" width="200" />
+            <img [src]="mediaService.getMediaById(m.mediaId)" width="200"  style="cursor: pointer;" (click)="displayOwendStatus(m.statusId)" />
           }
           @if (m.mimeType.startsWith('video/')) {
             <video width="200" controls>

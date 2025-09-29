@@ -67,7 +67,7 @@ import { AppRoutes } from '../../../config/app-routes.enum';
         [ngClass]="{ expanded: isExpanded }"
         (click)="displayStatus()"
       >
-        {{ statusData.content }}  //search if there is taged user in ccontent and macke it clicable 
+        {{ statusData.content }}  
       </mat-card-content>
 
       <!-- See More Button -->
