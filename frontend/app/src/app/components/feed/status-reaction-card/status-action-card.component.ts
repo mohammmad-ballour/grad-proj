@@ -78,7 +78,6 @@ export class StatusActionCardComponent {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['statusAction']) {
-      console.log('statusAction changed:', this.statusAction);
     }
   }
 
