@@ -20,6 +20,7 @@ import { Router } from '@angular/router';
 import { MediaService } from '../../services/media.service';
 import { StatusActionCardComponent } from "../status-reaction-card/status-action-card.component";
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
+import { AppRoutes } from '../../../config/app-routes.enum';
 
 @Component({
   selector: 'app-status-card',
@@ -64,6 +65,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
         #contentElement
         class="post-content"
         [ngClass]="{ expanded: isExpanded }"
+        (click)="displayStatus()"
       >
         {{ statusData.content }}
       </mat-card-content>
@@ -186,6 +188,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
         text-overflow: ellipsis;
         white-space: normal;
         transition: all 0.3s ease;
+        cursor:pointer;
       }
       .post-content.expanded {
         -webkit-line-clamp: unset;
@@ -306,6 +309,11 @@ export class StatusCardComponent implements AfterViewInit {
     this.router.navigate([this.statusData.userAvatar.username])
   }
 
+  displayStatus() {
+    console.log(this.statusData.statusId)
+    console.log('test')
+    this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId])
+  }
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
   }
