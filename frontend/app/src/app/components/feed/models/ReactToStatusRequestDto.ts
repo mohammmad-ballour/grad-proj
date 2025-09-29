@@ -10,4 +10,5 @@ export interface StatusActionDto {
     numReplies: number;
     numShares: number;
     liked: boolean;
+    saved: boolean;
 }

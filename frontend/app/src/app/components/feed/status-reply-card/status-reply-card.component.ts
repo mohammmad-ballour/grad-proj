@@ -57,7 +57,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
 
       <!-- Media Section -->
       @if ( reply. medias && reply.medias.length > 0) {
-        <div class="media-grid">
+        <div class="media-grid" style="cursor: pointer;" (click)="displayStatus()">
           @for (media of reply.medias; track media.mediaId) {
             @if (media.mimeType.startsWith('image/')) {
               <img
@@ -270,7 +270,8 @@ export class StatusRplyCardComponent {
       numLikes: this.reply.numLikes,
       numReplies: this.reply.numReplies,
       numShares: this.reply.numShares,
-      liked: this.reply.isLikedByCurrentUser
+      liked: this.reply.isLikedByCurrentUser,
+      saved: false
 
     };
   }
