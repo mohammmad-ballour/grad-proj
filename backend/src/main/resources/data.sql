@@ -121,11 +121,12 @@ VALUES (1, 2, '2025-08-06', 'DEFAULT'),
 
 -- mutes
 INSERT INTO public.user_mutes (user_id, muted_user_id, muted_at, muted_until)
-VALUES (2, 1, '2025-08-09 09:15:49.513348 +00:00', '2025-08-10 09:15:49.513348 +00:00');
+VALUES (2, 1, '2025-08-09 09:15:49.513348 +00:00', '2025-09-09 09:15:49.513348 +00:00'),
+       (2, 11, '2025-08-09 09:15:49.513348 +00:00', CURRENT_TIMESTAMP + INTERVAL '1 HOUR');
 
 -- blocks
 INSERT INTO public.user_blocks(user_id, blocked_user_id, blocked_at)
-VALUES (2, 11, '2025-08-09');
+VALUES (2, 12, '2025-08-09');
 
 -- media assets
 INSERT INTO public.media_asset (media_id, content_hash, filename_hash, mime_type, size_bytes)
@@ -204,7 +205,7 @@ VALUES (1000, null, 1, 'Hello, 2 and 3', 'TEXT', null, '2025-08-09 09:15:49.5133
        (2000, null, 2, 'Cool.', 'TEXT', null, '2025-08-29 19:07:00.513348 +00:00'),
        (2000, null, 2, 'Can you send it to me before 10 p.m.', 'TEXT', null, '2025-08-29 19:07:48.513348 +00:00'),
        (2000, null, 3, 'Sure', 'TEXT', null, '2025-08-29 19:10:55.513348 +00:00'),
-       (2000, 14, 2, '😊', 'IMAGE', 24, '2025-08-29 19:12:00.513348 +00:00'),               -- id = 15
+       (2000, 14, 2, '😊', 'IMAGE', 24, '2025-08-29 19:12:00.513348 +00:00'),              -- id = 15
 
        (2000, null, 2, 'Good Evening', 'TEXT', null, '2025-08-30 15:01:00.513000 +00:00'),
        (2000, null, 2, 'Is the report ready?', 'TEXT', null, '2025-08-30 15:02:05.227000 +00:00'),
@@ -374,7 +375,13 @@ VALUES (1, 'Hello, all', 1, 'PUBLIC', '2025-08-09 10:15:49.513348 +00:00', NULL,
        (900, 'Au Caire (4)', 5, 'FOLLOWERS', '2025-08-14 18:30:22.513348 +00:00', NULL, NULL, false, 'ONLY_ME',
         'ONLY_ME', to_tsvector('french', 'Au Caire (4)')),
        (905, '', 5, 'FOLLOWERS', '2025-08-14 18:32:22.513348 +00:00', 900, 'REPLY', false, 'ONLY_ME', 'ONLY_ME',
-        to_tsvector('french', ''));
+        to_tsvector('french', '')),
+
+       (1000, $$Java 25
+void main() {
+  IO.println(“hello world”)
+}$$, 11, 'FOLLOWERS', '2025-08-15 08:32:22.513348 +00:00', NULL, NULL, true, 'FOLLOWERS', 'FOLLOWERS',
+        to_tsvector('english', ''));
 
 -- status likes
 INSERT INTO public.status_likes(status_id, user_id, created_at)
@@ -439,8 +446,8 @@ VALUES (1, 1, '2025-08-10 10:23:15.513348 +00:00'),
 
 -- status media
 INSERT INTO public.status_media(status_id, media_id, position)
-VALUES (750, 1, 1),
-       (750, 2, 2),
+VALUES (750, 2, 1),
+       (750, 1, 2),
        (750, 3, 3),
        (750, 4, 4),
 
@@ -449,22 +456,22 @@ VALUES (750, 1, 1),
        (800, 7, 3),
        (800, 8, 4),
 
-       (850, 9, 1),
-       (850, 10, 2),
-       (850, 11, 3),
-       (850, 12, 4),
+       (850, 12, 1),
+       (850, 11, 2),
+       (850, 9, 3),
+       (850, 10, 4),
 
-       (900, 13, 1),
-       (900, 14, 2),
-       (900, 15, 3),
-       (900, 16, 4),
+       (900, 14, 1),
+       (900, 16, 2),
+       (900, 13, 3),
+       (900, 15, 4),
 
-       (905, 17, 1),
-       (905, 18, 2),
+       (905, 18, 1),
+       (905, 17, 2),
 
        (50, 19, 1),
        (50, 20, 2),
 
        (55, 21, 1),
 
-       (300, 22, 2);
+       (300, 22, 1);

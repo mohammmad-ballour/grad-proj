@@ -23,6 +23,7 @@ public class ProfileResponse {
     private Boolean isBlocked;
     private Boolean isMuted;
     private Boolean canBeMessaged;
+    private Integer unreadMessagesCount;
 
     public ProfileResponse(UserAvatar userAvatar, byte[] profileCoverPhoto, String profileBio, LocalDate joinedAt, UserAbout aboutUser) {
         this.userAvatar = userAvatar;

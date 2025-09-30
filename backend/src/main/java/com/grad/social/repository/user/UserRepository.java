@@ -4,13 +4,9 @@ import com.grad.social.common.database.utils.JooqUtils;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
 import com.grad.social.model.shared.UserAvatar;
-import com.grad.social.model.tables.UserBlocks;
-import com.grad.social.model.tables.UserFollowers;
-import com.grad.social.model.tables.UserMutes;
-import com.grad.social.model.tables.Users;
+import com.grad.social.model.tables.*;
 import com.grad.social.model.tables.records.UsersRecord;
 import com.grad.social.model.user.helper.UserBasicData;
-import com.grad.social.model.user.helper.UsernameTimezoneId;
 import com.grad.social.model.user.request.CreateUser;
 import com.grad.social.model.user.response.ProfileResponse;
 import com.grad.social.model.user.response.UserAbout;
@@ -37,6 +33,10 @@ public class UserRepository {
     private final UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
     private final UserMutes um = UserMutes.USER_MUTES.as("UM");
     private final UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
+
+    private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
+    private final Messages m = Messages.MESSAGES;
+    private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
 
     public ProfileResponse fetchUserProfileByName(Long currentUserId, String nameToSearch) {
         Long profileOwnerId = dsl.select(u.ID)
@@ -148,13 +148,6 @@ public class UserRepository {
     // Utils
     public void deleteAll() {
         JooqUtils.delete(dsl, u, DSL.trueCondition());
-    }
-
-    public UsernameTimezoneId getUsernameAndTimezone(Long userId) {
-        return dsl.select(u.USERNAME, u.TIMEZONE_ID)
-                .from(u)
-                .where(u.ID.eq(userId))
-                .fetchOneInto(UsernameTimezoneId.class);
     }
 
     public boolean isAccountOwner(Long currentUserId, String nameToSearch) {

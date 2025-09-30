@@ -2,6 +2,7 @@ package com.grad.social.repository.user;
 
 import com.grad.social.common.AppConstants;
 import com.grad.social.common.database.utils.JooqUtils;
+import com.grad.social.common.messaging.redis.RedisConstants;
 import com.grad.social.model.enums.ParentAssociation;
 import com.grad.social.model.enums.StatusAudience;
 import com.grad.social.model.enums.StatusPrivacy;
@@ -13,11 +14,13 @@ import lombok.RequiredArgsConstructor;
 import org.jooq.*;
 import org.jooq.Record;
 import org.jooq.impl.DSL;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static org.jooq.Records.mapping;
 import static org.jooq.impl.DSL.row;
@@ -26,6 +29,7 @@ import static org.jooq.impl.DSL.row;
 @RequiredArgsConstructor
 public class UserStatusInteractionRepository {
     private final DSLContext dsl;
+    private final RedisTemplate<String, String> redisTemplate;
 
     // Aliases
     Statuses s = Statuses.STATUSES.as("s");
@@ -54,6 +58,9 @@ public class UserStatusInteractionRepository {
     UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
     UserBlocks ub2 = UserBlocks.USER_BLOCKS.as("ub2");
 
+    private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
+    private final Messages m = Messages.MESSAGES;
+    private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
 
     // currentUserId is the one who is viewing the status
     public StatusWithRepliesResponse getStatusById(Long currentUserId, Long statusIdToFetch) {
@@ -233,7 +240,6 @@ public class UserStatusInteractionRepository {
                 .fetch(mapping(ReplySnippet::new));
     }
 
-
     public Integer likeStatus(Long currentUserId, Long statusId) {
         return dsl.insertInto(sl, sl.USER_ID, sl.STATUS_ID)
                 .values(currentUserId, statusId)
@@ -244,8 +250,189 @@ public class UserStatusInteractionRepository {
         return JooqUtils.delete(dsl, sl, sl.USER_ID.eq(currentUserId).and(sl.STATUS_ID.eq(statusId)));
     }
 
+    public List<StatusResponse> fetchFeed(Long currentUserId, int offset) {
+        // blocks: neither direction (current user blocked poster or poster blocked current user)
+        var notBlockedPredicate = DSL.notExists(
+                DSL.selectOne()
+                        .from(ub)
+                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(s.USER_ID))
+                                .or(ub.USER_ID.eq(s.USER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId))))
+        );
+
+        // mute: current user muted poster and mute still active (muted_until is null => indefinite OR muted_until > now())
+        var notMutedPredicate = DSL.notExists(
+                DSL.selectOne()
+                        .from(um)
+                        .where(um.USER_ID.eq(currentUserId)
+                                .and(um.MUTED_USER_ID.eq(s.USER_ID))
+                                .and(um.MUTED_UNTIL.isNull().or(um.MUTED_UNTIL.greaterThan(Instant.now()))))
+        );
+
+        // Privacy predicate: allow if: own post, PUBLIC, FOLLOWERS and (current user follows poster)
+        var privacyPredicate =
+                s.USER_ID.eq(currentUserId)
+                        // check that the current user follows the poster
+                        .or(s.PRIVACY.in(StatusPrivacy.PUBLIC, StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
+
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+
+        // Main query
+        Result<Record> result = this.fetchStatusResponse(currentUserId)
+                .where((s.PARENT_STATUS_ID.isNull().or(s.PARENT_ASSOCIATION.ne(ParentAssociation.REPLY))))
+                .and(privacyPredicate)
+                .and(notBlockedPredicate)
+                .and(notMutedPredicate)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID)
+                .orderBy(s.CREATED_AT.desc(), s.ID.desc())
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch();
+
+        return this.mapToStatusResponseList(result);
+    }
+
+    public List<StatusResponse> fetchPosts(Long currentUserId, Long profileOwnerId, int offset) {
+        // blocks: neither direction (current user blocked poster or poster blocked current user)
+        var notBlockedPredicate = Objects.equals(currentUserId, profileOwnerId) ? DSL.trueCondition() : DSL.notExists(
+                DSL.selectOne()
+                        .from(ub)
+                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(s.USER_ID))
+                                .or(ub.USER_ID.eq(s.USER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId))))
+        );
+
+        // Privacy predicate: allow if: own post, PUBLIC, FOLLOWERS and (current user follows poster)
+        var privacyPredicate = Objects.equals(currentUserId, profileOwnerId) ? DSL.trueCondition() : s.USER_ID.eq(currentUserId)
+                .or(s.PRIVACY.eq(StatusPrivacy.PUBLIC))
+                // check that the current user follows the poster
+                .or(s.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
+
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        // Main query
+        Result<Record> result = this.fetchStatusResponse(currentUserId)
+                .where((s.USER_ID.eq(profileOwnerId).and(s.PARENT_STATUS_ID.isNull().or(s.PARENT_ASSOCIATION.ne(ParentAssociation.REPLY)))))
+                .and(privacyPredicate)
+                .and(notBlockedPredicate)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID)
+                .orderBy(s.IS_PINNED.desc(), s.CREATED_AT.desc(), s.ID.desc())
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch();
+
+        return this.mapToStatusResponseList(result);
+    }
+
+    public List<StatusResponse> fetchReplies(Long currentUserId, Long profileOwnerId, int offset) {
+        // blocks: neither direction (current user blocked poster or poster blocked current user)
+        var notBlockedPredicate = Objects.equals(currentUserId, profileOwnerId) ? DSL.trueCondition() : DSL.notExists(
+                DSL.selectOne()
+                        .from(ub)
+                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(s.USER_ID))
+                                .or(ub.USER_ID.eq(s.USER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId))))
+        );
+
+        // Privacy predicate: allow if: own post, PUBLIC, FOLLOWERS and (current user follows poster)
+        var privacyPredicate = Objects.equals(currentUserId, profileOwnerId) ? DSL.trueCondition() : s.USER_ID.eq(currentUserId)
+                .or(s.PRIVACY.eq(StatusPrivacy.PUBLIC))
+                // check that the current user follows the poster
+                .or(s.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
+
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        Result<Record> result = this.fetchStatusResponse(currentUserId)
+                .where(s.USER_ID.eq(profileOwnerId))
+                .and(s.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY))
+                .and(privacyPredicate)
+                .and(notBlockedPredicate)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID)
+                .orderBy(s.IS_PINNED.desc(), s.CREATED_AT.desc(), s.ID.desc())
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch();
+
+        return this.mapToStatusResponseList(result);
+    }
+
+    public List<StatusMediaResponse> fetchMedia(Long currentUserId, Long profileOwnerId, int offset) {
+        // blocks: neither direction (current user blocked poster or poster blocked current user)
+        var notBlockedPredicate = Objects.equals(currentUserId, profileOwnerId) ? DSL.trueCondition() : DSL.notExists(
+                DSL.selectOne()
+                        .from(ub)
+                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(s.USER_ID))
+                                .or(ub.USER_ID.eq(s.USER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId))))
+        );
+
+        // Privacy predicate: allow if: own post, PUBLIC, FOLLOWERS and (current user follows poster)
+        var privacyPredicate = Objects.equals(currentUserId, profileOwnerId) ? DSL.trueCondition() : s.USER_ID.eq(currentUserId)
+                .or(s.PRIVACY.eq(StatusPrivacy.PUBLIC))
+                // check that the current user follows the poster
+                .or(s.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
+
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        return dsl.selectDistinct(s.ID, s.CREATED_AT, sm.MEDIA_ID, ma.MIME_TYPE, ma.SIZE_BYTES, sm.POSITION)
+                .from(s)
+                .join(sm).on(sm.STATUS_ID.eq(s.ID))
+                .join(ma).on(ma.MEDIA_ID.eq(sm.MEDIA_ID))
+                .join(uf).on(uf.FOLLOWED_USER_ID.eq(s.USER_ID))
+                .where(s.USER_ID.eq(profileOwnerId))
+                .and(privacyPredicate)
+                .and(notBlockedPredicate)
+                .orderBy(s.CREATED_AT.desc(), s.ID.desc())
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch(mapping(StatusMediaResponse::new));
+    }
+
+    public List<StatusResponse> fetchStatusesLiked(Long currentUserId, int offset) {
+        // blocks: neither direction (current user blocked poster or poster blocked current user)
+        var notBlockedPredicate = DSL.notExists(
+                DSL.selectOne()
+                        .from(ub)
+                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(s.USER_ID))
+                                .or(ub.USER_ID.eq(s.USER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId))))
+        );
+
+        // Privacy predicate: allow if: own post, PUBLIC, FOLLOWERS and (current user follows poster)
+        var privacyPredicate =
+                s.USER_ID.eq(currentUserId)
+                        .or(s.PRIVACY.eq(StatusPrivacy.PUBLIC))
+                        // check that the current user follows the poster
+                        .or(s.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
+
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+        Result<Record> result = this.fetchStatusResponse(currentUserId)
+                .where(sl.USER_ID.eq(currentUserId))
+                .and(privacyPredicate)
+                .and(notBlockedPredicate)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, sl.CREATED_AT)
+                .orderBy(sl.CREATED_AT.desc(), s.ID.desc())
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch();
+
+        return this.mapToStatusResponseList(result);
+    }
+
+    public int getUnreadMessages(Long currentUserId) {
+        return Objects.requireNonNull(dsl.selectCount()
+                .from(ms)
+                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                .where(ms.USER_ID.eq(currentUserId)
+                        .and(ms.READ_AT.isNull())
+                        .and(m.SENT_AT.greaterThan(getLastOnline(currentUserId)))
+                )
+                .fetchOneInto(int.class));
+    }
+
 
     // Helpers
+    private Instant getLastOnline(Long userId) {
+        Object lastOnlineObj = this.redisTemplate.opsForHash().get(RedisConstants.USERS_SESSION_META_PREFIX.concat(userId.toString()), RedisConstants.LAST_ONLINE_HASH_KEY);
+        if (lastOnlineObj == null) {
+            // User is currently online
+            return AppConstants.DEFAULT_MIN_TIMESTAMP;
+        }
+        return Instant.parse(lastOnlineObj.toString());
+    }
+
     public boolean canViewStatus(Long currentUserId, Long statusId) {
         return dsl.fetchExists(dsl.selectOne()
                 .from(s).join(uf).on(s.USER_ID.eq(uf.FOLLOWED_USER_ID))
@@ -261,6 +448,74 @@ public class UserStatusInteractionRepository {
                 .from(u)
                 .where(u.USERNAME.in(mentionedUsernames))
                 .fetchInto(String.class);
+    }
+
+    private List<StatusResponse> mapToStatusResponseList(Result<Record> records) {
+        return records.stream()
+                .map(this::mapToStatusResponse)
+                .toList();
+    }
+
+    private StatusResponse mapToStatusResponse(Record record) {
+        // Extract all fields manually
+        Long statusId = record.get("id", Long.class);
+        String content = record.get("content", String.class);
+        boolean isPinned = record.get("is_pinned", Boolean.class);
+        StatusPrivacy privacy = record.get("privacy", StatusPrivacy.class);
+        ParentAssociation parentAssociation = record.get("parent_association", ParentAssociation.class);
+        StatusAudience replyAudience = record.get("reply_audience", StatusAudience.class);
+        StatusAudience shareAudience = record.get("share_audience", StatusAudience.class);
+        Instant postedAt = record.get("posted_at", Instant.class);
+
+        Long statusOwnerId = record.get("owner_id", Long.class);
+        String username = record.get("username", String.class);
+        String displayName = record.get("display_name", String.class);
+        byte[] profilePicture = record.get("profile_picture", byte[].class);
+
+        boolean isStatusLikedByCurrentUser = record.get("is_status_liked_by_current_user", boolean.class);
+        Integer numLikes = record.get("num_likes", Integer.class);
+        Integer numReplies = record.get("num_replies", Integer.class);
+        Integer numShares = record.get("num_shares", Integer.class);
+
+        List<MediaResponse> medias = record.get("medias", List.class);
+
+        Long parentOwnerId = record.get("parent_owner_id", Long.class);
+        String parentUsername = record.get("parent_username", String.class);
+        String parentDisplayName = record.get("parent_display_name", String.class);
+        byte[] parentProfilePicture = record.get("parent_profile_picture", byte[].class);
+
+        Long parentStatusId = record.get("parent_id", Long.class);
+        String parentStatusContent = record.get("parent_content", String.class);
+        StatusPrivacy parentStatusPrivacy = record.get("parent_privacy", StatusPrivacy.class);
+        Instant parentPostedAt = record.get("parent_posted_at", Instant.class);
+        List<MediaResponse> parentMedias = record.get("parent_medias", List.class);
+
+        // Extract mentions
+        List<String> mentions = StatusUtils.extractMentions(content);
+        List<String> mentionedUsernames = !mentions.isEmpty() ? this.validUsernamesInUsernames(mentions) : new ArrayList<>();
+
+        Boolean isStatusOwnerFollowedByCurrentUser = record.get("is_status_owner_followed_by_current_user", Boolean.class);
+        boolean isAllowedToReply = replyAudience == StatusAudience.EVERYONE || (isStatusOwnerFollowedByCurrentUser && replyAudience == StatusAudience.FOLLOWERS);
+        boolean isAllowedToShare = shareAudience == StatusAudience.EVERYONE || (isStatusOwnerFollowedByCurrentUser && shareAudience == StatusAudience.FOLLOWERS);
+
+        ParentStatusSnippet nonExistentParent = new ParentStatusSnippet(null, null, null, null, null, null);
+        ParentStatusSnippet parentSnippet;
+        // Build StatusWithRepliesResponse
+        if (parentStatusId == null) {
+            parentSnippet = nonExistentParent;
+        } else {
+            Boolean isParentStatusOwnerFollowedByCurrentUser = record.get("is_parent_status_owner_followed_by_current_user", Boolean.class);
+            boolean isAllowedToViewParent = parentStatusPrivacy == StatusPrivacy.PUBLIC || (isParentStatusOwnerFollowedByCurrentUser && parentStatusPrivacy == StatusPrivacy.FOLLOWERS);
+            parentSnippet = isAllowedToViewParent ? new ParentStatusSnippet(new UserAvatar(parentOwnerId, parentUsername, parentDisplayName, parentProfilePicture),
+                    parentStatusId, parentStatusContent, parentStatusPrivacy, parentPostedAt, parentMedias) : null;
+        }
+
+        // Build StatusResponse
+        return new StatusResponse(new UserAvatar(statusOwnerId, username, displayName, profilePicture),
+                statusId, content, isPinned, privacy, replyAudience, isAllowedToReply, shareAudience, isAllowedToShare, mentionedUsernames, postedAt,
+                isStatusLikedByCurrentUser, numLikes, numReplies, numShares,
+                medias, parentAssociation, parentSnippet
+        );
     }
 
     private StatusWithRepliesResponse mapToStatusWithRepliesResponse(Record record) {
@@ -321,18 +576,58 @@ public class UserStatusInteractionRepository {
             parentSnippet = nonExistentParent;
         } else {
             Boolean isParentStatusOwnerFollowedByCurrentUser = record.get("is_parent_status_owner_followed_by_current_user", Boolean.class);
-            System.out.println("isParentStatusOwnerFollowedByCurrentUser = " + isParentStatusOwnerFollowedByCurrentUser);
             boolean isAllowedToViewParent = parentStatusPrivacy == StatusPrivacy.PUBLIC || (isParentStatusOwnerFollowedByCurrentUser && parentStatusPrivacy == StatusPrivacy.FOLLOWERS);
             parentSnippet = isAllowedToViewParent ? new ParentStatusSnippet(new UserAvatar(parentOwnerId, parentUsername, parentDisplayName, parentProfilePicture),
                     parentStatusId, parentStatusContent, parentStatusPrivacy, parentPostedAt, parentMedias) : null;
         }
 
         StatusResponse statusResponse = new StatusResponse(new UserAvatar(statusOwnerId, username, displayName, profilePicture),
-                statusId, content, privacy, replyAudience, isAllowedToReply, shareAudience, isAllowedToShare, mentionedUsernames, postedAt,
+                statusId, content, false, privacy, replyAudience, isAllowedToReply, shareAudience, isAllowedToShare, mentionedUsernames, postedAt,
                 isStatusLikedByCurrentUser, numLikes, numReplies, numShares,
                 medias, parentAssociation, parentSnippet);
 
         return new StatusWithRepliesResponse(statusResponse, replies);
+    }
+
+    private SelectOnConditionStep<Record> fetchStatusResponse(Long currentUserId) {
+        // MULTISET field for media: load actual bytes from storage in converter
+        Field<List<MediaResponse>> mediasField = loadStatusMedia(ma, sm, s);
+        Field<List<MediaResponse>> parentMediasField = loadStatusMedia(ma2, sm2, sp);
+
+        Field<Boolean> isStatusLikedField =
+                DSL.exists(
+                        DSL.selectOne()
+                                .from(sl)
+                                .where(sl.STATUS_ID.eq(s.ID).and(sl.USER_ID.eq(currentUserId)))
+                ).as("is_status_liked_by_current_user");
+
+        return dsl.select(s.ID.as("id"), s.CONTENT.as("content"), s.IS_PINNED, s.PRIVACY.as("privacy"), s.PARENT_ASSOCIATION, s.REPLY_AUDIENCE, s.SHARE_AUDIENCE, s.CREATED_AT.as("posted_at"),
+                        s.USER_ID.as("owner_id"), u.USERNAME.as("username"), u.DISPLAY_NAME.as("display_name"), u.PROFILE_PICTURE.as("profile_picture"),
+                        DSL.when(uf.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_status_owner_followed_by_current_user"),
+                        DSL.coalesce(DSL.countDistinct(sl.USER_ID), 0).as("num_likes"),
+                        DSL.coalesce(DSL.countDistinct(
+                                DSL.when(sc.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY), sc.ID)
+                        ), 0).as("num_replies"),
+                        DSL.coalesce(DSL.countDistinct(
+                                DSL.when(sc.PARENT_ASSOCIATION.eq(ParentAssociation.SHARE), sc.ID)
+                        ), 0).as("num_shares"),
+                        isStatusLikedField, mediasField.as("medias"),
+                        DSL.when(uf2.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_parent_status_owner_followed_by_current_user"),
+                        u2.ID.as("parent_owner_id"), u2.USERNAME.as("parent_username"), u2.DISPLAY_NAME.as("parent_display_name"), u2.PROFILE_PICTURE.as("parent_profile_picture"),
+                        sp.ID.as("parent_id"), sp.CONTENT.as("parent_content"), sp.PRIVACY.as("parent_privacy"), sp.CREATED_AT.as("parent_posted_at"),
+                        parentMediasField.as("parent_medias")
+                )
+                .from(s)
+                // join the poster user (to get display name/picture)
+                .leftJoin(u).on(u.ID.eq(s.USER_ID))
+                .leftJoin(sp).on(s.PARENT_STATUS_ID.eq(sp.ID))
+                .leftJoin(u2).on(u2.ID.eq(sp.USER_ID))
+                // join followers only to allow 'FOLLOWERS' privacy checks and to restrict feed to followed users
+                .leftJoin(uf).on(uf.FOLLOWED_USER_ID.eq(s.USER_ID).and(uf.FOLLOWER_ID.eq(currentUserId)))
+                .leftJoin(uf2).on(uf2.FOLLOWED_USER_ID.eq(sp.USER_ID).and(uf2.FOLLOWER_ID.eq(currentUserId)))
+                // standard left joins to aggregate likes/comments/media
+                .leftJoin(sl).on(sl.STATUS_ID.eq(s.ID))
+                .leftJoin(sc).on(sc.PARENT_STATUS_ID.eq(s.ID));
     }
 
     private Field<List<MediaResponse>> loadStatusMedia(MediaAsset maTable, StatusMedia smTable, Statuses sTable) {
@@ -354,8 +649,8 @@ public class UserStatusInteractionRepository {
         );
     }
 
-    private static Instant lastPageInstant(Instant lastSeenCreatedAt, Long lastSeenStatusId) {
-        if (lastSeenCreatedAt == null && lastSeenStatusId == null) { // this is the first page
+    private static Instant lastPageInstant(Instant lastSeenCreatedAt, Long lastSeenEntityId) {
+        if (lastSeenCreatedAt == null && lastSeenEntityId == null) { // this is the first page
             lastSeenCreatedAt = AppConstants.DEFAULT_MAX_TIMESTAMP;
         }
         return lastSeenCreatedAt;

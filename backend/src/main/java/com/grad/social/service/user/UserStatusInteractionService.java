@@ -5,15 +5,15 @@ import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.exception.status.StatusErrorCode;
 import com.grad.social.model.shared.TimestampSeekRequest;
 import com.grad.social.model.status.request.ReactToStatusRequest;
-import com.grad.social.model.status.response.ReplySnippet;
-import com.grad.social.model.status.response.StatusMediaResponse;
-import com.grad.social.model.status.response.StatusResponse;
-import com.grad.social.model.status.response.StatusWithRepliesResponse;
+import com.grad.social.model.status.response.*;
 import com.grad.social.repository.user.UserStatusInteractionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +31,40 @@ public class UserStatusInteractionService {
     public List<ReplySnippet> fetchMoreReplies(Long currentUserId, Long statusId, TimestampSeekRequest seekRequest) {
         return this.userStatusInteractionRepository.fetchMoreReplies(currentUserId, statusId,
                 seekRequest == null ? null : (seekRequest.lastHappenedAt()), seekRequest == null ? null : seekRequest.lastEntityId());
+    }
+
+    public FeedResponse fetchUserFeed(Long currentUserId, int offset) {
+        List<StatusResponse> statuses = this.userStatusInteractionRepository.fetchFeed(currentUserId, offset);
+        int unreadMessagesCount = this.userStatusInteractionRepository.getUnreadMessages(currentUserId);
+        return new FeedResponse(statuses, unreadMessagesCount, 0);
+    }
+
+    public List<StatusResponse> fetchUserPosts(Long currentUserId, Long profileOwnerId, int offset) {
+        return this.userStatusInteractionRepository.fetchPosts(currentUserId, profileOwnerId, offset);
+    }
+
+    public List<StatusResponse> fetchUserReplies(Long currentUserId, Long profileOwnerId, int offset) {
+        return this.userStatusInteractionRepository.fetchReplies(currentUserId, profileOwnerId, offset);
+    }
+
+    public List<StatusMediaResponse> fetchUserMedia(Long currentUserId, Long profileOwnerId, int offset) {
+        var medias = this.userStatusInteractionRepository.fetchMedia(currentUserId, profileOwnerId, offset);
+
+        // Step 1: remember the original order of statusIds
+        Map<Long, Integer> statusOrder = new LinkedHashMap<>();
+        for (StatusMediaResponse m : medias) {
+            statusOrder.putIfAbsent(m.statusId(), statusOrder.size());
+        }
+
+        // Step 2: sort by (statusId original order, position ascending)
+        return medias.stream()
+                .sorted(Comparator.comparing((StatusMediaResponse m) -> statusOrder.get(m.statusId()))
+                        .thenComparing(StatusMediaResponse::position))
+                .toList();
+    }
+
+    public List<StatusResponse> fetchStatusesLiked(Long currentUserId, int offset) {
+        return this.userStatusInteractionRepository.fetchStatusesLiked(currentUserId, offset);
     }
 
     public void likeStatus(Long currentUserId, ReactToStatusRequest reactToStatusRequest) {
