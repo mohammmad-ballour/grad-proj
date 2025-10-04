@@ -1,5 +1,7 @@
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
 ALTER SEQUENCE messages_message_id_seq RESTART WITH 1;
+ALTER SEQUENCE media_asset_media_id_seq RESTART WITH 100;
+
 
 DELETE
 FROM media_asset;

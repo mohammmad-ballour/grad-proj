@@ -1,0 +1,42 @@
+### login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "mshukur@gmail.com",
+  "password": "secret12_12"
+}
+
+
+### create status
+POST http://localhost:8080/api/status
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJGY3RZSnNjZUtfZ3ZNOTdhQXZUMnJCWUZ1WExGVkk5MVhrNVZuWXU2Tmd3In0.eyJleHAiOjE3NTk2MDMyNTksImlhdCI6MTc1OTU2NzI1OSwianRpIjoib25ydHJvOjZhYmZhNjFlLWUzNmMtODJhMS1iOTJiLTZjODY3YmUxMzVhMCIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6OTA5MC9yZWFsbXMvZ3JhZHVhdGlvbl9wcm9qZWN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjExNzIyMjk5LWU2ZTEtNDZlZi05MzMwLTk2MDgzNGIxOTIxNiIsInR5cCI6IkJlYXJlciIsImF6cCI6ImFuZ3VsYXItYXBwIiwic2lkIjoiMDg5ZGY5Y2UtYWZkYy00N2U1LWJmMjUtNTIzNWI2YTUyZTQ5IiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyJodHRwOi8vbG9jYWxob3N0OjQyMDAiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbImRlZmF1bHQtcm9sZXMtZ3JhZHVhdGlvbl9wcm9qZWN0Iiwib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiQ3VzdG9tX1Njb3BlIGVtYWlsIHByb2ZpbGUiLCJ1aWQiOiIyIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRpbWV6b25lX2lkIjoiQXNpYS9KZXJ1c2FsZW0iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJtc2h1a3VyIiwiZW1haWwiOiJtc2h1a3VyQGdtYWlsLmNvbSJ9.kbSt5XByRTi7gxoK1Cz-HGn_bQPH8qskM4IueXyh_ePrxwAbcpluHmXGJdLjjcw2W9afmzQo9c484WTfRPGw4bsxWWAlpRJI502c4kreaiKNkDmRRFZg9Dst-LGTGPi0NZ76UbfQWb5rJx60wriZFXr_CfPRTRu5z_7khn9c2D9F9MZy6vhO-9shQun6F1aKQ0H_OyEay9U3hW-TH51nEYHp3dHpZttbNZqJgi0jscRKpxHNMEsA0dSKIOi3-bxtqRkmIoh7hSqE0pzgJhKV4_n6itxy4ovTD0ThDHBfE8J1gU0KIAiv7N2iQfYi9rPry4KJc-b191D3bZ27GaKmPA
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="request"
+Content-Type: application/json
+
+{
+  "content": "Hello world!",
+  "privacy": "PUBLIC",
+  "replyAudience": "FOLLOWERS",
+  "shareAudience": "FOLLOWERS",
+  "parentStatus": null
+}
+--boundary123
+Content-Disposition: form-data; name="media"; filename="pic1.jpeg"
+Content-Type: image/jpeg
+
+< ./test-files/1.jpeg
+--boundary123
+Content-Disposition: form-data; name="media"; filename="nursing.webm"
+Content-Type: video/webm
+
+< ./test-files/nursing.webm
+--boundary123
+Content-Disposition: form-data; name="media"; filename="pic3.jpeg"
+Content-Type: image/jpeg
+
+< ./test-files/3.jpeg
+--boundary123--
