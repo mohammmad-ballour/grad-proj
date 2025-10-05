@@ -21,5 +21,15 @@ export class StatusServices extends BaseService {
     fetchUserFeed(page: number = 0): Observable<FeedResponse> {
         return this.httpClient.post<FeedResponse>(`${this.baseUrl}/api/users/feed?page=${page}`, {});
     }
+    createStatus(toCreate: any, mediaFiles?: File[]): Observable<string> {
+        const formData = new FormData();
+        formData.append('request', new Blob([JSON.stringify(toCreate)], { type: 'application/json' }));
+        if (mediaFiles && mediaFiles.length > 0) {
+            mediaFiles.forEach(file => formData.append('media', file));
+        }
+        return this.httpClient.post<string>(`${this.baseUrl}/api/status`, formData);
+    }
+
+
 }
 
