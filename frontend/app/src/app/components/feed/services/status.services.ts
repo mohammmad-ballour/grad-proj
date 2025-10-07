@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { catchError, Observable, of, tap } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { BaseService } from '../../../core/services/base.service';
-import { StatusWithRepliesResponse } from '../models/StatusWithRepliesResponseDto';
+import { CreateStatusRequest, StatusWithRepliesResponse } from '../models/StatusWithRepliesResponseDto';
 import { FeedResponse } from '../models/feed-responseDto';
 
 
@@ -21,13 +21,31 @@ export class StatusServices extends BaseService {
     fetchUserFeed(page: number = 0): Observable<FeedResponse> {
         return this.httpClient.post<FeedResponse>(`${this.baseUrl}/api/users/feed?page=${page}`, {});
     }
-    createStatus(toCreate: any, mediaFiles?: File[]): Observable<string> {
+
+    createStatus(request: CreateStatusRequest, mediaFiles: File[]): Observable<string> {
+        console.log(request);
         const formData = new FormData();
-        formData.append('request', new Blob([JSON.stringify(toCreate)], { type: 'application/json' }));
+
+        // ✅ append JSON request as a JSON blob
+        formData.append(
+            'request',
+            new Blob([JSON.stringify(request)], { type: 'application/json' })
+        );
+
+        // append media files
         if (mediaFiles && mediaFiles.length > 0) {
-            mediaFiles.forEach(file => formData.append('media', file));
+            mediaFiles.forEach(file => {
+                formData.append('media', file, file.name);
+            });
         }
-        return this.httpClient.post<string>(`${this.baseUrl}/api/status`, formData);
+
+        for (const [key, value] of formData.entries()) {
+            console.log(key, value);
+        }
+
+        return this.httpClient.post<string>(`${this.baseUrl}${this.ENDPOINTS.STATUS}`, formData, {
+            responseType: 'text' as 'json'
+        });
     }
 
 

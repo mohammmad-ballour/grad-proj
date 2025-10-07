@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { StatusResponse, StatusWithRepliesResponse } from './models/StatusWithRepliesResponseDto';
+import { CreateStatusRequest, StatusResponse, StatusWithRepliesResponse, StatusAudience, StatusPrivacy } from './models/StatusWithRepliesResponseDto';
 import { ActivatedRoute } from '@angular/router';
 import { StatusDetailComponent } from './status-detail/status-detail.component';
 import { Subject, takeUntil } from 'rxjs';
@@ -22,6 +22,13 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatBadgeModule } from '@angular/material/badge';
+import { AuthService } from '../../core/services/auth.service';
+import { ProfileServices } from '../profile/services/profile.services';
 
 @Component({
   selector: 'app-feed',
@@ -36,41 +43,144 @@ import { MatInputModule } from '@angular/material/input';
     FormsModule,
     MatButtonModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
+    MatSelectModule,
+    MatMenuModule,
+    MatDividerModule,
+    MatTooltipModule,
+    MatBadgeModule
   ],
   template: `
     <div class="feed w-100 rounded" #scrollContainer (scroll)="onScroll()" style="overflow-y: auto;">
       <ng-container *ngIf="feedMode; else singleStatus">
         <div class="compose-box">
           <div class="avatar">
-            <img src="placeholder-avatar.png" alt="User Avatar">
+            <img [src]="profilePicture" (error)="onImageError($event,'assets/ProfileAvatar.png')" alt="User Avatar">
           </div>
           <div class="compose-content">
-            <textarea [(ngModel)]="newStatusText" placeholder="What's happening?" rows="3"></textarea>
-             <div class="media-preview" *ngIf="selectedFiles.length > 0">
+            <div class="compose-header">
+              <span class="header-text"></span>
+               <button mat-icon-button class="more-options" [matMenuTriggerFor]="moreMenu">
+                <mat-icon>more_horiz</mat-icon>
+              </button>
+              <mat-menu #moreMenu="matMenu">
+                <button mat-menu-item [matMenuTriggerFor]="privacyMenu">Post visibility</button>
+                <mat-divider></mat-divider>
+                <button mat-menu-item [matMenuTriggerFor]="replyAudienceMenu">Who can reply?</button>
+                <mat-divider></mat-divider>
+                <button mat-menu-item [matMenuTriggerFor]="shareAudienceMenu">Who can share?</button>
+                <mat-divider></mat-divider>
+              </mat-menu>
+              
+              <mat-menu #privacyMenu="matMenu">
+                <button mat-menu-item (click)="setPrivacy(StatusPrivacy.PUBLIC)">
+                  <span class="menu-icon">
+                    <mat-icon>public</mat-icon>
+                  </span>
+                  <span>Public</span>
+                </button>
+                <button mat-menu-item (click)="setPrivacy(StatusPrivacy.FOLLOWERS)">
+                  <span class="menu-icon">
+                    <mat-icon>people</mat-icon>
+                  </span>
+                  <span>Followers only</span>
+                </button>
+                <button mat-menu-item (click)="setPrivacy(StatusPrivacy.PRIVATE)">
+                  <span class="menu-icon">
+                    <mat-icon>lock</mat-icon>
+                  </span>
+                  <span>Private</span>
+                </button>
+              </mat-menu>
+
+              <mat-menu #replyAudienceMenu="matMenu">
+                <button mat-menu-item (click)="setReplyAudience(StatusAudience.EVERYONE)">
+                  <span class="menu-icon">
+                    <mat-icon>public</mat-icon>
+                  </span>
+                  <span>Everyone can reply</span>
+                </button>
+                <button mat-menu-item (click)="setReplyAudience(StatusAudience.FOLLOWERS)">
+                  <span class="menu-icon">
+                    <mat-icon>people</mat-icon>
+                  </span>
+                  <span>People you follow</span>
+                </button>
+                <button mat-menu-item (click)="setReplyAudience(StatusAudience.ONLY_ME)">
+                  <span class="menu-icon">
+                    <mat-icon>lock</mat-icon>
+                  </span>
+                  <span>Only me</span>
+                </button>
+              </mat-menu>
+
+              <mat-menu #shareAudienceMenu="matMenu">
+                <button mat-menu-item (click)="setShareAudience(StatusAudience.EVERYONE)">
+                  <span class="menu-icon">
+                    <mat-icon>public</mat-icon>
+                  </span>
+                  <span>Everyone can share</span>
+                </button>
+                <button mat-menu-item (click)="setShareAudience(StatusAudience.FOLLOWERS)">
+                  <span class="menu-icon">
+                    <mat-icon>people</mat-icon>
+                  </span>
+                  <span>People you follow</span>
+                </button>
+                <button mat-menu-item (click)="setShareAudience(StatusAudience.ONLY_ME)">
+                  <span class="menu-icon">
+                    <mat-icon>lock</mat-icon>
+                  </span>
+                  <span>Only me</span>
+                </button>
+              </mat-menu>
+            </div>
+            <textarea 
+              [(ngModel)]="newStatusText" 
+              placeholder="What is happening?!" 
+              rows="3"
+              class="compose-textarea"
+              #textarea
+              (input)="onTextInput($event)"
+              maxlength="280">
+            </textarea>
+            <div class="counter" *ngIf="showCounter">{{ getRemainingChars() }}</div>
+            <div class="media-preview" *ngIf="selectedFiles.length > 0">
               <div class="preview-grid" [ngClass]="getGridClass()">
                 <div *ngFor="let file of selectedFiles; let i = index" class="preview-item">
                   <img *ngIf="isImage(file)" [src]="getFilePreview(file)" class="preview-media" alt="Preview">
                   <video *ngIf="isVideo(file)" [src]="getFilePreview(file)" class="preview-media" muted loop playsinline></video>
                   <mat-icon class="remove-icon" (click)="removeFile(i)">close</mat-icon>
-                  <div *ngIf="i === selectedFiles.length - 1 && selectedFiles.length < 4" class="add-more-overlay" (click)="fileInput.click()">
+                  <!-- <div *ngIf="i === selectedFiles.length - 1 && selectedFiles.length < 4" class="add-more-overlay" (click)="fileInput.click()">
                     <mat-icon>add_photo_alternate</mat-icon>
-                  </div>
+                  </div> -->
                 </div>
               </div>
             </div>
-            <div class="options">
-              <input #fileInput type="file" multiple accept="image/*,video/*" style="display: none;" (change)="onFileSelected($event)">
-              <mat-icon (click)="fileInput.click()">image</mat-icon>
-              <mat-icon>emoji_emotions</mat-icon>
+            <div class="compose-actions">
+              <div class="action-icons">
+                <input #fileInput type="file" multiple accept="image/*,video/*" style="display: none;" (change)="onFileSelected($event)">
+                <button mat-icon-button class="action-btn" aria-label="Photo" (click)="fileInput.click()" matTooltip="Photo">
+                  <mat-icon>photo</mat-icon>
+                </button>
+              </div>
+              <div class="post-section">
+                <button 
+                  mat-raised-button 
+                  class="post-btn"
+                  color="primary" 
+                  [disabled]="!canPost()"
+                  (click)="createNewStatus()">
+                  Post
+                </button>
+              </div>
             </div>
-            <button mat-raised-button color="primary" [disabled]="!newStatusText && selectedFiles.length === 0" (click)="createNewStatus()">Post</button>
           </div>
         </div>
 
         <div class="feed-inner">
           <div *ngIf="isLoading && feed.length === 0" class="loading-spinner">
-            <mat-spinner diameter="40"></mat-spinner>
+            <!-- <mat-spinner diameter="40"></mat-spinner> -->
           </div>
 
           <ng-container *ngIf="!(isLoading && feed.length === 0)">
@@ -109,6 +219,14 @@ import { MatInputModule } from '@angular/material/input';
       flex-direction: column;
       gap: 16px;
       height: 100%;
+      --bg-color: #000;
+      --text-primary: #fff;
+      --text-secondary: #71767b;
+      --border-color: #2f3336;
+      --primary-color: #1d9bf0;
+      --primary-hover: #1a8cd8;
+      --card-bg: #16181c;
+      --success-color: #00ba7c;
     }
 
     .feed-inner {
@@ -124,7 +242,8 @@ import { MatInputModule } from '@angular/material/input';
       justify-content: center;
       align-items: center;
       text-align: center;
-      background-color: white;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
       padding: 20px;
       margin: auto;
       max-width: 600px;
@@ -140,52 +259,93 @@ import { MatInputModule } from '@angular/material/input';
     .compose-box {
       display: flex;
       padding: 16px;
-      background-color: #fff;
-      border-bottom: 1px solid #eee;
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      border-radius: 0;
     }
 
     .avatar {
       margin-right: 12px;
+      flex-shrink: 0;
     }
 
     .avatar img {
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
+      border: 2px solid var(--border-color);
     }
 
     .compose-content {
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-width: 0;
     }
 
-    textarea {
+    .compose-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .header-text {
+      font-weight: bold;
+      font-size: 20px;
+      color: var(--text-primary);
+    }
+
+    .more-options {
+      color: var(--text-secondary);
+    }
+
+    .more-options:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .compose-textarea {
       border: none;
       resize: none;
-      font-size: 18px;
+      font-size: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       outline: none;
       width: 100%;
       margin-bottom: 8px;
+      background: transparent;
+      color: var(--text-primary);
+      line-height: 1.4;
     }
 
-    .reply-settings {
-      color: #1da1f2;
-      font-size: 14px;
+    .compose-textarea::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .counter {
+      align-self: flex-end;
+      color: var(--text-secondary);
+      font-size: 13px;
       margin-bottom: 8px;
+    }
+
+    .counter.warning {
+      color: #f4212e;
     }
 
     .media-preview {
       margin-bottom: 12px;
-      max-width: 600px; /* Constrain width for better layout */
+      max-width: 504px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--border-color);
     }
 
     .preview-grid {
       display: grid;
-      gap: 8px;
-      border-radius: 12px;
+      gap: 0;
+      border-radius: 16px;
       overflow: hidden;
-      background: #f0f0f0;
     }
 
     .preview-grid.grid-1 {
@@ -203,27 +363,22 @@ import { MatInputModule } from '@angular/material/input';
     }
 
     .preview-grid.grid-3 .preview-item:nth-child(3) {
-      grid-column: 1 / -1; /* Span full width for 3rd item */
+      grid-column: 1 / -1;
+      grid-row: 2;
     }
 
     .preview-item {
       position: relative;
-      aspect-ratio: 16 / 9; /* Consistent aspect ratio */
-      border-radius: 8px;
+      aspect-ratio: 16 / 9;
+      border-radius: 0;
       overflow: hidden;
-      background: #e0e0e0;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      transition: transform 0.2s ease;
-    }
-
-    .preview-item:hover {
-      transform: scale(1.02);
+      background: #000;
     }
 
     .preview-media {
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Maintain aspect ratio, cover container */
+      object-fit: cover;
       display: block;
     }
 
@@ -231,7 +386,7 @@ import { MatInputModule } from '@angular/material/input';
       position: absolute;
       top: 8px;
       right: 8px;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(29, 155, 240, 0.9);
       color: white;
       border-radius: 50%;
       width: 24px;
@@ -240,12 +395,8 @@ import { MatInputModule } from '@angular/material/input';
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .preview-item:hover .remove-icon {
-      opacity: 1;
+      font-size: 16px;
+      z-index: 1;
     }
 
     .add-more-overlay {
@@ -260,34 +411,114 @@ import { MatInputModule } from '@angular/material/input';
       justify-content: center;
       color: white;
       cursor: pointer;
-      border-radius: 8px;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    .preview-item:hover .add-more-overlay {
-      opacity: 1;
+      font-size: 32px;
+      z-index: 1;
     }
 
     .add-more-overlay mat-icon {
-      font-size: 32px;
       width: 32px;
       height: 32px;
     }
 
-    .options {
+    .compose-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .action-icons {
       display: flex;
       gap: 16px;
-      margin-bottom: 12px;
     }
 
-    .options mat-icon {
-      cursor: pointer;
-      color: #1da1f2;
+    .action-btn {
+      color: var(--primary-color);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      transition: background-color 0.2s;
     }
 
-    button {
-      align-self: flex-end;
+    .action-btn:hover {
+      background-color: rgba(29, 155, 240, 0.1);
+    }
+
+    .action-btn:disabled {
+      color: var(--text-secondary);
+    }
+
+    .post-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .post-btn {
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-weight: bold;
+      text-transform: none;
+      min-width: 60px;
+      height: 36px;
+    }
+
+    .post-btn:not(:disabled) {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .post-btn:not(:disabled):hover {
+      background-color: var(--primary-hover);
+    }
+
+    .post-btn:disabled {
+      background-color: var(--text-secondary);
+      color: white;
+    }
+
+    mat-menu {
+      background-color: var(--card-bg);
+      color: var(--text-primary);
+    }
+
+    mat-menu-item {
+      color: var(--text-primary);
+    }
+
+    mat-menu-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .menu-icon {
+      width: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+      color: var(--text-secondary);
+    }
+
+    @media (prefers-color-scheme: light) {
+      .feed {
+        --bg-color: #fff;
+        --text-primary: #0f1419;
+        --text-secondary: #536471;
+        --border-color: #e7e9ea;
+        --card-bg: #fff;
+        --primary-color: #1d9bf0;
+        --primary-hover: #1a8cd8;
+      }
+
+      .compose-textarea::placeholder {
+        color: var(--text-secondary);
+      }
+
+      .compose-box {
+        background-color: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+      }
     }
   `]
 })
@@ -308,20 +539,38 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedFiles: File[] = [];
   filePreviews: string[] = [];
 
+  privacy: StatusPrivacy = StatusPrivacy.PUBLIC;
+  replyAudience: StatusAudience = StatusAudience.EVERYONE;
+  shareAudience: StatusAudience = StatusAudience.EVERYONE;
+
+  showCounter = false;
+
   private isAutoScrolling = false;
   private readonly debug = false;
+  StatusAudience = StatusAudience;
+  StatusPrivacy = StatusPrivacy;
+  profilePicture!: string | undefined;
 
   constructor(
     private activatedRoute: ActivatedRoute,
     private statusServices: StatusServices,
     private notificationService: NotificationService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private auth: AuthService,
+    private profileServices: ProfileServices,
   ) { }
 
   ngOnInit(): void {
     this.activatedRoute.paramMap
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.initFeed());
+
+    this.profileServices.GetDataOfProfile(this.auth.UserName).subscribe({
+      next: (res) => {
+        this.profilePicture = `data:image/png;base64,${res?.userAvatar.profilePicture}`;
+
+      }
+    })
   }
 
   ngAfterViewInit(): void {
@@ -335,7 +584,9 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   statusData!: StatusWithRepliesResponse;
-
+  onImageError(event: Event, fallback: string): void {
+    (event.target as HTMLImageElement).src = fallback;
+  }
   private initFeed(): void {
     const statusId = this.activatedRoute.snapshot.paramMap.get('statusId');
     if (statusId) {
@@ -425,18 +676,19 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
       const filesToAdd = newFiles.slice(0, remainingSlots);
       this.selectedFiles = [...this.selectedFiles, ...filesToAdd];
       this.updateFilePreviews();
+      this.cdr.detectChanges();
     }
   }
 
   removeFile(index: number): void {
     this.selectedFiles.splice(index, 1);
     this.updateFilePreviews();
+    this.cdr.detectChanges();
   }
 
   private updateFilePreviews(): void {
     this.filePreviews.forEach(url => URL.revokeObjectURL(url));
     this.filePreviews = this.selectedFiles.map(file => URL.createObjectURL(file));
-    this.cdr.detectChanges();
   }
 
   getFilePreview(file: File): string {
@@ -456,16 +708,50 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
     return `grid-${this.selectedFiles.length}`;
   }
 
-  createNewStatus(): void {
-    if (!this.newStatusText && this.selectedFiles.length === 0) return;
+  onTextInput(event: Event): void {
+    const target = event.target as HTMLTextAreaElement;
+    this.showCounter = target.value.length > 0;
+    this.cdr.detectChanges();
+  }
 
-    const toCreate = { text: this.newStatusText };
+  getRemainingChars(): number {
+    const remaining = 280 - this.newStatusText.length;
+    return remaining;
+  }
+
+  canPost(): boolean {
+    return this.newStatusText.trim().length > 0 || this.selectedFiles.length > 0;
+  }
+
+
+  setPrivacy(privacy: StatusPrivacy): void {
+    this.privacy = privacy;
+  }
+
+  setReplyAudience(audience: StatusAudience): void {
+    this.replyAudience = audience;
+  }
+
+  setShareAudience(audience: StatusAudience): void {
+    this.shareAudience = audience;
+  }
+
+  createNewStatus(): void {
+    if (!this.canPost()) return;
+
+    const toCreate: CreateStatusRequest = {
+      content: this.newStatusText,
+      privacy: this.privacy,
+      replyAudience: this.replyAudience,
+      shareAudience: this.shareAudience
+    };
 
     this.statusServices.createStatus(toCreate, this.selectedFiles).subscribe({
       next: (statusId) => {
         this.newStatusText = '';
         this.selectedFiles = [];
         this.updateFilePreviews();
+        this.showCounter = false;
         this.page = 0;
         this.feed = [];
         this.loadFeed();

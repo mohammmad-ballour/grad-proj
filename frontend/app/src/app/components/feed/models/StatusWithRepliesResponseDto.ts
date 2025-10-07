@@ -67,3 +67,19 @@ export interface ParentStatusSnippet {
     postedAt: string;         // Instant → ISO date string
     medias: MediaResponse[];
 }
+
+
+
+export interface ParentStatus {
+    statusId: string;
+    statusOwnerId: number;
+    parentAssociation: string; // Match your enum string
+}
+
+export interface CreateStatusRequest {
+    content: string;
+    privacy: StatusPrivacy;        // Enum: StatusPrivacy
+    replyAudience: StatusAudience;  // Enum: StatusAudience
+    shareAudience: StatusAudience;  // Enum: StatusAudience
+    parentStatus?: ParentAssociation;
+}
