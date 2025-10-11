@@ -104,11 +104,18 @@ public class StatusRepository {
     }
 
     public void updateTsVector(Long statusId, String lang, String content) {
-        dsl.update(s)
-                .set(s.CONTENT_TSVECTOR,
-                        DSL.field("to_tsvector({0}::regconfig, {1})", String.class, DSL.inline(lang), DSL.val(content)))
-                .where(s.ID.eq(statusId))
-                .execute();
+        try {
+            dsl.update(s)
+                    .set(s.CONTENT_TSVECTOR,
+                            DSL.field("to_tsvector({0}::regconfig, {1})", String.class, DSL.inline(lang), DSL.val(content)))
+                    .where(s.ID.eq(statusId))
+                    .execute();
+        } catch (org.jooq.exception.DataAccessException e) {
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("text search configuration") && msg.contains("does not exist")) {
+                return;
+            }
+        }
 
     }
 
