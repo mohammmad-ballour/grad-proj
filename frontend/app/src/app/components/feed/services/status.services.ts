@@ -44,7 +44,7 @@ export class StatusServices extends BaseService {
         }
 
         return this.httpClient.post<string>(`${this.baseUrl}${this.ENDPOINTS.STATUS}`, formData, {
-            responseType: 'text' as 'json'
+
         });
     }
 
