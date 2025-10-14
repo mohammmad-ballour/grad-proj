@@ -122,6 +122,7 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
       <app-status-action-card
         #contentElement
         [statusAction]="statusAction"
+        [parentStatus]= "statusData"
         (statusActionChange)="UpdateStatusAction($event)">
       </app-status-action-card>
 

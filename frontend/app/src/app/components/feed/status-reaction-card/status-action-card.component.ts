@@ -1,17 +1,23 @@
-import { Component, Input, Output, EventEmitter, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, SimpleChanges, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { StatusReactionService } from '../services/status-reaction.service';
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { StatusServices } from '../services/status.services';
+import { StatusResponse } from '../models/StatusWithRepliesResponseDto';
+import { ReplyDialogComponent } from './reply-dialog-component/reply-dialog-component.component';
+import { AuthService } from '../../../core/services/auth.service';
+import { ProfileServices } from '../../profile/services/profile.services';
 
 @Component({
   selector: 'app-status-action-card',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatMenuModule, MatDialogModule],
   template: `
       <!-- Actions -->
       <mat-card-actions class="actions">
@@ -19,7 +25,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
           <i class="bi" [ngClass]="statusAction.liked ? 'bi-heart-fill liked' : 'bi-heart'"></i>
           {{ statusAction.numLikes }}
         </button>
-        <button mat-button class="action-btn">
+        <button mat-button class="action-btn" (click)="openReplyDialog()">
           <i class="bi bi-chat"></i> {{ statusAction.numReplies }}
         </button>
         <button mat-button class="action-btn">
@@ -69,16 +75,34 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 })
 export class StatusActionCardComponent {
   @Input() statusAction!: StatusActionDto;
+  @Input() parentStatus!: StatusResponse;
   @Output() statusActionChange = new EventEmitter<StatusActionDto>();
 
-  constructor(public reactionService: StatusReactionService,
+  constructor(
+    public reactionService: StatusReactionService,
     private snackBar: MatSnackBar,
-
+    private profileService: ProfileServices,
+    private dialog: MatDialog
   ) { }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['statusAction']) {
     }
+  }
+
+  openReplyDialog(): void {
+    const dialogRef = this.dialog.open(ReplyDialogComponent, {
+      width: '500px', // Approximate width for mobile-like dialog
+      data: { parentStatus: this.parentStatus, statusAction: this.statusAction }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Optionally refresh replies count or emit update
+        const updated = { ...this.statusAction, numReplies: this.statusAction.numReplies + 1 };
+        this.statusActionChange.emit(updated);
+      }
+    });
   }
 
   toggleLike() {
@@ -117,8 +141,9 @@ export class StatusActionCardComponent {
   }
 
   toggleSave() {
-    this.statusAction.saved = this.statusAction.saved;
+    this.statusAction.saved = !this.statusAction.saved;
     this.snackBar.open(this.statusAction.saved ? 'Post saved' : 'Post unsaved', 'Close', { duration: 2000 });
+    // Uncomment and implement the service calls as needed
     // const request = {
     //   statusId: this.statusAction.statusId,
     //   statusOwnerId: this.statusAction.statusOwnerId
