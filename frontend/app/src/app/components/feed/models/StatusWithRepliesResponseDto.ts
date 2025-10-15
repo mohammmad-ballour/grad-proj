@@ -9,9 +9,9 @@ export interface ReplySnippet {
     content: string;
     postedAt: string;          // Instant → ISO date string
     user: UserAvatar;
-    numLikes: number;   // Integer → number (nullable in JSON)
-    numReplies: number; // Integer → number (nullable in JSON)
-    numShares: number; // Integer → number (nullable in JSON)
+    numLikes: number;
+    numReplies: number;
+    numShares: number;
     medias: MediaResponse[];
     isLikedByCurrentUser: boolean;
 }
@@ -35,6 +35,7 @@ export interface StatusResponse {
     isStatusLikedByCurrentUser: boolean;
     parentAssociation: ParentAssociation;
 }
+
 export enum ParentAssociation {
     REPLY = 'REPLY',
     SHARE = 'SHARE'
@@ -83,3 +84,6 @@ export interface CreateStatusRequest {
     shareAudience: StatusAudience;  // Enum: StatusAudience
     parentStatus?: ParentStatus;
 }
+
+
+

@@ -9,7 +9,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { StatusReactionService } from '../services/status-reaction.service';
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
 import { StatusServices } from '../services/status.services';
-import { StatusResponse } from '../models/StatusWithRepliesResponseDto';
+import { ReplySnippet, StatusResponse } from '../models/StatusWithRepliesResponseDto';
 import { ReplyDialogComponent } from './reply-dialog-component/reply-dialog-component.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProfileServices } from '../../profile/services/profile.services';
@@ -25,9 +25,11 @@ import { ProfileServices } from '../../profile/services/profile.services';
           <i class="bi" [ngClass]="statusAction.liked ? 'bi-heart-fill liked' : 'bi-heart'"></i>
           {{ statusAction.numLikes }}
         </button>
+        @if(statusAction.isCurrentUserAllowedToReply){
         <button mat-button class="action-btn" (click)="openReplyDialog()">
           <i class="bi bi-chat"></i> {{ statusAction.numReplies }}
         </button>
+        }
         <button mat-button class="action-btn">
           <i class="bi bi-repeat"></i> {{ statusAction.numShares }}
         </button>
@@ -76,12 +78,12 @@ import { ProfileServices } from '../../profile/services/profile.services';
 export class StatusActionCardComponent {
   @Input() statusAction!: StatusActionDto;
   @Input() parentStatus!: StatusResponse;
+  @Input() reply!: ReplySnippet;
   @Output() statusActionChange = new EventEmitter<StatusActionDto>();
 
   constructor(
     public reactionService: StatusReactionService,
     private snackBar: MatSnackBar,
-    private profileService: ProfileServices,
     private dialog: MatDialog
   ) { }
 
@@ -93,7 +95,7 @@ export class StatusActionCardComponent {
   openReplyDialog(): void {
     const dialogRef = this.dialog.open(ReplyDialogComponent, {
       width: '500px', // Approximate width for mobile-like dialog
-      data: { parentStatus: this.parentStatus, statusAction: this.statusAction }
+      data: { parentStatus: this.parentStatus ?? this.reply, statusAction: this.statusAction }
     });
 
     dialogRef.afterClosed().subscribe(result => {

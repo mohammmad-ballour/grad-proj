@@ -20,7 +20,11 @@ import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
           <div class="replies-section">
             <h3>Replies</h3>
             @for (reply of data.replies; track reply.replyId) {
-              <app-status-reply-card [reply]="reply"></app-status-reply-card>
+              <app-status-reply-card [reply]="reply"
+                [parentStatus]="data.statusResponse"
+              
+         
+                ></app-status-reply-card>
             }
           </div>
         } @else {

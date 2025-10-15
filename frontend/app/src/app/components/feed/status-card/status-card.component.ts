@@ -381,7 +381,16 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
       numReplies: this.statusData.numReplies,
       numShares: this.statusData.numShares,
       liked: this.statusData.isStatusLikedByCurrentUser,
-      saved: false
+      saved: false,
+      isCurrentUserAllowedToReply: this.statusData.isCurrentUserAllowedToReply,
+      isCurrentUserAllowedToShare: this.statusData.isCurrentUserAllowedToShare,
+      privacy: this.statusData.privacy,
+      replyAudience: this.statusData.replyAudience,
+      shareAudience: this.statusData.shareAudience,
+      content: this.statusData.content,
+      postedAt: this.statusData.postedAt,
+      profilePicture: this.statusData.userAvatar.profilePicture,
+      username: this.statusData.userAvatar.username
     };
   }
 

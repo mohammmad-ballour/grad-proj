@@ -591,6 +591,7 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
     if (statusId) {
       this.statusServices.getStatusById(statusId).subscribe({
         next: (res) => {
+          console.log(res)
           this.statusId = statusId;
           this.statusData = res;
         },

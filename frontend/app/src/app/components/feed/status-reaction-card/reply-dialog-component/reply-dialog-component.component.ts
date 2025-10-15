@@ -5,7 +5,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatIconModule } from "@angular/material/icon";
 import { StatusActionDto } from "../../models/ReactToStatusRequestDto";
-import { StatusResponse, CreateStatusRequest, StatusPrivacy, StatusAudience, ParentAssociation } from "../../models/StatusWithRepliesResponseDto";
+import { StatusResponse, CreateStatusRequest, StatusPrivacy, StatusAudience, ParentAssociation, ReplySnippet } from "../../models/StatusWithRepliesResponseDto";
 import { StatusServices } from "../../services/status.services";
 import { ProfileServices } from "../../../profile/services/profile.services";
 import { AuthService } from "../../../../core/services/auth.service";
@@ -30,14 +30,14 @@ import { AuthService } from "../../../../core/services/auth.service";
       <div class="original-post">
         <div class="user-info">
           <div class="avatar">
-            <img [src]="data.parentStatus.userAvatar.profilePicture" (error)="onImageError($event,'assets/ProfileAvatar.png')" alt="User Avatar">
+            <img [src]="processProfilePicture(data.statusAction.profilePicture)" (error)="onImageError($event,'assets/ProfileAvatar.png')" alt="User Avatar">
           </div>
-          <span class="username">{{ data.parentStatus.userAvatar.username }}</span>
-          <span class="handle">{{ data.parentStatus.userAvatar.username }}</span> <!-- Assuming username is used for both; adjust if separate handle field exists -->
+          <span class="username">{{ data.statusAction.username }}</span>
+          <span class="handle">{{ data.statusAction.username }}</span> <!-- Assuming username is used for both; adjust if separate handle field exists -->
           <span class="dot">·</span>
-          <span class="timestamp">{{ getRelativeTime(data.parentStatus.postedAt) }}</span>
+          <span class="timestamp">{{ getRelativeTime(data.statusAction.postedAt) }}</span>
         </div>
-        <p class="content">{{ data.parentStatus.content }}</p>
+        <p class="content">{{ data.statusAction.content }}</p>
        </div>
 
        <div class="connector-line"></div>
@@ -164,7 +164,7 @@ export class ReplyDialogComponent {
 
   constructor(
     public dialogRef: MatDialogRef<ReplyDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { parentStatus: StatusResponse, statusAction: StatusActionDto },
+    @Inject(MAT_DIALOG_DATA) public data: { statusAction: StatusActionDto },
     private statusServices: StatusServices,
     private profileServices: ProfileServices,
     private auth: AuthService,
@@ -176,13 +176,23 @@ export class ReplyDialogComponent {
 
     this.profileServices.GetDataOfProfile(this.auth.UserName).subscribe({
       next: (res) => {
-        this.profilePicture = `data:image/png;base64,${res?.userAvatar.profilePicture}`;
+        if (res)
+          this.profilePicture = this.processProfilePicture(res.userAvatar.profilePicture)
 
       }
     })
+
+    console.log(this.data.statusAction)
+  }
+
+  processProfilePicture(Image: string) {
+    return `data:image/png;base64,${Image}`;
+
+
   }
 
   closeDialog(): void {
+
     this.dialogRef.close();
   }
 
@@ -238,13 +248,12 @@ export class ReplyDialogComponent {
 
     const toCreate: CreateStatusRequest = {
       content: this.content,
-      privacy: this.data.parentStatus.privacy, // Default  
-      replyAudience: this.data.parentStatus.replyAudience, // Default;  
-      shareAudience: this.data.parentStatus.shareAudience, // Default;  
-      parentStatus: { statusId: this.data.parentStatus.statusId, statusOwnerId: this.data.parentStatus.userAvatar.userId, parentAssociation: "REPLY" }
+      privacy: this.data.statusAction.privacy, // Default  
+      replyAudience: this.data.statusAction.replyAudience, // Default;  
+      shareAudience: this.data.statusAction.shareAudience, // Default;  
+      parentStatus: { statusId: this.data.statusAction.statusId, statusOwnerId: this.data.statusAction.statusOwnerId, parentAssociation: "REPLY" }
 
     };
-    console.log(toCreate)
 
     this.statusServices.createStatus(toCreate, this.selectedFiles).subscribe({
       next: (statusId) => {
