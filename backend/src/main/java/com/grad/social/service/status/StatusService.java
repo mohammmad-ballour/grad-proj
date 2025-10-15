@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ public class StatusService {
     private final MediaService mediaService;
 
     // currentUserId == statusOwnerId
+    @Transactional
     public Long createStatus(Long currentUserId, CreateStatusRequest toCreate, List<MultipartFile> mediaFiles) throws Exception {
         var parentStatus = toCreate.parentStatus();
         Long parentStatusId = null;
