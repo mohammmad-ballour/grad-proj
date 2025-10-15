@@ -23,7 +23,7 @@ import { AuthService } from "../../../../core/services/auth.service";
           <i class="bi bi-x"></i>
         </button>
         <h2>Reply</h2>
-        <button mat-raised-button color="primary" (click)="postReply()" [disabled]="!content.trim()">Reply</button>
+        <button mat-raised-button color="primary" (click)="statusReply()" [disabled]="!content.trim()">Reply</button>
       </div>
 
       <!-- Original Post (mimicking the photo) -->
@@ -233,7 +233,7 @@ export class ReplyDialogComponent {
     return posted.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  postReply(): void {
+  statusReply(): void {
     if (!this.content.trim()) return;
 
     const toCreate: CreateStatusRequest = {
