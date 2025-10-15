@@ -233,8 +233,7 @@ import { ProfileServices } from '../profile/services/profile.services';
       display: flex;
       flex-direction: column;
       gap: 16px;
-      padding: 10px;
-    }
+     }
 
     .unavailable-content {
       display: flex;
@@ -616,6 +615,7 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
           if (this.debug) console.log('[feed] fetched', { page: this.page, count: res.statuses.length });
 
           if (this.page === 0) {
+            console.log(res)
             this.feed = res.statuses;
             this.cdr.detectChanges();
             await this.waitForStableScrollHeight();

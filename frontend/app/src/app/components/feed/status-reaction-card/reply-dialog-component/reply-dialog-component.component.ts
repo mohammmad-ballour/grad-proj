@@ -238,12 +238,13 @@ export class ReplyDialogComponent {
 
     const toCreate: CreateStatusRequest = {
       content: this.content,
-      privacy: this.data.parentStatus.privacy, // Default or from user settings; adjust as needed
-      replyAudience: this.data.parentStatus.replyAudience, // Default; adjust as needed
-      shareAudience: this.data.parentStatus.shareAudience, // Default; adjust as needed
-      parentStatus: this.data.parentStatus.parentAssociation
+      privacy: this.data.parentStatus.privacy, // Default  
+      replyAudience: this.data.parentStatus.replyAudience, // Default;  
+      shareAudience: this.data.parentStatus.shareAudience, // Default;  
+      parentStatus: { statusId: this.data.parentStatus.statusId, statusOwnerId: this.data.parentStatus.userAvatar.userId, parentAssociation: "REPLY" }
 
     };
+    console.log(toCreate)
 
     this.statusServices.createStatus(toCreate, this.selectedFiles).subscribe({
       next: (statusId) => {

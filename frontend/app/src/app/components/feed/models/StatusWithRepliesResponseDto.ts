@@ -71,7 +71,7 @@ export interface ParentStatusSnippet {
 
 
 export interface ParentStatus {
-    statusId: string;
+    statusId: number;
     statusOwnerId: number;
     parentAssociation: string; // Match your enum string
 }
@@ -81,5 +81,5 @@ export interface CreateStatusRequest {
     privacy: StatusPrivacy;        // Enum: StatusPrivacy
     replyAudience: StatusAudience;  // Enum: StatusAudience
     shareAudience: StatusAudience;  // Enum: StatusAudience
-    parentStatus?: ParentAssociation;
+    parentStatus?: ParentStatus;
 }
