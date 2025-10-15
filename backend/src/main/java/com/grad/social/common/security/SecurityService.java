@@ -135,6 +135,9 @@ public class SecurityService {
         var parentStatusOwner = parentStatusPrivacyInfo.statusOwnerId();
         var parentStatusPrivacy = parentStatusPrivacyInfo.privacy();
 
+        // reject if the parent is private and not owned by the current user
+        if (parentStatusPrivacy == StatusPrivacy.PRIVATE && !parentStatusOwner.equals(currentUserId)) return false;
+
         // reject if child privacy and audience are different from parent (reply) and if child-parent privacy is not compatible (share)
         if (parentAssociation == ParentAssociation.REPLY) {
             boolean replyAllowed = toCreate.privacy() == parentStatusPrivacy
@@ -148,9 +151,6 @@ public class SecurityService {
                 throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
             }
         }
-
-        // reject if the parent is private and not owned by the current user
-        if (parentStatusPrivacy == StatusPrivacy.PRIVATE && !parentStatusOwner.equals(currentUserId)) return false;
 
         UserConnectionInfo connectionInfo = this.userUserInteractionRepository.getConnectionWithOthersInfo(Set.of(parentStatusOwner), currentUserId).get(parentStatusOwner);
         boolean followedByCurrentUser = connectionInfo.isFollowedByCurrentUser();

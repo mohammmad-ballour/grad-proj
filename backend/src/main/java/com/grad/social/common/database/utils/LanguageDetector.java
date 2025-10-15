@@ -18,6 +18,7 @@ public class LanguageDetector {
                             You are a language detector. 
                             You will be given a text and you must respond with the PostgreSQL full-text search language name 
                             that can be used in to_tsvector/to_tsquery, in lowercase. 
+                            For example: 'english' not 'en', 'german' not 'de', 'spanish' not 'es'.
                         """)
                 .user(text)
                 .options(OllamaOptions.builder().withFormat("json").build())
