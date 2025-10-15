@@ -136,12 +136,17 @@ public class SecurityService {
         var parentStatusPrivacy = parentStatusPrivacyInfo.privacy();
 
         // reject if child privacy and audience are different from parent (reply) and if child-parent privacy is not compatible (share)
-        boolean replyDenied = parentAssociation == ParentAssociation.REPLY &&
-                (toCreate.privacy() != parentStatusPrivacy || toCreate.replyAudience() != parentStatusPrivacyInfo.replyAudience() || toCreate.shareAudience() != parentStatusPrivacyInfo.shareAudience());
-        boolean shareAllowed = parentAssociation == ParentAssociation.SHARE &&
-                this.isShareAllowed(parentStatusPrivacy, toCreate.privacy());
-        if (replyDenied || !shareAllowed) {
-            throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
+        if (parentAssociation == ParentAssociation.REPLY) {
+            boolean replyAllowed = toCreate.privacy() == parentStatusPrivacy
+                    || toCreate.replyAudience() == parentStatusPrivacyInfo.replyAudience() || toCreate.shareAudience() == parentStatusPrivacyInfo.shareAudience();
+            if (!replyAllowed) {
+                throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
+            }
+        } else if (parentAssociation == ParentAssociation.SHARE) {
+            boolean shareAllowed = this.isShareAllowed(parentStatusPrivacy, toCreate.privacy());
+            if (!shareAllowed) {
+                throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
+            }
         }
 
         // reject if the parent is private and not owned by the current user
