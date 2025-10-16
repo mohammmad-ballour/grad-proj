@@ -22,7 +22,7 @@ export class StatusServices extends BaseService {
         return this.httpClient.post<FeedResponse>(`${this.baseUrl}/api/users/feed?page=${page}`, {});
     }
 
-    createStatus(request: CreateStatusRequest, mediaFiles: File[]): Observable<string> {
+    createStatus(request: CreateStatusRequest, mediaFiles?: File[]): Observable<string> {
         console.log(request);
         const formData = new FormData();
 

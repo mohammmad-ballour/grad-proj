@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { StatusCardComponent } from '../status-card/status-card.component';
 
-import { StatusCardComponent } from './status-action-card.component';
 
 describe('PostCardComponent', () => {
   let component: StatusCardComponent;
