@@ -1,11 +1,20 @@
-import { UserAvatar } from "../../profile/models/ProfileResponseDto";
 
 export interface StatusWithRepliesResponse {
     statusResponse: StatusResponse,
     replies: ReplySnippet[];
 }
+interface UserAvatar {
+    userId: string;
+    displayName: string;
+    username: string;
+    profilePicture: string; // (byte) → base64 or URL on backend
+}
+
+
+
+
 export interface ReplySnippet {
-    replyId: number;           // Long → safest as string (to avoid JS number overflow)
+    replyId: string;           // Long → safest as string (to avoid JS number overflow)
     content: string;
     postedAt: string;          // Instant → ISO date string
     user: UserAvatar;
@@ -18,7 +27,7 @@ export interface ReplySnippet {
 
 export interface StatusResponse {
     userAvatar: UserAvatar;
-    statusId: number; // serialized with ToStringSerializer → use string in TS
+    statusId: string; // serialized with ToStringSerializer → use string in TS
     content: string;
     privacy: StatusPrivacy;
     replyAudience: StatusAudience;
@@ -72,8 +81,8 @@ export interface ParentStatusSnippet {
 
 
 export interface ParentStatus {
-    statusId: number;
-    statusOwnerId: number;
+    statusId: string;
+    statusOwnerId: string;
     parentAssociation: string; // Match your enum string
 }
 

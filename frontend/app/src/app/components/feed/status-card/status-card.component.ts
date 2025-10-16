@@ -16,6 +16,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+// ADD these imports
+import { Output, EventEmitter } from '@angular/core';
 
 import {
   StatusResponse,
@@ -27,7 +29,7 @@ import { StatusActionCardComponent } from "../status-reaction-card/status-action
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
 import { AppRoutes } from '../../../config/app-routes.enum';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MediaService } from '../../services/media.service';
 import { MediaViewerComponent } from '../media-viewer-component/media-viewer-component.component';
 
@@ -229,7 +231,7 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
 
   /** Show spinner while the feed item is not fully loaded */
   @Input() loading = false;
-
+  @Output() reloadRequested = new EventEmitter<string>()
   @ViewChild('contentEl') contentEl!: ElementRef<HTMLElement>;
 
   isExpanded = false;
@@ -246,7 +248,8 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     public mediaService: MediaService,
     private el: ElementRef,
     private sanitizer: DomSanitizer,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private activatedRoute: ActivatedRoute
   ) { }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -395,8 +398,37 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
   }
 
   UpdateStatusAction(statusActionDto: StatusActionDto) {
+    console.log("from UpdateStatusAction ")
+    console.log(this.activatedRoute.snapshot.paramMap.get("statusId"))
+    console.log()
+    if (statusActionDto.numReplies == this.statusAction.numReplies + 1 && this.activatedRoute.snapshot.paramMap.get("statusId") == statusActionDto.statusId) {
+      console.log("from indide if condition")
+      this.reloadRequested.emit(statusActionDto.statusId);
+
+
+    }
     this.statusAction = statusActionDto;
     this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked;
     this.cdr.markForCheck();
   }
+
+
+  // UpdateStatusAction(statusActionDto: StatusActionDto) {
+  //   // keep the local action state in sync
+  //   this.statusAction = statusActionDto;
+  //   this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked;
+
+  //   // If we're already on /status/:id and numReplies just increased by 1,
+  //   // ask the parent view to refetch the full thread (so the new reply appears).
+  //   const routeId = this.activatedRoute.snapshot.paramMap.get('statusId');
+  //   const isSameDetailRoute = routeId === statusActionDto.statusId;
+  //   const replyBumpedByOne = statusActionDto.numReplies === (this.statusAction.numReplies ?? 0) + 1;
+
+  //   if (isSameDetailRoute && replyBumpedByOne) {
+  //     // Do NOT navigate to the same URL; emit a reload request instead.
+  //     this.reloadRequested.emit(statusActionDto.statusId);
+  //   }
+
+  //   this.cdr.markForCheck();
+  // }
 }

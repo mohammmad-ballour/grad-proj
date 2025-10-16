@@ -207,7 +207,11 @@ import { ProfileServices } from '../profile/services/profile.services';
 
         <ng-template #detail>
           <div class="feed-inner">
-            <app-status-detail [statusData]="statusData"></app-status-detail>
+            <app-status-detail [statusData]="statusData"
+              (reloadRequested)="reloadStatus($event)">
+
+            
+            ></app-status-detail>
           </div>
         </ng-template>
       </ng-template>
@@ -602,6 +606,19 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
       this.loadFeed();
     }
   }
+
+  reloadStatus(statusId: string) {
+    console.log("from reload")
+    this.statusServices.getStatusById(statusId).subscribe({
+      next: (res: StatusWithRepliesResponse) => {
+        // If you're on the detail page:
+        this.statusData = res; // replaces the thread incl. replies
+
+
+      }
+    });
+  }
+
 
   loadFeed(): void {
     if (this.isLoading) return;
