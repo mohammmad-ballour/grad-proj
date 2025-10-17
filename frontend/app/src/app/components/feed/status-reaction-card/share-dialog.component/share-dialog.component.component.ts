@@ -4,8 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { StatusActionDto } from '../../models/ReactToStatusRequestDto';
 import { StatusServices } from '../../services/status.services';
+import { StatusAudience, StatusPrivacy } from '../../models/StatusWithRepliesResponseDto';
 
 type MediaKind = 'image' | 'video';
 interface MediaPreview { kind: MediaKind; url: string; name: string; }
@@ -13,21 +17,115 @@ interface MediaPreview { kind: MediaKind; url: string; name: string; }
 @Component({
   selector: 'app-share-dialog',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatButtonModule, MatIconModule, MatDialogModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDialogModule,
+    MatMenuModule,
+    MatDividerModule,
+    MatTooltipModule
+  ],
   template: `
     <div class="share-dialog">
       <!-- Header -->
       <div class="header">
-        <button mat-icon-button (click)="close()"><i class="bi bi-x"></i></button>
+        <button mat-icon-button (click)="close()" matTooltip="Close"><mat-icon>close</mat-icon></button>
         <h2>Add a comment</h2>
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="postQuote()"
-          [disabled]="posting || (!content.trim() && selectedFiles.length === 0)">
-          Post
-        </button>
+        <div class="header-right">
+          <button mat-icon-button [matMenuTriggerFor]="moreMenu" matTooltip="More"><mat-icon>more_horiz</mat-icon></button>
+
+          <mat-menu #moreMenu="matMenu">
+            <button mat-menu-item [matMenuTriggerFor]="privacyMenu">
+              <mat-icon>visibility</mat-icon><span>Post visibility</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item [matMenuTriggerFor]="replyMenu">
+              <mat-icon>chat_bubble</mat-icon><span>Who can reply?</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item [matMenuTriggerFor]="shareMenu">
+              <mat-icon>repeat</mat-icon><span>Who can share?</span>
+            </button>
+          </mat-menu>
+
+          <!-- Privacy options (cannot exceed parent privacy) -->
+          <mat-menu #privacyMenu="matMenu">
+            <button mat-menu-item
+                    (click)="setPrivacy(StatusPrivacy.PUBLIC)"
+                    [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.PUBLIC)">
+              <mat-icon>public</mat-icon><span>Public</span>
+            </button>
+            <button mat-menu-item
+                    (click)="setPrivacy(StatusPrivacy.FOLLOWERS)"
+                    [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.FOLLOWERS)">
+              <mat-icon>people</mat-icon><span>Followers only</span>
+            </button>
+            <button mat-menu-item
+                    (click)="setPrivacy(StatusPrivacy.PRIVATE)"
+                    [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.PRIVATE)">
+              <mat-icon>lock</mat-icon><span>Private</span>
+            </button>
+          </mat-menu>
+
+          <!-- Reply audience (restricted by current privacy) -->
+          <mat-menu #replyMenu="matMenu">
+            <button mat-menu-item
+                    (click)="setReplyAudience(StatusAudience.EVERYONE)"
+                    [disabled]="!isReplyOptionAllowed(StatusAudience.EVERYONE)">
+              <mat-icon>public</mat-icon><span>Everyone can reply</span>
+            </button>
+            <button mat-menu-item
+                    (click)="setReplyAudience(StatusAudience.FOLLOWERS)"
+                    [disabled]="!isReplyOptionAllowed(StatusAudience.FOLLOWERS)">
+              <mat-icon>people</mat-icon><span>People you follow</span>
+            </button>
+            <button mat-menu-item
+                    (click)="setReplyAudience(StatusAudience.ONLY_ME)"
+                    [disabled]="!isReplyOptionAllowed(StatusAudience.ONLY_ME)">
+              <mat-icon>lock</mat-icon><span>Only me</span>
+            </button>
+          </mat-menu>
+
+          <!-- Share audience (restricted by current privacy) -->
+          <mat-menu #shareMenu="matMenu">
+            <button mat-menu-item
+                    (click)="setShareAudience(StatusAudience.EVERYONE)"
+                    [disabled]="!isShareOptionAllowed(StatusAudience.EVERYONE)">
+              <mat-icon>public</mat-icon><span>Everyone can share</span>
+            </button>
+            <button mat-menu-item
+                    (click)="setShareAudience(StatusAudience.FOLLOWERS)"
+                    [disabled]="!isShareOptionAllowed(StatusAudience.FOLLOWERS)">
+              <mat-icon>people</mat-icon><span>People you follow</span>
+            </button>
+            <button mat-menu-item
+                    (click)="setShareAudience(StatusAudience.ONLY_ME)"
+                    [disabled]="!isShareOptionAllowed(StatusAudience.ONLY_ME)">
+              <mat-icon>lock</mat-icon><span>Only me</span>
+            </button>
+          </mat-menu>
+
+          <button mat-raised-button color="primary"
+                  (click)="postQuote()"
+                  [disabled]="posting || (!content.trim() && selectedFiles.length === 0)">
+            Post
+          </button>
+        </div>
       </div>
+
+      <!-- Selection summary (styled like feed badges) -->
+      <div class="selection-line">
+        <span class="chip"><mat-icon class="chip-icon">{{ getPrivacyIcon(privacy) }}</mat-icon>{{ privacyLabel }}</span>
+        <span class="dot">•</span>
+        <span class="chip"><mat-icon class="chip-icon">{{ getAudienceIcon(replyAudience) }}</mat-icon>{{ replyLabel }}</span>
+        <span class="dot">•</span>
+        <span class="chip"><mat-icon class="chip-icon">{{ getAudienceIcon(shareAudience) }}</mat-icon>{{ shareLabel }}</span>
+      </div>
+
+      <div class="policy-note" *ngIf="parentPrivacyWarning">{{ parentPrivacyWarning }}</div>
+      <div class="policy-note" *ngIf="audienceWarning">{{ audienceWarning }}</div>
 
       <!-- Composer -->
       <div class="composer">
@@ -41,44 +139,37 @@ interface MediaPreview { kind: MediaKind; url: string; name: string; }
             <img *ngSwitchCase="'image'" [src]="p.url" [alt]="p.name">
             <video *ngSwitchCase="'video'" [src]="p.url" controls playsinline></video>
           </ng-container>
-          <button mat-icon-button class="remove" (click)="remove(i)">
-            <i class="bi bi-x-lg"></i>
+          <button mat-icon-button class="remove" (click)="remove(i)" matTooltip="Remove">
+            <mat-icon>close</mat-icon>
           </button>
         </div>
       </div>
 
       <!-- Quoted card -->
-      <div class="quoted">
-        <div class="quoted-content">
-          <div class="avatar-container">
-            <img class="avatar" [src]="processProfilePicture(data.statusAction.profilePicture)"
-                 (error)="onImgErr($event)" />
+      <div class="quoted original-post">
+        <div class="user-info">
+          <div class="avatar">
+            <span class="avatar-img" [style.backgroundImage]="'url(' + toImageSrc(data.statusAction.profilePicture) + ')'"></span>
           </div>
-          <div class="info">
-            <div class="top-line">
-              <span class="username">{{ data.statusAction.username }}</span>
-              <span class="handle">{{ '@'+data.statusAction.username }}</span>
-              <span class="dot">·</span>
-              <span class="time">{{ relativeTime(data.statusAction.postedAt) }}</span>
-            </div>
-            <p class="text">{{ data.statusAction.content }}</p>
-          </div>
+          <span class="username">{{ data.statusAction.username }}</span>
+          <span class="handle">{{ '@' + data.statusAction.username }}</span>
+          <span class="dot">·</span>
+          <span class="timestamp">{{ relativeTime(data.statusAction.postedAt) }}</span>
         </div>
+        <p class="content">{{ data.statusAction.content }}</p>
       </div>
 
       <!-- Footer -->
       <div class="footer">
         <div class="left">
-          <button mat-icon-button (click)="triggerFileInput()" [disabled]="selectedFiles.length >= MAX_MEDIA">
-            <i class="bi bi-image"></i>
+          <button mat-icon-button (click)="triggerFileInput()"
+                  [disabled]="selectedFiles.length >= MAX_MEDIA"
+                  aria-label="Add media"
+                  matTooltip="Add images or videos">
+            <mat-icon>image</mat-icon>
           </button>
-          <input
-            #fileInput
-            type="file"
-            multiple
-            accept="image/*,video/*"
-            (change)="onFileSelected($event)"
-            style="display:none">
+          <input #fileInput type="file" multiple accept="image/*,video/*"
+                 (change)="onFileSelected($event)" style="display:none">
           <span class="hint" *ngIf="selectedFiles.length > 0">{{selectedFiles.length}} / {{MAX_MEDIA}}</span>
         </div>
         <span class="error" *ngIf="error">{{ error }}</span>
@@ -86,113 +177,39 @@ interface MediaPreview { kind: MediaKind; url: string; name: string; }
     </div>
   `,
   styles: [`
-    .share-dialog {
-      background:#000;
-      color:#fff;
-      padding:16px;
-      display:flex;
-      flex-direction:column;
-      max-height:80vh;
-    }
+    .share-dialog { padding:16px; background:#000; color:#fff; max-height:80vh; display:flex; flex-direction:column; }
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px; }
+    .header h2 { margin:0; font-size:18px; font-weight:600; }
+    .header-right { display:flex; align-items:center; gap:6px; }
 
-    .header {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:8px;
-    }
+    .selection-line { display:flex; gap:8px; align-items:center; margin:4px 0; flex-wrap:wrap; }
+    .chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#8b98a5; background:#0a0a0a; border:1px solid #2a2a2a; padding:4px 8px; border-radius:999px; }
+    .chip-icon { font-size:16px; height:16px; width:16px; line-height:16px; }
+    .dot { color:#657786; }
 
-    .composer textarea {
-      width:100%;
-      border:none;
-      background:transparent;
-      color:#fff;
-      resize:none;
-      outline:none;
-      font-size:15px;
-    }
+    .policy-note { color:#ffb020; font-size:12px; }
 
-    /* Avatar fixed look */
-    .avatar-container {
-      width:42px;
-      height:42px;
-      border-radius:50%;
-      overflow:hidden;
-      border:1px solid #2a2a2a;
-      flex-shrink:0;
-    }
-    .avatar {
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      border-radius:50%;
-    }
+    .composer textarea { width:100%; border:none; background:transparent; color:#fff; resize:none; outline:none; font-size:15px; }
 
-    .quoted {
-      margin-top:8px;
-      border:1px solid #2a2a2a;
-      border-radius:14px;
-      background:#0a0a0a;
-      padding:10px 12px;
+    .previews { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin:8px 0 12px; }
+    .preview { position:relative; border-radius:12px; overflow:hidden; border:1px solid #2a2a2a; background:#0a0a0a; }
+    .preview img, .preview video { width:100%; height:100%; display:block; object-fit:cover; aspect-ratio:1/1; }
+    .preview .remove { position:absolute; top:4px; right:4px; background:rgba(0,0,0,.6); color:#fff; }
+
+    .quoted.original-post { padding:8px; margin-top:8px; border:1px solid #2a2a2a; border-radius:12px; background:#0a0a0a; }
+    .original-post .user-info { display:flex; align-items:center; gap:4px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .original-post .avatar { margin-right:12px; flex-shrink:0; }
+    .original-post .avatar .avatar-img {
+      width:40px; height:40px; border-radius:50%; border:1px solid #2a2a2a;
+      background:#111; background-size:cover; background-position:center; background-repeat:no-repeat; display:block;
     }
+    .original-post .username { font-weight:bold; color:#fff; display:inline-flex; }
+    .original-post .handle, .original-post .dot, .original-post .timestamp { color:#657786; }
+    .original-post .handle { margin-left:4px; }
+    .original-post .dot { margin:0 4px; }
+    .original-post .content { margin:6px 0 0; white-space:pre-wrap; line-height:1.4; }
 
-    .quoted-content {
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-    }
-
-    .top-line {
-      display:flex;
-      gap:6px;
-      align-items:center;
-      font-size:13px;
-      color:#8b98a5;
-    }
-
-    .username { font-weight:600; color:#fff; }
-    .handle, .dot, .time { color:#8b98a5; font-size:13px; }
-    .text { margin-top:4px; font-size:14px; white-space:pre-wrap; }
-
-    .previews {
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:8px;
-      margin:6px 0 8px;
-    }
-
-    .preview {
-      position:relative;
-      border-radius:12px;
-      overflow:hidden;
-      border:1px solid #2a2a2a;
-      background:#0a0a0a;
-    }
-
-    .preview img, .preview video {
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      aspect-ratio:1/1;
-    }
-
-    .preview .remove {
-      position:absolute;
-      top:4px;
-      right:4px;
-      background:rgba(0,0,0,.6);
-    }
-
-    .footer {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      border-top:1px solid #1f1f1f;
-      padding-top:10px;
-      margin-top:auto;
-    }
-
+    .footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:10px; margin-top:12px; border-top:1px solid #1f1f1f; }
     .left { display:flex; align-items:center; gap:10px; }
     .hint { color:#8b98a5; font-size:12px; }
     .error { color:#ff6b6b; font-size:12px; }
@@ -206,30 +223,70 @@ export class ShareDialogComponent {
   readonly MAX_MEDIA = 4;
   readonly MAX_IMG_MB = 10;
   readonly MAX_VID_MB = 50;
-  readonly IMG_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-  readonly VID_TYPES = ['video/mp4', 'video/webm', 'video/ogg'];
 
   selectedFiles: File[] = [];
   previews: MediaPreview[] = [];
 
+  readonly parentPrivacy: StatusPrivacy;
+  privacy: StatusPrivacy = StatusPrivacy.PUBLIC;
+  replyAudience: StatusAudience = StatusAudience.EVERYONE;
+  shareAudience: StatusAudience = StatusAudience.EVERYONE;
+
+  parentPrivacyWarning = '';
+  audienceWarning = '';
+
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   fallbackAvatar = 'assets/ProfileAvatar.png';
+
+  StatusPrivacy = StatusPrivacy;
+  StatusAudience = StatusAudience;
 
   constructor(
     private dialogRef: MatDialogRef<ShareDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { statusAction: StatusActionDto },
     private statusServices: StatusServices
-  ) { }
+  ) {
+    this.parentPrivacy = data.statusAction.privacy;
+    this.privacy = this.parentPrivacy;
+    this.replyAudience = data.statusAction.replyAudience;
+    this.shareAudience = data.statusAction.shareAudience;
 
-  triggerFileInput() { this.fileInput.nativeElement.click(); }
-
-  close() { this.dialogRef.close(false); }
-
-  processProfilePicture(img?: string) {
-    return img ? `data:image/png;base64,${img}` : this.fallbackAvatar;
+    this.applyParentCapToPrivacy();
+    this.clampAudiencesForPrivacy();
   }
 
+  // === Labels & icons (feed-style) ===
+  get privacyLabel() {
+    return this.privacy === StatusPrivacy.PUBLIC ? 'Public'
+      : this.privacy === StatusPrivacy.FOLLOWERS ? 'Followers' : 'Private';
+  }
+  get replyLabel() {
+    return this.replyAudience === StatusAudience.EVERYONE ? 'Everyone can reply'
+      : this.replyAudience === StatusAudience.FOLLOWERS ? 'Followers can reply' : 'Only me can reply';
+  }
+  get shareLabel() {
+    return this.shareAudience === StatusAudience.EVERYONE ? 'Everyone can share'
+      : this.shareAudience === StatusAudience.FOLLOWERS ? 'Followers can share' : 'Only me can share';
+  }
+  getPrivacyIcon(p: StatusPrivacy) {
+    return p === StatusPrivacy.PUBLIC ? 'public' : p === StatusPrivacy.FOLLOWERS ? 'people' : 'lock';
+  }
+  getAudienceIcon(a: StatusAudience) {
+    return a === StatusAudience.EVERYONE ? 'public' : a === StatusAudience.FOLLOWERS ? 'people' : 'lock';
+  }
+
+  // === Image/base64/url handling ===
+  toImageSrc(input?: string): string {
+    if (!input) return this.fallbackAvatar;
+    const src = ('' + input).trim();
+    if (!src) return this.fallbackAvatar;
+    if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:') || src.startsWith('blob:')) return src;
+    return `data:image/png;base64,${src}`;
+  }
   onImgErr(ev: Event) { (ev.target as HTMLImageElement).src = this.fallbackAvatar; }
+
+  triggerFileInput() { this.fileInput.nativeElement.click(); }
+  close() { this.dialogRef.close(false); }
 
   relativeTime(postedAt: string): string {
     const now = new Date(), t = new Date(postedAt);
@@ -240,26 +297,67 @@ export class ShareDialogComponent {
     return t.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  // === Policy helpers (UNCHANGED logic; just reused for disabling) ===
+  private privacyRank(p: StatusPrivacy) { return p === StatusPrivacy.PRIVATE ? 0 : p === StatusPrivacy.FOLLOWERS ? 1 : 2; }
+  private audienceRank(a: StatusAudience) { return a === StatusAudience.ONLY_ME ? 0 : a === StatusAudience.FOLLOWERS ? 1 : 2; }
+  private privacyCap(p: StatusPrivacy): StatusAudience {
+    return p === StatusPrivacy.PRIVATE ? StatusAudience.ONLY_ME
+      : p === StatusPrivacy.FOLLOWERS ? StatusAudience.FOLLOWERS
+        : StatusAudience.EVERYONE;
+  }
+
+  // Disable if choice exceeds parent privacy
+  isPrivacyOptionAllowed(p: StatusPrivacy): boolean {
+    return this.privacyRank(p) <= this.privacyRank(this.parentPrivacy);
+  }
+  // Disable if choice exceeds current privacy cap
+  isReplyOptionAllowed(a: StatusAudience): boolean {
+    return this.audienceRank(a) <= this.audienceRank(this.privacyCap(this.privacy));
+  }
+  isShareOptionAllowed(a: StatusAudience): boolean {
+    return this.audienceRank(a) <= this.audienceRank(this.privacyCap(this.privacy));
+  }
+
+  // === Enforcement (same as before) ===
+  private applyParentCapToPrivacy() {
+    const capped = (this.privacyRank(this.privacy) > this.privacyRank(this.parentPrivacy)) ? this.parentPrivacy : this.privacy;
+    if (capped !== this.privacy) { this.privacy = capped; this.parentPrivacyWarning = 'You cannot make your share more public than the original post.'; }
+    else this.parentPrivacyWarning = '';
+  }
+  private clampAudiencesForPrivacy(): void {
+    const cap = this.privacyCap(this.privacy);
+    let changed = false;
+    if (this.audienceRank(this.replyAudience) > this.audienceRank(cap)) { this.replyAudience = cap; changed = true; }
+    if (this.audienceRank(this.shareAudience) > this.audienceRank(cap)) { this.shareAudience = cap; changed = true; }
+    this.audienceWarning = changed ? 'Reply/Share settings were narrowed.' : '';
+  }
+
+  setPrivacy(p: StatusPrivacy) { this.privacy = p; this.applyParentCapToPrivacy(); this.clampAudiencesForPrivacy(); }
+  setReplyAudience(a: StatusAudience) {
+    const cap = this.privacyCap(this.privacy);
+    this.replyAudience = (this.audienceRank(a) > this.audienceRank(cap)) ? cap : a;
+  }
+  setShareAudience(a: StatusAudience) {
+    const cap = this.privacyCap(this.privacy);
+    this.shareAudience = (this.audienceRank(a) > this.audienceRank(cap)) ? cap : a;
+  }
+
+  // === Media ===
   onFileSelected(ev: Event) {
     this.error = '';
     const input = ev.target as HTMLInputElement;
     const newFiles = Array.from(input.files ?? []);
     if (!newFiles.length) return;
 
+    if (this.selectedFiles.length + newFiles.length > this.MAX_MEDIA) this.error = `Max ${this.MAX_MEDIA} media items.`;
+
     for (const f of newFiles) {
-      if (this.selectedFiles.length >= this.MAX_MEDIA) {
-        this.error = `Max ${this.MAX_MEDIA} media items.`;
-        break;
-      }
-
-      const isImg = this.IMG_TYPES.includes(f.type);
-      const isVid = this.VID_TYPES.includes(f.type);
-      if (!isImg && !isVid) { this.error = 'Only images or videos are allowed.'; continue; }
-
+      if (this.selectedFiles.length >= this.MAX_MEDIA) break;
+      const isImg = f.type.startsWith('image/'); const isVid = f.type.startsWith('video/');
+      if (!isImg && !isVid) { this.error = 'Only images or videos allowed.'; continue; }
       const sizeMB = f.size / (1024 * 1024);
-      if (isImg && sizeMB > this.MAX_IMG_MB) { this.error = `Images ≤ ${this.MAX_IMG_MB}MB.`; continue; }
-      if (isVid && sizeMB > this.MAX_VID_MB) { this.error = `Videos ≤ ${this.MAX_VID_MB}MB.`; continue; }
-
+      if (isImg && sizeMB > this.MAX_IMG_MB) { this.error = `Image ≤ ${this.MAX_IMG_MB}MB.`; continue; }
+      if (isVid && sizeMB > this.MAX_VID_MB) { this.error = `Video ≤ ${this.MAX_VID_MB}MB.`; continue; }
       this.selectedFiles.push(f);
       this.previews.push({ kind: isVid ? 'video' : 'image', url: URL.createObjectURL(f), name: f.name });
     }
@@ -272,18 +370,20 @@ export class ShareDialogComponent {
     this.selectedFiles.splice(i, 1);
   }
 
+  // === Submit ===
   postQuote() {
     if (this.posting) return;
-    if (!this.content.trim() && this.selectedFiles.length === 0) {
-      this.error = 'Add a comment or attach media.'; return;
-    }
+    if (!this.content.trim() && this.selectedFiles.length === 0) { this.error = 'Add a comment or media.'; return; }
+
+    this.applyParentCapToPrivacy();
+    this.clampAudiencesForPrivacy();
 
     this.posting = true;
     this.statusServices.createStatus({
       content: this.content.trim(),
-      privacy: this.data.statusAction.privacy,
-      replyAudience: this.data.statusAction.replyAudience,
-      shareAudience: this.data.statusAction.shareAudience,
+      privacy: this.privacy,
+      replyAudience: this.replyAudience,
+      shareAudience: this.shareAudience,
       parentStatus: {
         statusId: this.data.statusAction.statusId,
         statusOwnerId: this.data.statusAction.statusOwnerId,
@@ -291,7 +391,7 @@ export class ShareDialogComponent {
       }
     }, this.selectedFiles).subscribe({
       next: () => this.dialogRef.close(true),
-      error: (e) => { console.error(e); this.posting = false; }
+      error: () => this.posting = false
     });
   }
 }
