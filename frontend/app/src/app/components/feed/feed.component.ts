@@ -55,12 +55,39 @@ import { ProfileServices } from '../profile/services/profile.services';
       <ng-container *ngIf="feedMode; else singleStatus">
         <div class="compose-box">
           <div class="avatar">
-            <img [src]="profilePicture" (error)="onImageError($event,'assets/ProfileAvatar.png')" alt="User Avatar">
+            <img
+              [src]="profilePicture || 'assets/ProfileAvatar.png'"
+              (error)="onImageError($event,'assets/ProfileAvatar.png')"
+              alt="User Avatar">
           </div>
+
+          <!-- Compose -->
           <div class="compose-content">
             <div class="compose-header">
-              <span class="header-text"></span>
-               <button mat-icon-button class="more-options" [matMenuTriggerFor]="moreMenu">
+              <!-- Selected settings badges -->
+              <div class="header-badges">
+                <span class="chip" [matTooltip]="'Post visibility'">
+                  <mat-icon class="chip-icon">{{ getPrivacyIcon(privacy) }}</mat-icon>
+                  {{ getPrivacyLabel(privacy) }}
+                </span>
+
+                <span class="dot">•</span>
+
+                <span class="chip" [matTooltip]="'Who can reply'">
+                  <mat-icon class="chip-icon">{{ getAudienceIcon(replyAudience) }}</mat-icon>
+                  Replies: {{ getAudienceLabel(replyAudience) }}
+                </span>
+
+                <span class="dot">•</span>
+
+                <span class="chip" [matTooltip]="'Who can share'">
+                  <mat-icon class="chip-icon">{{ getAudienceIcon(shareAudience) }}</mat-icon>
+                  Shares: {{ getAudienceLabel(shareAudience) }}
+                </span>
+              </div>
+
+              <!-- Three-dots menu -->
+              <button mat-icon-button class="more-options" [matMenuTriggerFor]="moreMenu" matTooltip="Post options">
                 <mat-icon>more_horiz</mat-icon>
               </button>
               <mat-menu #moreMenu="matMenu">
@@ -69,94 +96,92 @@ import { ProfileServices } from '../profile/services/profile.services';
                 <button mat-menu-item [matMenuTriggerFor]="replyAudienceMenu">Who can reply?</button>
                 <mat-divider></mat-divider>
                 <button mat-menu-item [matMenuTriggerFor]="shareAudienceMenu">Who can share?</button>
-                <mat-divider></mat-divider>
               </mat-menu>
-              
+
+              <!-- Privacy options -->
               <mat-menu #privacyMenu="matMenu">
                 <button mat-menu-item (click)="setPrivacy(StatusPrivacy.PUBLIC)">
-                  <span class="menu-icon">
-                    <mat-icon>public</mat-icon>
-                  </span>
+                  <span class="menu-icon"><mat-icon>public</mat-icon></span>
                   <span>Public</span>
                 </button>
                 <button mat-menu-item (click)="setPrivacy(StatusPrivacy.FOLLOWERS)">
-                  <span class="menu-icon">
-                    <mat-icon>people</mat-icon>
-                  </span>
+                  <span class="menu-icon"><mat-icon>people</mat-icon></span>
                   <span>Followers only</span>
                 </button>
                 <button mat-menu-item (click)="setPrivacy(StatusPrivacy.PRIVATE)">
-                  <span class="menu-icon">
-                    <mat-icon>lock</mat-icon>
-                  </span>
-                  <span>Private</span>
-                </button>
-              </mat-menu>
-
-              <mat-menu #replyAudienceMenu="matMenu">
-                <button mat-menu-item (click)="setReplyAudience(StatusAudience.EVERYONE)">
-                  <span class="menu-icon">
-                    <mat-icon>public</mat-icon>
-                  </span>
-                  <span>Everyone can reply</span>
-                </button>
-                <button mat-menu-item (click)="setReplyAudience(StatusAudience.FOLLOWERS)">
-                  <span class="menu-icon">
-                    <mat-icon>people</mat-icon>
-                  </span>
-                  <span>People you follow</span>
-                </button>
-                <button mat-menu-item (click)="setReplyAudience(StatusAudience.ONLY_ME)">
-                  <span class="menu-icon">
-                    <mat-icon>lock</mat-icon>
-                  </span>
+                  <span class="menu-icon"><mat-icon>lock</mat-icon></span>
                   <span>Only me</span>
                 </button>
               </mat-menu>
 
-              <mat-menu #shareAudienceMenu="matMenu">
-                <button mat-menu-item (click)="setShareAudience(StatusAudience.EVERYONE)">
-                  <span class="menu-icon">
-                    <mat-icon>public</mat-icon>
-                  </span>
-                  <span>Everyone can share</span>
+              <!-- Reply audience (restricted by privacy) -->
+              <mat-menu #replyAudienceMenu="matMenu">
+                <button mat-menu-item
+                        (click)="setReplyAudience(StatusAudience.EVERYONE)"
+                        [disabled]="!isReplyOptionAllowed(StatusAudience.EVERYONE)">
+                  <span class="menu-icon"><mat-icon>public</mat-icon></span>
+                  <span>Everyone can reply</span>
                 </button>
-                <button mat-menu-item (click)="setShareAudience(StatusAudience.FOLLOWERS)">
-                  <span class="menu-icon">
-                    <mat-icon>people</mat-icon>
-                  </span>
+                <button mat-menu-item
+                        (click)="setReplyAudience(StatusAudience.FOLLOWERS)"
+                        [disabled]="!isReplyOptionAllowed(StatusAudience.FOLLOWERS)">
+                  <span class="menu-icon"><mat-icon>people</mat-icon></span>
                   <span>People you follow</span>
                 </button>
-                <button mat-menu-item (click)="setShareAudience(StatusAudience.ONLY_ME)">
-                  <span class="menu-icon">
-                    <mat-icon>lock</mat-icon>
-                  </span>
+                <button mat-menu-item
+                        (click)="setReplyAudience(StatusAudience.ONLY_ME)"
+                        [disabled]="!isReplyOptionAllowed(StatusAudience.ONLY_ME)">
+                  <span class="menu-icon"><mat-icon>lock</mat-icon></span>
+                  <span>Only me</span>
+                </button>
+              </mat-menu>
+
+              <!-- Share audience (restricted by privacy) -->
+              <mat-menu #shareAudienceMenu="matMenu">
+                <button mat-menu-item
+                        (click)="setShareAudience(StatusAudience.EVERYONE)"
+                        [disabled]="!isShareOptionAllowed(StatusAudience.EVERYONE)">
+                  <span class="menu-icon"><mat-icon>public</mat-icon></span>
+                  <span>Everyone can share</span>
+                </button>
+                <button mat-menu-item
+                        (click)="setShareAudience(StatusAudience.FOLLOWERS)"
+                        [disabled]="!isShareOptionAllowed(StatusAudience.FOLLOWERS)">
+                  <span class="menu-icon"><mat-icon>people</mat-icon></span>
+                  <span>People you follow</span>
+                </button>
+                <button mat-menu-item
+                        (click)="setShareAudience(StatusAudience.ONLY_ME)"
+                        [disabled]="!isShareOptionAllowed(StatusAudience.ONLY_ME)">
+                  <span class="menu-icon"><mat-icon>lock</mat-icon></span>
                   <span>Only me</span>
                 </button>
               </mat-menu>
             </div>
-            <textarea 
-              [(ngModel)]="newStatusText" 
-              placeholder="What is happening?!" 
+
+            <textarea
+              [(ngModel)]="newStatusText"
+              placeholder="What is happening?!"
               rows="3"
               class="compose-textarea"
               #textarea
               (input)="onTextInput($event)"
-              maxlength="280">
-            </textarea>
-            <div class="counter" *ngIf="showCounter">{{ getRemainingChars() }}</div>
+              maxlength="280"></textarea>
+
+            <div class="counter" [class.warning]="getRemainingChars() <= 20" *ngIf="showCounter">
+              {{ getRemainingChars() }}
+            </div>
+
             <div class="media-preview" *ngIf="selectedFiles.length > 0">
               <div class="preview-grid" [ngClass]="getGridClass()">
                 <div *ngFor="let file of selectedFiles; let i = index" class="preview-item">
                   <img *ngIf="isImage(file)" [src]="getFilePreview(file)" class="preview-media" alt="Preview">
                   <video *ngIf="isVideo(file)" [src]="getFilePreview(file)" class="preview-media" muted loop playsinline></video>
                   <mat-icon class="remove-icon" (click)="removeFile(i)">close</mat-icon>
-                  <!-- <div *ngIf="i === selectedFiles.length - 1 && selectedFiles.length < 4" class="add-more-overlay" (click)="fileInput.click()">
-                    <mat-icon>add_photo_alternate</mat-icon>
-                  </div> -->
                 </div>
               </div>
             </div>
+
             <div class="compose-actions">
               <div class="action-icons">
                 <input #fileInput type="file" multiple accept="image/*,video/*" style="display: none;" (change)="onFileSelected($event)">
@@ -164,11 +189,12 @@ import { ProfileServices } from '../profile/services/profile.services';
                   <mat-icon>photo</mat-icon>
                 </button>
               </div>
+
               <div class="post-section">
-                <button 
-                  mat-raised-button 
+                <button
+                  mat-raised-button
                   class="post-btn"
-                  color="primary" 
+                  color="primary"
                   [disabled]="!canPost()"
                   (click)="createNewStatus()">
                   Post
@@ -180,7 +206,7 @@ import { ProfileServices } from '../profile/services/profile.services';
 
         <div class="feed-inner">
           <div *ngIf="isLoading && feed.length === 0" class="loading-spinner">
-            <!-- <mat-spinner diameter="40"></mat-spinner> -->
+            <mat-spinner diameter="40"></mat-spinner>
           </div>
 
           <ng-container *ngIf="!(isLoading && feed.length === 0)">
@@ -209,9 +235,7 @@ import { ProfileServices } from '../profile/services/profile.services';
           <div class="feed-inner">
             <app-status-detail [statusData]="statusData"
               (reloadRequested)="reloadStatus($event)">
-
-            
-            ></app-status-detail>
+            </app-status-detail>
           </div>
         </ng-template>
       </ng-template>
@@ -233,295 +257,95 @@ import { ProfileServices } from '../profile/services/profile.services';
       --success-color: #00ba7c;
     }
 
-    .feed-inner {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-     }
+    .feed-inner { display: flex; flex-direction: column; gap: 16px; }
 
     .unavailable-content {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      background-color: var(--bg-color);
-      color: var(--text-primary);
-      padding: 20px;
-      margin: auto;
-      max-width: 600px;
-      border-radius: 8px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; background-color: var(--bg-color); color: var(--text-primary);
+      padding: 20px; margin: auto; max-width: 600px; border-radius: 8px;
     }
 
-    .loading-spinner {
-      display: flex;
-      justify-content: center;
-      margin: 20px 0;
-    }
+    .loading-spinner { display: flex; justify-content: center; margin: 20px 0; }
 
     .compose-box {
-      display: flex;
-      padding: 16px;
-      background-color: var(--card-bg);
-      border-bottom: 1px solid var(--border-color);
-      border-radius: 0;
+      display: flex; padding: 16px; background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border-color); border-radius: 0;
     }
 
-    .avatar {
-      margin-right: 12px;
-      flex-shrink: 0;
-    }
-
+    .avatar { margin-right: 12px; flex-shrink: 0; }
     .avatar img {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: 2px solid var(--border-color);
+      width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--border-color);
+      object-fit: cover; object-position: center; background: #0b0b0b;
     }
 
-    .compose-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
+    .compose-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
     .compose-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
     }
 
-    .header-text {
-      font-weight: bold;
-      font-size: 20px;
-      color: var(--text-primary);
+    .header-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.06);
+      color: var(--text-primary); font-size: 12px; border: 1px solid var(--border-color);
     }
+    .chip-icon { font-size: 16px; height: 16px; width: 16px; line-height: 16px; }
+    .dot { color: var(--text-secondary); }
 
-    .more-options {
-      color: var(--text-secondary);
-    }
-
-    .more-options:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-    }
+    .more-options { color: var(--text-secondary); }
+    .more-options:hover { background-color: rgba(255, 255, 255, 0.1); border-radius: 50%; }
 
     .compose-textarea {
-      border: none;
-      resize: none;
-      font-size: 20px;
+      border: none; resize: none; font-size: 20px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      outline: none;
-      width: 100%;
-      margin-bottom: 8px;
-      background: transparent;
-      color: var(--text-primary);
-      line-height: 1.4;
+      outline: none; width: 100%; margin-bottom: 8px; background: transparent; color: var(--text-primary); line-height: 1.4;
     }
+    .compose-textarea::placeholder { color: var(--text-secondary); }
 
-    .compose-textarea::placeholder {
-      color: var(--text-secondary);
-    }
+    .counter { align-self: flex-end; color: var(--text-secondary); font-size: 13px; margin-bottom: 8px; }
+    .counter.warning { color: #f4212e; }
 
-    .counter {
-      align-self: flex-end;
-      color: var(--text-secondary);
-      font-size: 13px;
-      margin-bottom: 8px;
-    }
+    .media-preview { margin-bottom: 12px; max-width: 504px; border-radius: 16px; overflow: hidden; background: var(--border-color); }
+    .preview-grid { display: grid; gap: 0; border-radius: 16px; overflow: hidden; }
+    .preview-grid.grid-1 { grid-template-columns: 1fr; }
+    .preview-grid.grid-2 { grid-template-columns: 1fr 1fr; }
+    .preview-grid.grid-3, .preview-grid.grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
+    .preview-grid.grid-3 .preview-item:nth-child(3) { grid-column: 1 / -1; grid-row: 2; }
 
-    .counter.warning {
-      color: #f4212e;
-    }
-
-    .media-preview {
-      margin-bottom: 12px;
-      max-width: 504px;
-      border-radius: 16px;
-      overflow: hidden;
-      background: var(--border-color);
-    }
-
-    .preview-grid {
-      display: grid;
-      gap: 0;
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .preview-grid.grid-1 {
-      grid-template-columns: 1fr;
-    }
-
-    .preview-grid.grid-2 {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .preview-grid.grid-3,
-    .preview-grid.grid-4 {
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto;
-    }
-
-    .preview-grid.grid-3 .preview-item:nth-child(3) {
-      grid-column: 1 / -1;
-      grid-row: 2;
-    }
-
-    .preview-item {
-      position: relative;
-      aspect-ratio: 16 / 9;
-      border-radius: 0;
-      overflow: hidden;
-      background: #000;
-    }
-
-    .preview-media {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
+    .preview-item { position: relative; aspect-ratio: 16 / 9; border-radius: 0; overflow: hidden; background: #000; }
+    .preview-media { width: 100%; height: 100%; object-fit: cover; display: block; }
     .remove-icon {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(29, 155, 240, 0.9);
-      color: white;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 16px;
-      z-index: 1;
+      position: absolute; top: 8px; right: 8px; background: rgba(29, 155, 240, 0.9); color: white;
+      border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 16px; z-index: 1;
     }
 
-    .add-more-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      cursor: pointer;
-      font-size: 32px;
-      z-index: 1;
-    }
+    .compose-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border-color); }
+    .action-icons { display: flex; gap: 16px; }
+    .action-btn { color: var(--primary-color); width: 40px; height: 40px; border-radius: 50%; transition: background-color 0.2s; }
+    .action-btn:hover { background-color: rgba(29, 155, 240, 0.1); }
+    .action-btn:disabled { color: var(--text-secondary); }
 
-    .add-more-overlay mat-icon {
-      width: 32px;
-      height: 32px;
-    }
+    .post-section { display: flex; align-items: center; gap: 8px; }
+    .post-btn { border-radius: 20px; padding: 8px 16px; font-weight: bold; text-transform: none; min-width: 60px; height: 36px; }
+    .post-btn:not(:disabled) { background-color: var(--primary-color); color: white; }
+    .post-btn:not(:disabled):hover { background-color: var(--primary-hover); }
+    .post-btn:disabled { background-color: var(--text-secondary); color: white; }
 
-    .compose-actions {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 8px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .action-icons {
-      display: flex;
-      gap: 16px;
-    }
-
-    .action-btn {
-      color: var(--primary-color);
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      transition: background-color 0.2s;
-    }
-
-    .action-btn:hover {
-      background-color: rgba(29, 155, 240, 0.1);
-    }
-
-    .action-btn:disabled {
-      color: var(--text-secondary);
-    }
-
-    .post-section {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .post-btn {
-      border-radius: 20px;
-      padding: 8px 16px;
-      font-weight: bold;
-      text-transform: none;
-      min-width: 60px;
-      height: 36px;
-    }
-
-    .post-btn:not(:disabled) {
-      background-color: var(--primary-color);
-      color: white;
-    }
-
-    .post-btn:not(:disabled):hover {
-      background-color: var(--primary-hover);
-    }
-
-    .post-btn:disabled {
-      background-color: var(--text-secondary);
-      color: white;
-    }
-
-    mat-menu {
-      background-color: var(--card-bg);
-      color: var(--text-primary);
-    }
-
-    mat-menu-item {
-      color: var(--text-primary);
-    }
-
-    mat-menu-item:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-
-    .menu-icon {
-      width: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 16px;
-      color: var(--text-secondary);
-    }
+    mat-menu { background-color: var(--card-bg); color: var(--text-primary); }
+    mat-menu-item { color: var(--text-primary); }
+    mat-menu-item[disabled] { opacity: .5; }
+    mat-menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+    .menu-icon { width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 16px; color: var(--text-secondary); }
 
     @media (prefers-color-scheme: light) {
       .feed {
-        --bg-color: #fff;
-        --text-primary: #0f1419;
-        --text-secondary: #536471;
-        --border-color: #e7e9ea;
-        --card-bg: #fff;
-        --primary-color: #1d9bf0;
-        --primary-hover: #1a8cd8;
+        --bg-color: #fff; --text-primary: #0f1419; --text-secondary: #536471; --border-color: #e7e9ea; --card-bg: #fff; --primary-color: #1d9bf0; --primary-hover: #1a8cd8;
       }
-
-      .compose-textarea::placeholder {
-        color: var(--text-secondary);
-      }
-
-      .compose-box {
-        background-color: var(--card-bg);
-        border-bottom: 1px solid var(--border-color);
-      }
+      .compose-textarea::placeholder { color: var(--text-secondary); }
+      .compose-box { background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+      .chip { background: rgba(15,20,25,0.04); }
     }
   `]
 })
@@ -542,6 +366,7 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedFiles: File[] = [];
   filePreviews: string[] = [];
 
+  // Defaults
   privacy: StatusPrivacy = StatusPrivacy.PUBLIC;
   replyAudience: StatusAudience = StatusAudience.EVERYONE;
   shareAudience: StatusAudience = StatusAudience.EVERYONE;
@@ -570,15 +395,13 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.profileServices.GetDataOfProfile(this.auth.UserName).subscribe({
       next: (res) => {
-        this.profilePicture = `data:image/png;base64,${res?.userAvatar.profilePicture}`;
-
+        const raw = res?.userAvatar?.profilePicture;
+        this.profilePicture = raw ? `data:image/png;base64,${raw}` : 'assets/ProfileAvatar.png';
       }
-    })
+    });
   }
 
-  ngAfterViewInit(): void {
-    this.safeSetScrollTop(0);
-  }
+  ngAfterViewInit(): void { this.safeSetScrollTop(0); }
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -587,15 +410,100 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   statusData!: StatusWithRepliesResponse;
+
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
   }
+
+  // ===== UI labels/icons =====
+  getPrivacyLabel(p: StatusPrivacy): string {
+    switch (p) {
+      case StatusPrivacy.PUBLIC: return 'Public';
+      case StatusPrivacy.FOLLOWERS: return 'Followers only';
+      case StatusPrivacy.PRIVATE: return 'Only me';
+      default: return '';
+    }
+  }
+  getPrivacyIcon(p: StatusPrivacy): string {
+    switch (p) {
+      case StatusPrivacy.PUBLIC: return 'public';
+      case StatusPrivacy.FOLLOWERS: return 'people';
+      case StatusPrivacy.PRIVATE: return 'lock';
+      default: return 'help';
+    }
+  }
+  getAudienceLabel(a: StatusAudience): string {
+    switch (a) {
+      case StatusAudience.EVERYONE: return 'Everyone';
+      case StatusAudience.FOLLOWERS: return 'Followers';
+      case StatusAudience.ONLY_ME: return 'Only me';
+      default: return '';
+    }
+  }
+  getAudienceIcon(a: StatusAudience): string {
+    switch (a) {
+      case StatusAudience.EVERYONE: return 'public';
+      case StatusAudience.FOLLOWERS: return 'people';
+      case StatusAudience.ONLY_ME: return 'lock';
+      default: return 'help';
+    }
+  }
+
+  /**
+   * RULES (English summary of your Arabic note):
+   * - If Post is PUBLIC → reply/share may be Everyone, Followers, or Only me.
+   * - If Post is FOLLOWERS → reply/share CANNOT be Public (Everyone). Allowed: Followers, Only me.
+   * - If Post is PRIVATE (Only me) → reply/share must be Only me (no escalation).
+   * When privacy changes, we auto-downgrade reply/share to the nearest allowed option.
+   */
+  private isAudienceAllowedWithPrivacy(a: StatusAudience, p: StatusPrivacy): boolean {
+    if (p === StatusPrivacy.PUBLIC) return true;
+    if (p === StatusPrivacy.FOLLOWERS) return a !== StatusAudience.EVERYONE;
+    // PRIVATE
+    return a === StatusAudience.ONLY_ME;
+  }
+  isReplyOptionAllowed(a: StatusAudience): boolean {
+    return this.isAudienceAllowedWithPrivacy(a, this.privacy);
+  }
+  isShareOptionAllowed(a: StatusAudience): boolean {
+    return this.isAudienceAllowedWithPrivacy(a, this.privacy);
+  }
+  private coerceAudiencesForPrivacy(): void {
+    // Reply
+    if (!this.isReplyOptionAllowed(this.replyAudience)) {
+      this.replyAudience = (this.privacy === StatusPrivacy.FOLLOWERS)
+        ? StatusAudience.FOLLOWERS
+        : StatusAudience.ONLY_ME; // PRIVATE
+    }
+    // Share
+    if (!this.isShareOptionAllowed(this.shareAudience)) {
+      this.shareAudience = (this.privacy === StatusPrivacy.FOLLOWERS)
+        ? StatusAudience.FOLLOWERS
+        : StatusAudience.ONLY_ME; // PRIVATE
+    }
+  }
+
+  setPrivacy(privacy: StatusPrivacy): void {
+    this.privacy = privacy;
+    this.coerceAudiencesForPrivacy();
+    this.cdr.detectChanges();
+  }
+  setReplyAudience(audience: StatusAudience): void {
+    if (!this.isReplyOptionAllowed(audience)) return;
+    this.replyAudience = audience;
+    this.cdr.detectChanges();
+  }
+  setShareAudience(audience: StatusAudience): void {
+    if (!this.isShareOptionAllowed(audience)) return;
+    this.shareAudience = audience;
+    this.cdr.detectChanges();
+  }
+
   private initFeed(): void {
     const statusId = this.activatedRoute.snapshot.paramMap.get('statusId');
     if (statusId) {
       this.statusServices.getStatusById(statusId).subscribe({
         next: (res) => {
-          console.log(res)
           this.statusId = statusId;
           this.statusData = res;
         },
@@ -608,17 +516,10 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   reloadStatus(statusId: string) {
-    console.log("from reload")
     this.statusServices.getStatusById(statusId).subscribe({
-      next: (res: StatusWithRepliesResponse) => {
-        // If you're on the detail page:
-        this.statusData = res; // replaces the thread incl. replies
-
-
-      }
+      next: (res: StatusWithRepliesResponse) => { this.statusData = res; }
     });
   }
-
 
   loadFeed(): void {
     if (this.isLoading) return;
@@ -633,7 +534,6 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
           if (this.debug) console.log('[feed] fetched', { page: this.page, count: res.statuses.length });
 
           if (this.page === 0) {
-            console.log(res)
             this.feed = res.statuses;
             this.cdr.detectChanges();
             await this.waitForStableScrollHeight();
@@ -643,9 +543,7 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
             this.cdr.detectChanges();
             await this.waitForStableScrollHeight();
             const container = this.getScrollContainer();
-            if (container) {
-              this.safeSetScrollTop(prevScrollTop);
-            }
+            if (container) this.safeSetScrollTop(prevScrollTop);
           }
 
           if (res.statuses.length > 0) this.page++;
@@ -658,25 +556,18 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
           }
         })();
       },
-      error: (err) => {
-        console.error('Failed to load feed', err);
-      },
-      complete: () => {
-        this.isLoading = false;
-      }
+      error: (err) => { console.error('Failed to load feed', err); },
+      complete: () => { this.isLoading = false; }
     });
   }
 
   onScroll(): void {
     if (this.isAutoScrolling) return;
-
     const container = this.getScrollContainer();
     if (!container) return;
-
     const threshold = 150;
     const position = container.scrollTop + container.clientHeight;
     const height = container.scrollHeight;
-
     if (position >= height - threshold && !this.isLoading && this.hasMoreFeed) {
       this.loadFeed();
     }
@@ -691,7 +582,7 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
     if (input.files) {
       const newFiles = Array.from(input.files);
       const remainingSlots = 4 - this.selectedFiles.length;
-      const filesToAdd = newFiles.slice(0, remainingSlots);
+      const filesToAdd = newFiles.slice(0, Math.max(0, remainingSlots));
       this.selectedFiles = [...this.selectedFiles, ...filesToAdd];
       this.updateFilePreviews();
       this.cdr.detectChanges();
@@ -714,17 +605,9 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.filePreviews[index] || '';
   }
 
-  isImage(file: File): boolean {
-    return file.type.startsWith('image/');
-  }
-
-  isVideo(file: File): boolean {
-    return file.type.startsWith('video/');
-  }
-
-  getGridClass(): string {
-    return `grid-${this.selectedFiles.length}`;
-  }
+  isImage(file: File): boolean { return file.type.startsWith('image/'); }
+  isVideo(file: File): boolean { return file.type.startsWith('video/'); }
+  getGridClass(): string { return `grid-${Math.min(this.selectedFiles.length, 4)}`; }
 
   onTextInput(event: Event): void {
     const target = event.target as HTMLTextAreaElement;
@@ -732,26 +615,10 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  getRemainingChars(): number {
-    const remaining = 280 - this.newStatusText.length;
-    return remaining;
-  }
+  getRemainingChars(): number { return 280 - this.newStatusText.length; }
 
   canPost(): boolean {
     return this.newStatusText.trim().length > 0 || this.selectedFiles.length > 0;
-  }
-
-
-  setPrivacy(privacy: StatusPrivacy): void {
-    this.privacy = privacy;
-  }
-
-  setReplyAudience(audience: StatusAudience): void {
-    this.replyAudience = audience;
-  }
-
-  setShareAudience(audience: StatusAudience): void {
-    this.shareAudience = audience;
   }
 
   createNewStatus(): void {
@@ -765,7 +632,7 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
     };
 
     this.statusServices.createStatus(toCreate, this.selectedFiles).subscribe({
-      next: (statusId) => {
+      next: () => {
         this.newStatusText = '';
         this.selectedFiles = [];
         this.updateFilePreviews();
@@ -774,16 +641,12 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
         this.feed = [];
         this.loadFeed();
       },
-      error: (err) => {
-        console.error('Failed to create status', err);
-      }
+      error: (err) => { console.error('Failed to create status', err); }
     });
   }
 
   private getScrollContainer(): HTMLElement | null {
-    if (this.scrollContainer && this.scrollContainer.nativeElement) {
-      return this.scrollContainer.nativeElement;
-    }
+    if (this.scrollContainer?.nativeElement) return this.scrollContainer.nativeElement;
     return document.querySelector('.feed') as HTMLElement | null;
   }
 
@@ -841,7 +704,6 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
             }, stableForMs);
           }
         }, 60);
-
         timeoutTimer = setTimeout(() => {
           clearInterval(interval);
           finish();
