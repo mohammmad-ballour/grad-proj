@@ -288,7 +288,7 @@ public class UserStatusInteractionRepository {
                 .limit(pageSize)
                 .fetch();
 
-        return this.mapToStatusResponseList(result);
+        return this.mapToStatusResponseList(result, currentUserId);
     }
 
     public List<StatusResponse> fetchPosts(Long currentUserId, Long profileOwnerId, int offset) {
@@ -318,7 +318,7 @@ public class UserStatusInteractionRepository {
                 .limit(pageSize)
                 .fetch();
 
-        return this.mapToStatusResponseList(result);
+        return this.mapToStatusResponseList(result, currentUserId);
     }
 
     public List<StatusResponse> fetchReplies(Long currentUserId, Long profileOwnerId, int offset) {
@@ -348,7 +348,7 @@ public class UserStatusInteractionRepository {
                 .limit(pageSize)
                 .fetch();
 
-        return this.mapToStatusResponseList(result);
+        return this.mapToStatusResponseList(result, currentUserId);
     }
 
     public List<StatusMediaResponse> fetchMedia(Long currentUserId, Long profileOwnerId, int offset) {
@@ -408,7 +408,7 @@ public class UserStatusInteractionRepository {
                 .limit(pageSize)
                 .fetch();
 
-        return this.mapToStatusResponseList(result);
+        return this.mapToStatusResponseList(result, currentUserId);
     }
 
     public int getUnreadMessages(Long currentUserId) {
@@ -450,13 +450,13 @@ public class UserStatusInteractionRepository {
                 .fetchInto(String.class);
     }
 
-    private List<StatusResponse> mapToStatusResponseList(Result<Record> records) {
+    private List<StatusResponse> mapToStatusResponseList(Result<Record> records, Long currentUserId) {
         return records.stream()
-                .map(this::mapToStatusResponse)
+                .map(record -> mapToStatusResponse(record, currentUserId))
                 .toList();
     }
 
-    private StatusResponse mapToStatusResponse(Record record) {
+    private StatusResponse mapToStatusResponse(Record record, Long currentUserId) {
         // Extract all fields manually
         Long statusId = record.get("id", Long.class);
         String content = record.get("content", String.class);
@@ -495,8 +495,10 @@ public class UserStatusInteractionRepository {
         List<String> mentionedUsernames = !mentions.isEmpty() ? this.validUsernamesInUsernames(mentions) : new ArrayList<>();
 
         Boolean isStatusOwnerFollowedByCurrentUser = record.get("is_status_owner_followed_by_current_user", Boolean.class);
-        boolean isAllowedToReply = replyAudience == StatusAudience.EVERYONE || (isStatusOwnerFollowedByCurrentUser && replyAudience == StatusAudience.FOLLOWERS);
-        boolean isAllowedToShare = shareAudience == StatusAudience.EVERYONE || (isStatusOwnerFollowedByCurrentUser && shareAudience == StatusAudience.FOLLOWERS);
+        boolean isAllowedToReply = statusOwnerId.equals(currentUserId) ||
+                replyAudience == StatusAudience.EVERYONE || (isStatusOwnerFollowedByCurrentUser && replyAudience == StatusAudience.FOLLOWERS);
+        boolean isAllowedToShare = statusOwnerId.equals(currentUserId) ||
+                shareAudience == StatusAudience.EVERYONE || (isStatusOwnerFollowedByCurrentUser && shareAudience == StatusAudience.FOLLOWERS);
 
         ParentStatusSnippet nonExistentParent = new ParentStatusSnippet(null, null, null, null, null, null);
         ParentStatusSnippet parentSnippet;
