@@ -6,9 +6,11 @@ import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.AssociationNotFoundException;
 import com.grad.social.common.utils.TemporalUtils;
 import com.grad.social.model.enums.FollowingPriority;
+import com.grad.social.model.enums.NotificationType;
 import com.grad.social.model.user.request.MuteDuration;
 import com.grad.social.model.user.response.UserResponse;
 import com.grad.social.repository.user.UserUserInteractionRepository;
+import com.grad.social.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import static com.grad.social.exception.user.UserErrorCode.*;
 @RequiredArgsConstructor
 public class UserUserInteractionService {
     private final UserUserInteractionRepository userRepository;
+    private final NotificationService notificationService;
 
     public List<UserResponse> retrieveFollowerList(Long userId, Long currentUserId, int page) {
         return this.userRepository.findFollowersWithPagination(userId, currentUserId, page);
@@ -43,6 +46,7 @@ public class UserUserInteractionService {
         }
         try {
             this.userRepository.followUser(userId, toFollow);
+            this.notificationService.saveNotification(userId, new Long[]{toFollow}, null, NotificationType.FOLLOW);
         } catch (DuplicateKeyException ex) {
             throw new AlreadyRegisteredException(TARGET_ALREADY_FOLLOWED);
         }
@@ -56,6 +60,7 @@ public class UserUserInteractionService {
         if (recordsDeleted == 0) {
             throw new AssociationNotFoundException(TARGET_NOT_FOLLOWED);
         }
+        this.notificationService.removeNotification(userId, toUnfollow, null, NotificationType.FOLLOW);
     }
 
     public void updateFollowingPriority(Long userId, long followedUserId, FollowingPriority newPriority) {

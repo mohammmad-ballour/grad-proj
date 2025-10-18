@@ -1,5 +1,6 @@
 package com.grad.social.service.status;
 
+import com.grad.social.common.AppConstants;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.exceptionhandling.Model;
 import com.grad.social.common.exceptionhandling.ModelNotFoundException;
@@ -7,12 +8,14 @@ import com.grad.social.common.model.MediaRepresentation;
 import com.grad.social.common.utils.media.FileSystemUtils;
 import com.grad.social.common.utils.media.MediaUtils;
 import com.grad.social.exception.status.StatusErrorCode;
+import com.grad.social.model.enums.NotificationType;
 import com.grad.social.model.enums.ParentAssociation;
 import com.grad.social.model.status.request.CreateStatusRequest;
 import com.grad.social.model.status.request.UpdateStatusContent;
 import com.grad.social.model.status.request.UpdateStatusSettings;
 import com.grad.social.repository.status.StatusRepository;
 import com.grad.social.service.media.MediaService;
+import com.grad.social.service.notification.NotificationService;
 import com.grad.social.service.status.event.StatusContentUpdatedEvent;
 import com.grad.social.service.status.event.StatusPublishedEvent;
 import com.grad.social.service.status.utils.StatusUtils;
@@ -36,6 +39,7 @@ public class StatusService {
     private final StatusRepository statusRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final MediaService mediaService;
+    private final NotificationService notificationService;
 
     // currentUserId == statusOwnerId
     @Transactional
@@ -61,15 +65,15 @@ public class StatusService {
             if (parentAssociation != null) {
                 Long parentStatusOwnerId = toCreate.parentStatus().statusOwnerId();
                 if (parentAssociation == ParentAssociation.REPLY) {
-//                    this.notificationService.saveNotification(currentUserId, new Long[]{parentStatusOwnerId}, savedStatusId, NotificationType.REPLY);
+                    this.notificationService.saveNotification(currentUserId, new Long[]{parentStatusOwnerId}, savedStatusId, NotificationType.REPLY);
                 } else if (parentAssociation == ParentAssociation.SHARE) {
-//                    this.notificationService.saveNotification(currentUserId, new Long[]{parentStatusOwnerId}, savedStatusId, NotificationType.SHARE);
+                    this.notificationService.saveNotification(currentUserId, new Long[]{parentStatusOwnerId}, savedStatusId, NotificationType.SHARE);
                 }
             }
             List<String> mentions = StatusUtils.extractMentions(toCreate.content());
             if (!mentions.isEmpty()) {
                 List<Long> mentionedUsersIds = this.statusRepository.validUsersInUsernames(mentions);
-                // Send notifications to mentioned users
+                this.notificationService.saveNotification(currentUserId, mentionedUsersIds.toArray(Long[]::new), savedStatusId, NotificationType.MENTION);
             }
             this.eventPublisher.publishEvent(new StatusPublishedEvent(savedStatusId, toCreate.content()));
             return savedStatusId;
@@ -82,7 +86,7 @@ public class StatusService {
         boolean shouldRestrict = this.statusRepository.checkWhetherToRestrictUser(currentUserId);
         if (shouldRestrict) {
             System.out.printf("Sending a notification to user %d to restrict their account%n", currentUserId);
-            // Use NotificationService to send a notification to the user
+            this.notificationService.saveNotification(AppConstants.SYSTEM_USER, new Long[]{currentUserId}, null, NotificationType.RESTRICT);
         }
     }
 

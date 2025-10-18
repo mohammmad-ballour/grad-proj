@@ -8,10 +8,6 @@ CREATE SEQUENCE IF NOT EXISTS public.users_id_seq
 DO
 $$
     BEGIN
-        -- FRIENDS means x follows y and y follows x
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'privacy_settings') THEN
-            CREATE TYPE PRIVACY_SETTINGS AS ENUM ('EVERYONE', 'FRIENDS', 'FOLLOWERS', 'NONE');
-        END IF;
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gender') THEN
             CREATE TYPE GENDER AS ENUM ('MALE', 'FEMALE', 'PREFER_NOT_TO_SAY');
         END IF;
@@ -35,15 +31,10 @@ CREATE TABLE IF NOT EXISTS public.users
     gender                GENDER       NOT NULL,
     residence             VARCHAR(255),
     timezone_id           varchar(80)  NOT NULL,
-    is_protected          BOOLEAN               DEFAULT FALSE,
     is_verified           BOOLEAN               DEFAULT FALSE,
     account_status        ACCOUNT_STATUS        DEFAULT 'ACTIVE',
-    who_can_message       PRIVACY_SETTINGS      DEFAULT 'EVERYONE',
-    who_can_add_to_groups PRIVACY_SETTINGS      DEFAULT 'EVERYONE',
     joined_at             DATE                  DEFAULT CURRENT_DATE,
     profile_picture       BYTEA,
     profile_cover_photo   BYTEA,
-    profile_bio           VARCHAR(100),
-    CONSTRAINT check_protected_message
-        CHECK (NOT (is_protected AND who_can_message = 'EVERYONE'))
+    profile_bio           VARCHAR(100)
 );

@@ -6,6 +6,7 @@ export class BaseService {
 
 
   protected readonly ENDPOINTS = {
+    notifications: '/api/notifications',
     chats: '/api/chats/',
     messages: '/api/messages/',
     FOLLOW: '/api/users/follow/',

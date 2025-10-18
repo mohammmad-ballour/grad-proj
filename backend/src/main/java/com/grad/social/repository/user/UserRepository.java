@@ -1,6 +1,7 @@
 package com.grad.social.repository.user;
 
 import com.grad.social.common.database.utils.JooqUtils;
+import com.grad.social.model.enums.AccountStatus;
 import com.grad.social.model.enums.FollowingPriority;
 import com.grad.social.model.enums.Gender;
 import com.grad.social.model.shared.UserAvatar;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.grad.social.model.enums.PrivacySettings.*;
 import static org.jooq.Records.mapping;
 
 @Repository
@@ -30,6 +32,7 @@ public class UserRepository {
     private final DSLContext dsl;
 
     private final Users u = Users.USERS.as("u");
+    private final UserPreferences up = UserPreferences.USER_PREFERENCES.as("up");
     private final UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
     private final UserMutes um = UserMutes.USER_MUTES.as("UM");
     private final UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
@@ -98,9 +101,10 @@ public class UserRepository {
         ).as("isMuted");
 
         return dsl.select(u.ID, u.DISPLAY_NAME, u.USERNAME, u.JOINED_AT, u.PROFILE_PICTURE, u.PROFILE_COVER_PHOTO, u.PROFILE_BIO, u.DOB, u.RESIDENCE, u.GENDER,
-                        u.TIMEZONE_ID, u.WHO_CAN_MESSAGE, followingNumberField, followerNumberField, isFollowingCurrentUserField, isBeingFollowedField, followingPriorityField,
+                        u.TIMEZONE_ID, up.WHO_CAN_MESSAGE, followingNumberField, followerNumberField, isFollowingCurrentUserField, isBeingFollowedField, followingPriorityField,
                         isBlockedField, isMutedField)
                 .from(u)
+                .join(up).on(u.ID.eq(up.USER_ID))
                 .where(u.ID.eq(profileOwnerId))
                 .fetchOne(mapping((userId, displayName, username, joinedAt, profilePicture, profileCover, bio, dob, residence, gender,
                                    timezoneId, whoCanMessage, followingNumber, followerNumber, isFollowingCurrentUser, isBeingFollowed, followingPriority,
@@ -150,13 +154,23 @@ public class UserRepository {
         JooqUtils.delete(dsl, u, DSL.trueCondition());
     }
 
+    public boolean isAccountRestricted(Long userId) {
+        return dsl.fetchExists(
+                dsl.selectOne().from(u).where(u.ID.eq(userId).and(u.ACCOUNT_STATUS.eq(AccountStatus.RESTRICTED)))
+        );
+    }
+
     public boolean isAccountOwner(Long currentUserId, String nameToSearch) {
         String currentUsername = dsl.select(u.USERNAME).from(u).where(u.ID.eq(currentUserId)).fetchOneInto(String.class);
         return currentUsername != null && currentUsername.equals(nameToSearch);
     }
 
     public boolean isAccountProtected(String nameToSearch) {
-        Boolean isAccountProtected = dsl.select(u.IS_PROTECTED).where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch))).fetchOneInto(Boolean.class);
+        Boolean isAccountProtected = dsl.select(up.IS_PROTECTED)
+                .from(u)
+                .join(up).on(u.ID.eq(up.USER_ID))
+                .where(u.USERNAME.eq(nameToSearch).or(u.DISPLAY_NAME.eq(nameToSearch)))
+                .fetchOneInto(Boolean.class);
         return isAccountProtected != null && isAccountProtected;
     }
 

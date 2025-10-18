@@ -280,7 +280,7 @@
                             </forcedTypes>
                         </database>
                         <generate>
-                            <routines>false</routines>
+                            <routines>true</routines>
                             <udts>true</udts>
                             <javaTimeTypes>true</javaTimeTypes>
                         </generate>
