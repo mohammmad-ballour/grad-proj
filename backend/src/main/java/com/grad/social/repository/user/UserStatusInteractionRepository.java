@@ -32,6 +32,7 @@ public class UserStatusInteractionRepository {
     private final RedisTemplate<String, String> redisTemplate;
 
     // Aliases
+    Bookmarks b = Bookmarks.BOOKMARKS;
     Statuses s = Statuses.STATUSES.as("s");
     Statuses sp = Statuses.STATUSES.as("sp");  // parent status
     Statuses sc = Statuses.STATUSES.as("sc"); // count replies and shares for original status
@@ -404,6 +405,39 @@ public class UserStatusInteractionRepository {
                 .and(notBlockedPredicate)
                 .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, sl.CREATED_AT)
                 .orderBy(sl.CREATED_AT.desc(), s.ID.desc())
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch();
+
+        return this.mapToStatusResponseList(result, currentUserId);
+    }
+
+    public List<StatusResponse> fetchBookmarks(Long currentUserId, int offset) {
+        // blocks: neither direction (current user blocked poster or poster blocked current user)
+        var notBlockedPredicate = DSL.notExists(
+                DSL.selectOne()
+                        .from(ub)
+                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(s.USER_ID))
+                                .or(ub.USER_ID.eq(s.USER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId))))
+        );
+
+        // Privacy predicate: allow if: own post, PUBLIC, FOLLOWERS and (current user follows poster)
+        var privacyPredicate =
+                s.USER_ID.eq(currentUserId)
+                        .or(s.PRIVACY.eq(StatusPrivacy.PUBLIC))
+                        // check that the current user follows the poster
+                        .or(s.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
+
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+
+        // Main query
+        Result<Record> result = this.fetchStatusResponse(currentUserId)
+                .join(b).on(b.STATUS_ID.eq(s.ID))
+                .where(b.USER_ID.eq(currentUserId))
+                .and(privacyPredicate)
+                .and(notBlockedPredicate)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID)
+                .orderBy(s.CREATED_AT.desc(), s.ID.desc())
                 .offset(offset * pageSize)
                 .limit(pageSize)
                 .fetch();
