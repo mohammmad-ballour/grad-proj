@@ -25,12 +25,12 @@ type PreviewItem = { file: File; url: string };
   template: `
   <div class="dlg">
     <div class="dlg-header">
-      <h3>Edit Post</h3>
+      <h3>Edit status </h3>
       <button mat-icon-button (click)="close()" aria-label="Close"><mat-icon>close</mat-icon></button>
     </div>
 
     <div class="dlg-body">
-      <textarea [(ngModel)]="content" class="editor" rows="5" maxlength="280" placeholder="Edit your post..."></textarea>
+      <textarea [(ngModel)]="content" class="editor" rows="5" maxlength="280" placeholder="Edit your status..."></textarea>
       <div class="counter" [class.warn]="(content.length||0) > 260">{{ 280 - (content.length || 0) }}</div>
 
       <div class="section-label" *ngIf="existing.length">Attached Media</div>
@@ -80,7 +80,7 @@ type PreviewItem = { file: File; url: string };
   </div>
   `,
   styles: [`
-    .dlg{width:720px;max-width:95vw;background:#121212;color:#e6e6e6;display:flex;flex-direction:column;border-radius:12px;overflow:hidden}
+    .dlg{width:720px;max-width:95vw;background:#121212;display:flex;color:white;flex-direction:column;border-radius:12px;overflow:hidden}
     .dlg-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.1)}
     .dlg-body{padding:20px;overflow:visible}
     .dlg-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid rgba(255,255,255,.1)}
