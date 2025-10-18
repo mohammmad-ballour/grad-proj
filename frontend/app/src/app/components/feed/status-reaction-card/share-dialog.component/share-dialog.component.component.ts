@@ -34,79 +34,6 @@ interface MediaPreview { kind: MediaKind; url: string; name: string; }
         <button mat-icon-button (click)="close()" matTooltip="Close"><mat-icon>close</mat-icon></button>
         <h2>Add a comment</h2>
         <div class="header-right">
-          <button mat-icon-button [matMenuTriggerFor]="moreMenu" matTooltip="More"><mat-icon>more_horiz</mat-icon></button>
-
-          <mat-menu #moreMenu="matMenu">
-            <button mat-menu-item [matMenuTriggerFor]="privacyMenu">
-              <mat-icon>visibility</mat-icon><span>Post visibility</span>
-            </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item [matMenuTriggerFor]="replyMenu">
-              <mat-icon>chat_bubble</mat-icon><span>Who can reply?</span>
-            </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item [matMenuTriggerFor]="shareMenu">
-              <mat-icon>repeat</mat-icon><span>Who can share?</span>
-            </button>
-          </mat-menu>
-
-          <!-- Privacy options (cannot exceed parent privacy) -->
-          <mat-menu #privacyMenu="matMenu">
-            <button mat-menu-item
-                    (click)="setPrivacy(StatusPrivacy.PUBLIC)"
-                    [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.PUBLIC)">
-              <mat-icon>public</mat-icon><span>Public</span>
-            </button>
-            <button mat-menu-item
-                    (click)="setPrivacy(StatusPrivacy.FOLLOWERS)"
-                    [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.FOLLOWERS)">
-              <mat-icon>people</mat-icon><span>Followers only</span>
-            </button>
-            <button mat-menu-item
-                    (click)="setPrivacy(StatusPrivacy.PRIVATE)"
-                    [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.PRIVATE)">
-              <mat-icon>lock</mat-icon><span>Private</span>
-            </button>
-          </mat-menu>
-
-          <!-- Reply audience (restricted by current privacy) -->
-          <mat-menu #replyMenu="matMenu">
-            <button mat-menu-item
-                    (click)="setReplyAudience(StatusAudience.EVERYONE)"
-                    [disabled]="!isReplyOptionAllowed(StatusAudience.EVERYONE)">
-              <mat-icon>public</mat-icon><span>Everyone can reply</span>
-            </button>
-            <button mat-menu-item
-                    (click)="setReplyAudience(StatusAudience.FOLLOWERS)"
-                    [disabled]="!isReplyOptionAllowed(StatusAudience.FOLLOWERS)">
-              <mat-icon>people</mat-icon><span>People you follow</span>
-            </button>
-            <button mat-menu-item
-                    (click)="setReplyAudience(StatusAudience.ONLY_ME)"
-                    [disabled]="!isReplyOptionAllowed(StatusAudience.ONLY_ME)">
-              <mat-icon>lock</mat-icon><span>Only me</span>
-            </button>
-          </mat-menu>
-
-          <!-- Share audience (restricted by current privacy) -->
-          <mat-menu #shareMenu="matMenu">
-            <button mat-menu-item
-                    (click)="setShareAudience(StatusAudience.EVERYONE)"
-                    [disabled]="!isShareOptionAllowed(StatusAudience.EVERYONE)">
-              <mat-icon>public</mat-icon><span>Everyone can share</span>
-            </button>
-            <button mat-menu-item
-                    (click)="setShareAudience(StatusAudience.FOLLOWERS)"
-                    [disabled]="!isShareOptionAllowed(StatusAudience.FOLLOWERS)">
-              <mat-icon>people</mat-icon><span>People you follow</span>
-            </button>
-            <button mat-menu-item
-                    (click)="setShareAudience(StatusAudience.ONLY_ME)"
-                    [disabled]="!isShareOptionAllowed(StatusAudience.ONLY_ME)">
-              <mat-icon>lock</mat-icon><span>Only me</span>
-            </button>
-          </mat-menu>
-
           <button mat-raised-button color="primary"
                   (click)="postQuote()"
                   [disabled]="posting || (!content.trim() && selectedFiles.length === 0)">
@@ -115,17 +42,84 @@ interface MediaPreview { kind: MediaKind; url: string; name: string; }
         </div>
       </div>
 
-      <!-- Selection summary (styled like feed badges) -->
-      <div class="selection-line">
-        <span class="chip"><mat-icon class="chip-icon">{{ getPrivacyIcon(privacy) }}</mat-icon>{{ privacyLabel }}</span>
-        <span class="dot">•</span>
-        <span class="chip"><mat-icon class="chip-icon">{{ getAudienceIcon(replyAudience) }}</mat-icon>{{ replyLabel }}</span>
-        <span class="dot">•</span>
-        <span class="chip"><mat-icon class="chip-icon">{{ getAudienceIcon(shareAudience) }}</mat-icon>{{ shareLabel }}</span>
-      </div>
+      <!-- Chips row (same style/placement as feed) -->
+      <div class="chip-row">
+        <!-- Visibility -->
+        <button mat-button class="chip-btn" [matMenuTriggerFor]="privacyMenu" matTooltip="Post visibility">
+          <mat-icon class="chip-icon">{{ getPrivacyIcon(privacy) }}</mat-icon>
+          {{ privacyLabel }}
+          <mat-icon class="chev">expand_more</mat-icon>
+        </button>
+        <mat-menu #privacyMenu="matMenu">
+          <button mat-menu-item
+                  (click)="setPrivacy(StatusPrivacy.PUBLIC)"
+                  [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.PUBLIC)">
+            <mat-icon>public</mat-icon><span>Public</span>
+          </button>
+          <button mat-menu-item
+                  (click)="setPrivacy(StatusPrivacy.FOLLOWERS)"
+                  [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.FOLLOWERS)">
+            <mat-icon>people</mat-icon><span>Followers only</span>
+          </button>
+          <button mat-menu-item
+                  (click)="setPrivacy(StatusPrivacy.PRIVATE)"
+                  [disabled]="!isPrivacyOptionAllowed(StatusPrivacy.PRIVATE)">
+            <mat-icon>lock</mat-icon><span>Private</span>
+          </button>
+        </mat-menu>
 
-      <div class="policy-note" *ngIf="parentPrivacyWarning">{{ parentPrivacyWarning }}</div>
-      <div class="policy-note" *ngIf="audienceWarning">{{ audienceWarning }}</div>
+        <span class="dot">•</span>
+
+        <!-- Who can reply -->
+        <button mat-button class="chip-btn" [matMenuTriggerFor]="replyMenu" matTooltip="Who can reply">
+          <mat-icon class="chip-icon">{{ getAudienceIcon(replyAudience) }}</mat-icon>
+          {{ replyLabel }}
+          <mat-icon class="chev">expand_more</mat-icon>
+        </button>
+        <mat-menu #replyMenu="matMenu">
+          <button mat-menu-item
+                  (click)="setReplyAudience(StatusAudience.EVERYONE)"
+                  [disabled]="!isReplyOptionAllowed(StatusAudience.EVERYONE)">
+            <mat-icon>public</mat-icon><span>Everyone can reply</span>
+          </button>
+          <button mat-menu-item
+                  (click)="setReplyAudience(StatusAudience.FOLLOWERS)"
+                  [disabled]="!isReplyOptionAllowed(StatusAudience.FOLLOWERS)">
+            <mat-icon>people</mat-icon><span>People follow you can reply</span>
+          </button>
+          <button mat-menu-item
+                  (click)="setReplyAudience(StatusAudience.ONLY_ME)"
+                  [disabled]="!isReplyOptionAllowed(StatusAudience.ONLY_ME)">
+            <mat-icon>lock</mat-icon><span>Only me can reply</span>
+          </button>
+        </mat-menu>
+
+        <span class="dot">•</span>
+
+        <!-- Who can share -->
+        <button mat-button class="chip-btn" [matMenuTriggerFor]="shareMenu" matTooltip="Who can share">
+          <mat-icon class="chip-icon">{{ getAudienceIcon(shareAudience) }}</mat-icon>
+          {{ shareLabel }}
+          <mat-icon class="chev">expand_more</mat-icon>
+        </button>
+        <mat-menu #shareMenu="matMenu">
+          <button mat-menu-item
+                  (click)="setShareAudience(StatusAudience.EVERYONE)"
+                  [disabled]="!isShareOptionAllowed(StatusAudience.EVERYONE)">
+            <mat-icon>public</mat-icon><span>Everyone can share</span>
+          </button>
+          <button mat-menu-item
+                  (click)="setShareAudience(StatusAudience.FOLLOWERS)"
+                  [disabled]="!isShareOptionAllowed(StatusAudience.FOLLOWERS)">
+            <mat-icon>people</mat-icon><span>People follow you can share</span>
+          </button>
+          <button mat-menu-item
+                  (click)="setShareAudience(StatusAudience.ONLY_ME)"
+                  [disabled]="!isShareOptionAllowed(StatusAudience.ONLY_ME)">
+            <mat-icon>lock</mat-icon><span>Only me can share</span>
+          </button>
+        </mat-menu>
+      </div>
 
       <!-- Composer -->
       <div class="composer">
@@ -178,16 +172,25 @@ interface MediaPreview { kind: MediaKind; url: string; name: string; }
   `,
   styles: [`
     .share-dialog { padding:16px; background:#000; color:#fff; max-height:80vh; display:flex; flex-direction:column; }
-    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px; }
+    .header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .header h2 { margin:0; font-size:18px; font-weight:600; }
-    .header-right { display:flex; align-items:center; gap:6px; }
+    .header-right { display:flex; align-items:center; gap:8px; }
 
-    .selection-line { display:flex; gap:8px; align-items:center; margin:4px 0; flex-wrap:wrap; }
-    .chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#8b98a5; background:#0a0a0a; border:1px solid #2a2a2a; padding:4px 8px; border-radius:999px; }
-    .chip-icon { font-size:16px; height:16px; width:16px; line-height:16px; }
+    /* single-row chips like feed */
+    .chip-row {
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      margin:8px 0 4px;
+    }
+    .chip-btn {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:4px 12px; height:34px; line-height:34px; border-radius:999px;
+      background:rgba(255,255,255,0.06); border:1px solid #2a2a2a; color:#fff;
+      text-transform:none;
+    }
+    .chip-btn:hover { background:rgba(255,255,255,0.12); }
+    .chip-icon { font-size:18px; height:18px; width:18px; }
+    .chev { font-size:18px; opacity:.9; }
     .dot { color:#657786; }
-
-    .policy-note { color:#ffb020; font-size:12px; }
 
     .composer textarea { width:100%; border:none; background:transparent; color:#fff; resize:none; outline:none; font-size:15px; }
 
@@ -213,6 +216,11 @@ interface MediaPreview { kind: MediaKind; url: string; name: string; }
     .left { display:flex; align-items:center; gap:10px; }
     .hint { color:#8b98a5; font-size:12px; }
     .error { color:#ff6b6b; font-size:12px; }
+
+    mat-menu { background:#0a0a0a; color:#fff; }
+    mat-menu-item { color:#fff; }
+    mat-menu-item[disabled] { opacity:.5; }
+    mat-menu-item:hover { background-color:rgba(255,255,255,0.08); }
   `]
 })
 export class ShareDialogComponent {
@@ -231,9 +239,6 @@ export class ShareDialogComponent {
   privacy: StatusPrivacy = StatusPrivacy.PUBLIC;
   replyAudience: StatusAudience = StatusAudience.EVERYONE;
   shareAudience: StatusAudience = StatusAudience.EVERYONE;
-
-  parentPrivacyWarning = '';
-  audienceWarning = '';
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   fallbackAvatar = 'assets/ProfileAvatar.png';
@@ -255,18 +260,18 @@ export class ShareDialogComponent {
     this.clampAudiencesForPrivacy();
   }
 
-  // === Labels & icons (feed-style) ===
+  // Labels & icons
   get privacyLabel() {
     return this.privacy === StatusPrivacy.PUBLIC ? 'Public'
-      : this.privacy === StatusPrivacy.FOLLOWERS ? 'Followers' : 'Private';
+      : this.privacy === StatusPrivacy.FOLLOWERS ? 'Followers only' : 'Private';
   }
   get replyLabel() {
     return this.replyAudience === StatusAudience.EVERYONE ? 'Everyone can reply'
-      : this.replyAudience === StatusAudience.FOLLOWERS ? 'Followers can reply' : 'Only me can reply';
+      : this.replyAudience === StatusAudience.FOLLOWERS ? 'People follow you can reply' : 'Only me can reply';
   }
   get shareLabel() {
     return this.shareAudience === StatusAudience.EVERYONE ? 'Everyone can share'
-      : this.shareAudience === StatusAudience.FOLLOWERS ? 'Followers can share' : 'Only me can share';
+      : this.shareAudience === StatusAudience.FOLLOWERS ? 'People follow you can share' : 'Only me can share';
   }
   getPrivacyIcon(p: StatusPrivacy) {
     return p === StatusPrivacy.PUBLIC ? 'public' : p === StatusPrivacy.FOLLOWERS ? 'people' : 'lock';
@@ -275,7 +280,7 @@ export class ShareDialogComponent {
     return a === StatusAudience.EVERYONE ? 'public' : a === StatusAudience.FOLLOWERS ? 'people' : 'lock';
   }
 
-  // === Image/base64/url handling ===
+  // Image/base64/url
   toImageSrc(input?: string): string {
     if (!input) return this.fallbackAvatar;
     const src = ('' + input).trim();
@@ -297,20 +302,18 @@ export class ShareDialogComponent {
     return t.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
-  // === Policy helpers (UNCHANGED logic; just reused for disabling) ===
-  private privacyRank(p: StatusPrivacy) { return p === StatusPrivacy.PRIVATE ? 0 : p === StatusPrivacy.FOLLOWERS ? 1 : 2; }
-  private audienceRank(a: StatusAudience) { return a === StatusAudience.ONLY_ME ? 0 : a === StatusAudience.FOLLOWERS ? 1 : 2; }
+  // Policy helpers
+  private privacyRank(p: StatusPrivacy): number { return p === StatusPrivacy.PRIVATE ? 0 : p === StatusPrivacy.FOLLOWERS ? 1 : 2; }
+  private audienceRank(a: StatusAudience): number { return a === StatusAudience.ONLY_ME ? 0 : a === StatusAudience.FOLLOWERS ? 1 : 2; }
   private privacyCap(p: StatusPrivacy): StatusAudience {
     return p === StatusPrivacy.PRIVATE ? StatusAudience.ONLY_ME
       : p === StatusPrivacy.FOLLOWERS ? StatusAudience.FOLLOWERS
         : StatusAudience.EVERYONE;
   }
 
-  // Disable if choice exceeds parent privacy
   isPrivacyOptionAllowed(p: StatusPrivacy): boolean {
     return this.privacyRank(p) <= this.privacyRank(this.parentPrivacy);
   }
-  // Disable if choice exceeds current privacy cap
   isReplyOptionAllowed(a: StatusAudience): boolean {
     return this.audienceRank(a) <= this.audienceRank(this.privacyCap(this.privacy));
   }
@@ -318,18 +321,15 @@ export class ShareDialogComponent {
     return this.audienceRank(a) <= this.audienceRank(this.privacyCap(this.privacy));
   }
 
-  // === Enforcement (same as before) ===
   private applyParentCapToPrivacy() {
-    const capped = (this.privacyRank(this.privacy) > this.privacyRank(this.parentPrivacy)) ? this.parentPrivacy : this.privacy;
-    if (capped !== this.privacy) { this.privacy = capped; this.parentPrivacyWarning = 'You cannot make your share more public than the original post.'; }
-    else this.parentPrivacyWarning = '';
+    if (this.privacyRank(this.privacy) > this.privacyRank(this.parentPrivacy)) {
+      this.privacy = this.parentPrivacy;
+    }
   }
   private clampAudiencesForPrivacy(): void {
     const cap = this.privacyCap(this.privacy);
-    let changed = false;
-    if (this.audienceRank(this.replyAudience) > this.audienceRank(cap)) { this.replyAudience = cap; changed = true; }
-    if (this.audienceRank(this.shareAudience) > this.audienceRank(cap)) { this.shareAudience = cap; changed = true; }
-    this.audienceWarning = changed ? 'Reply/Share settings were narrowed.' : '';
+    if (this.audienceRank(this.replyAudience) > this.audienceRank(cap)) this.replyAudience = cap;
+    if (this.audienceRank(this.shareAudience) > this.audienceRank(cap)) this.shareAudience = cap;
   }
 
   setPrivacy(p: StatusPrivacy) { this.privacy = p; this.applyParentCapToPrivacy(); this.clampAudiencesForPrivacy(); }
@@ -342,7 +342,7 @@ export class ShareDialogComponent {
     this.shareAudience = (this.audienceRank(a) > this.audienceRank(cap)) ? cap : a;
   }
 
-  // === Media ===
+  // Media
   onFileSelected(ev: Event) {
     this.error = '';
     const input = ev.target as HTMLInputElement;
@@ -370,7 +370,7 @@ export class ShareDialogComponent {
     this.selectedFiles.splice(i, 1);
   }
 
-  // === Submit ===
+  // Submit
   postQuote() {
     if (this.posting) return;
     if (!this.content.trim() && this.selectedFiles.length === 0) { this.error = 'Add a comment or media.'; return; }
