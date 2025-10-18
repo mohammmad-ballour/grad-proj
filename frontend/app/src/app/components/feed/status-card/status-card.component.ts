@@ -9,6 +9,8 @@ import {
   ChangeDetectionStrategy,
   OnDestroy,
   OnChanges,
+  Output,
+  EventEmitter
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -16,8 +18,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-// ADD these imports
-import { Output, EventEmitter } from '@angular/core';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import {
   StatusResponse,
@@ -32,6 +34,9 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MediaService } from '../../services/media.service';
 import { MediaViewerComponent } from '../media-viewer-component/media-viewer-component.component';
+import { AuthService } from '../../../core/services/auth.service';
+import { StatusServices } from '../services/status.services';
+import { ConfirmDeleteDialogComponent } from './confirm-delete.dialog/confirm-delete.dialog.component';
 
 @Component({
   selector: 'app-status-card',
@@ -43,18 +48,41 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
     MatIconModule,
     MatDialogModule,
     MatProgressSpinnerModule,
+    MatMenuModule,
+    MatTooltipModule,
     StatusParentCardComponent,
     StatusActionCardComponent
   ],
   template: `
     <mat-card class="post w-100">
+      <!-- 3-dot menu (top-right) -->
+      <button
+        *ngIf="isOwner()"
+        mat-icon-button
+        class="more-btn"
+        [matMenuTriggerFor]="moreMenu"
+        aria-label="More"
+        matTooltip="More">
+        <mat-icon>more_horiz</mat-icon>
+      </button>
+
+      <mat-menu #moreMenu="matMenu">
+        <button mat-menu-item (click)="onUpdateStatus()">
+          <mat-icon>edit</mat-icon>
+          <span>Update status</span>
+        </button>
+        <button mat-menu-item (click)="onDeleteStatus()">
+          <mat-icon>delete</mat-icon>
+          <span>Delete status</span>
+        </button>
+      </mat-menu>
+
       @if (loading) {
-        <!-- Centered spinner while the feed item loads -->
         <div class="spinner-wrap" role="status" aria-live="polite">
           <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
         </div>
       } @else {
-        <!-- Parent Snippet for Replies -->
+
         @if (statusData.parentAssociation === parentAssociation.REPLY) {
           @if (statusData.parentStatusSnippet && statusData.parentStatusSnippet.parentStatusId) {
             <app-status-parent-card [parentStatusSnippet]="statusData.parentStatusSnippet"></app-status-parent-card>
@@ -68,7 +96,7 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
           <div class="connecting-line"></div>
         }
 
-        <!-- User Header -->
+        <!-- Header -->
         <mat-card-header class="header">
           <img
             mat-card-avatar
@@ -83,7 +111,6 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
             <span class="dot">·</span>
             <span class="time">{{ statusData.postedAt | date: 'short' }}</span>
 
-            <!-- Colored privacy icon (Material) -->
             <mat-icon
               class="privacy-icon"
               [style.color]="privacyColor(statusData.privacy)"
@@ -93,7 +120,7 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
           </div>
         </mat-card-header>
 
-        <!-- Post Content -->
+        <!-- Content -->
         <mat-card-content
           #contentEl
           class="post-content"
@@ -102,7 +129,6 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
           (click)="displayStatus()">
         </mat-card-content>
 
-        <!-- See More Button -->
         @if (isContentOverflowing) {
           <div class="see-more">
             <button mat-button (click)="toggleExpand()" class="see-more-btn">
@@ -111,7 +137,7 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
           </div>
         }
 
-        <!-- Media Grid -->
+        <!-- Media -->
         @if (statusData.medias && statusData.medias.length > 0) {
           <div class="media-grid">
             @for (media of statusData.medias; track media.mediaId) {
@@ -133,7 +159,7 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
           </div>
         }
 
-        <!-- Parent Snippet for Non-Replies -->
+        <!-- Parent snippet for non-replies -->
         @if (statusData.parentAssociation !== parentAssociation.REPLY && statusData.parentStatusSnippet && statusData.parentStatusSnippet.parentStatusId) {
           <app-status-parent-card [parentStatusSnippet]="statusData.parentStatusSnippet"></app-status-parent-card>
         } @else if (statusData.parentAssociation !== parentAssociation.REPLY && !statusData.parentStatusSnippet) {
@@ -154,6 +180,7 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
   `,
   styles: [`
     .post {
+      position: relative;
       width: 100%;
       margin: 8px auto;
       border: none;
@@ -163,75 +190,76 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
       padding: 12px;
       overflow: hidden;
       border: 2px solid #cdd7e23b;
-      min-height: 140px; /* space for spinner/card */
+      min-height: 140px;
     }
+.more-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
 
-    /* Centered spinner */
-    .spinner-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 120px;
-      padding: 12px;
-    }
+  /* Circle shape */
+  width:40px;
+  height: 40px;
+  border-radius: 50%;
 
-    /* Header */
-    .header { display: flex; align-items: center; cursor: pointer; }
-    .avatar { border-radius: 50%; width: 40px; height: 40px; }
-    .header-info { display: flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 13px; }
-    .display-name { font-weight: 600; color: #d6daddff; }
-    .username, .dot, .time { color: #657786; }
+  /* Center the icon inside the circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    .privacy-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      margin-left: 4px;
-      transition: color .2s ease;
-    }
+  /* Styling */
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid #2f3336;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  z-index: 50;
 
-    /* Mentions */
-    .mention { color: #1da1f2; cursor: pointer; }
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.more-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.post { position: relative; }
+
+    .spinner-wrap { display:flex; align-items:center; justify-content:center; min-height:120px; padding:12px; }
+    .header { display:flex; align-items:center; cursor:pointer; }
+    .avatar { border-radius:50%; width:40px; height:40px; }
+    .header-info { display:flex; align-items:center; gap:4px; margin-left:8px; font-size:13px; }
+    .display-name { font-weight:600; color:#d6daddff; }
+    .username, .dot, .time { color:#657786; }
+
+    .privacy-icon { font-size:18px; width:18px; height:18px; margin-left:4px; transition:color .2s ease; }
+    .mention { color:#1da1f2; cursor:pointer; }
     .mention:hover { text-decoration: underline; }
 
-    /* Post Content */
     .post-content {
-      font-size: 15px; color: #cdd3daff; margin: 8px 0; line-height: 1.5;
-      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
-      overflow: hidden; text-overflow: ellipsis; white-space: normal;
-      transition: all 0.3s ease; cursor: pointer;
+      font-size:15px; color:#cdd3daff; margin:8px 0; line-height:1.5;
+      display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical;
+      overflow:hidden; text-overflow:ellipsis; white-space:normal; transition:all .3s ease; cursor:pointer;
     }
-    .post-content.expanded { -webkit-line-clamp: unset; overflow: visible; }
+    .post-content.expanded { -webkit-line-clamp:unset; overflow:visible; }
+    .see-more-btn { font-size:13px; color:#1da1f2; padding:0; }
 
-    .see-more-btn { font-size: 13px; color: #1da1f2; padding: 0; }
+    .media-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; border-radius:12px; overflow:hidden; }
+    .media-item { width:100%; border-radius:12px; object-fit:cover; max-height:300px; cursor:pointer; }
 
-    /* Media Grid */
-    .media-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px;
-      border-radius: 12px; overflow: hidden;
-    }
-    .media-item { width: 100%; border-radius: 12px; object-fit: cover; max-height: 300px; cursor: pointer; }
-
-    /* Unavailable Content */
-    .unavailable-content {
-      background-color: #f8f9fa; border-radius: 8px; padding: 16px; margin-top: 8px;
-      text-align: center; color: #333;
-    }
-    .lock-icon { font-size: 24px; color: #657786; }
-    .unavailable-content h3 { font-size: 16px; margin: 8px 0; }
-    .unavailable-content p { font-size: 14px; margin: 0; }
-
-    /* Connecting Line */
-    .connecting-line { width: 2px; background-color: #657786; height: 20px; margin: 8px 0 8px 20px; }
+    .unavailable-content { background-color:#f8f9fa; border-radius:8px; padding:16px; margin-top:8px; text-align:center; color:#333; }
+    .lock-icon { font-size:24px; color:#657786; }
+    .unavailable-content h3 { font-size:16px; margin:8px 0; }
+    .unavailable-content p { font-size:14px; margin:0; }
+    .connecting-line { width:2px; background-color:#657786; height:20px; margin:8px 0 8px 20px; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges {
   @Input() statusData!: StatusResponse;
-
-  /** Show spinner while the feed item is not fully loaded */
   @Input() loading = false;
-  @Output() reloadRequested = new EventEmitter<string>()
+  @Output() reloadRequested = new EventEmitter<string>();
+  @Output() deleted = new EventEmitter<string>(); // emit when deleted
+
   @ViewChild('contentEl') contentEl!: ElementRef<HTMLElement>;
 
   isExpanded = false;
@@ -249,11 +277,12 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     private el: ElementRef,
     private sanitizer: DomSanitizer,
     private dialog: MatDialog,
-    private activatedRoute: ActivatedRoute
+    private activatedRoute: ActivatedRoute,
+    private auth: AuthService,
+    private statusApi: StatusServices
   ) { }
 
   ngOnChanges(changes: SimpleChanges) {
-    // When status changes or loading flips to false, (re)initialize the view
     if ((changes['statusData'] || (changes['loading'] && this.loading === false)) && this.statusData && !this.loading) {
       this.statusAction = this.getStatusAction();
       this.processContent();
@@ -274,71 +303,65 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     window.removeEventListener('mentionClick', this.handleMentionClick);
   }
 
-  // Material privacy icon + color
+  isOwner(): boolean {
+    try { return this.statusData?.userAvatar?.username === this.auth.UserName; }
+    catch { return false; }
+  }
+
+  // Menu actions
+  onUpdateStatus() {
+    this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId, 'edit']);
+  }
+
+  onDeleteStatus() {
+    const ref = this.dialog.open(ConfirmDeleteDialogComponent, {
+      data: { statusId: this.statusData.statusId },
+      width: '360px'
+    });
+
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.statusApi.deleteStatus(this.statusData.statusId).subscribe({
+        next: () => this.deleted.emit(this.statusData.statusId),
+        error: (e) => console.error('Failed to delete status', e)
+      });
+    });
+  }
+
+  // Privacy icon/color helpers
   privacyIcon(p?: string): string {
-    switch (p) {
-      case 'PUBLIC': return 'public';
-      case 'FOLLOWERS': return 'person'; // or 'group'
-      case 'PRIVATE': return 'lock';
-      default: return 'help_outline';
-    }
+    switch (p) { case 'PUBLIC': return 'public'; case 'FOLLOWERS': return 'person'; case 'PRIVATE': return 'lock'; default: return 'help_outline'; }
   }
   privacyColor(p?: string): string {
-    switch (p) {
-      case 'PUBLIC': return '#42a5f5';   // Blue 400
-      case 'FOLLOWERS': return '#26a69a';// Teal 400
-      case 'PRIVATE': return '#ffb300';  // Amber 600
-      default: return '#9aa5b1';         // Neutral
-    }
+    switch (p) { case 'PUBLIC': return '#42a5f5'; case 'FOLLOWERS': return '#26a69a'; case 'PRIVATE': return '#ffb300'; default: return '#9aa5b1'; }
   }
   privacyAriaLabel(p?: string): string {
-    switch (p) {
-      case 'PUBLIC': return 'Public';
-      case 'FOLLOWERS': return 'Followers only';
-      case 'PRIVATE': return 'Private';
-      default: return 'Privacy';
-    }
+    switch (p) { case 'PUBLIC': return 'Public'; case 'FOLLOWERS': return 'Followers only'; case 'PRIVATE': return 'Private'; default: return 'Privacy'; }
   }
 
   openMediaViewer(media: MediaResponse) {
     this.dialog.open(MediaViewerComponent, {
       data: { mimeType: media.mimeType, mediaUrl: this.mediaService.getMediaById(media.mediaId) },
-      width: '80%',
-      height: '80%',
-      panelClass: 'media-viewer-dialog'
+      width: '80%', height: '80%', panelClass: 'media-viewer-dialog'
     });
   }
 
-  displayProfile() {
-    this.router.navigate([this.statusData.userAvatar.username]);
-  }
-
-  displayStatus() {
-    this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId]);
-  }
+  displayProfile() { this.router.navigate([this.statusData.userAvatar.username]); }
+  displayStatus() { this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId]); }
 
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
   }
 
-  toggleExpand() {
-    this.isExpanded = !this.isExpanded;
-    this.cdr.markForCheck();
-  }
-
-  toggleLike() {
-    this.isLiked = !this.isLiked;
-    this.cdr.markForCheck();
-  }
+  toggleExpand() { this.isExpanded = !this.isExpanded; this.cdr.markForCheck(); }
+  toggleLike() { this.isLiked = !this.isLiked; this.cdr.markForCheck(); }
 
   processMedia(content: string | undefined, mimeType: string): string {
     if (!content) return '';
     return `data:${mimeType};base64,${content}`;
   }
 
-  private handleMentionClick = (e: any) => {
-    this.router.navigate([e.detail]);
-  };
+  private handleMentionClick = (e: any) => { this.router.navigate([e.detail]); };
 
   private measureOverflow() {
     const el = this.contentEl?.nativeElement;
@@ -351,11 +374,7 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
   }
 
   private processContent() {
-    if (!this.statusData?.content) {
-      this.processedContent = '';
-      return;
-    }
-
+    if (!this.statusData?.content) { this.processedContent = ''; return; }
     let content = this.statusData.content;
 
     if (this.statusData.mentionedUsers?.length) {
@@ -371,7 +390,6 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     }
 
     this.processedContent = this.sanitizer.bypassSecurityTrustHtml(content);
-
     window.removeEventListener('mentionClick', this.handleMentionClick);
     window.addEventListener('mentionClick', this.handleMentionClick);
   }
@@ -398,37 +416,12 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
   }
 
   UpdateStatusAction(statusActionDto: StatusActionDto) {
-    console.log("from UpdateStatusAction ")
-    console.log(this.activatedRoute.snapshot.paramMap.get("statusId"))
-    console.log()
-    if (statusActionDto.numReplies == this.statusAction.numReplies + 1 && this.activatedRoute.snapshot.paramMap.get("statusId") == statusActionDto.statusId) {
-      console.log("from indide if condition")
+    if (statusActionDto.numReplies == this.statusAction.numReplies + 1 &&
+      this.activatedRoute.snapshot.paramMap.get("statusId") == statusActionDto.statusId) {
       this.reloadRequested.emit(statusActionDto.statusId);
-
-
     }
     this.statusAction = statusActionDto;
     this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked;
     this.cdr.markForCheck();
   }
-
-
-  // UpdateStatusAction(statusActionDto: StatusActionDto) {
-  //   // keep the local action state in sync
-  //   this.statusAction = statusActionDto;
-  //   this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked;
-
-  //   // If we're already on /status/:id and numReplies just increased by 1,
-  //   // ask the parent view to refetch the full thread (so the new reply appears).
-  //   const routeId = this.activatedRoute.snapshot.paramMap.get('statusId');
-  //   const isSameDetailRoute = routeId === statusActionDto.statusId;
-  //   const replyBumpedByOne = statusActionDto.numReplies === (this.statusAction.numReplies ?? 0) + 1;
-
-  //   if (isSameDetailRoute && replyBumpedByOne) {
-  //     // Do NOT navigate to the same URL; emit a reload request instead.
-  //     this.reloadRequested.emit(statusActionDto.statusId);
-  //   }
-
-  //   this.cdr.markForCheck();
-  // }
 }

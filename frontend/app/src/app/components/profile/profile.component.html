@@ -229,7 +229,7 @@
       <div>Loading posts...</div>
     } @else {
       @for (post of posts; track post.statusId) {
-        <app-status-card [statusData]="post"></app-status-card>
+        <app-status-card [statusData]="post" (deleted)="onStatusDeleted($event)"></app-status-card>
       }
       @if (isPostsLoading && posts.length > 0) {
         <div>Loading more posts...</div>
@@ -246,7 +246,9 @@
       <div>Loading replies...</div>
     } @else {
       @for (reply of replies; track reply.statusId) {
-        <app-status-card [statusData]="reply"></app-status-card>
+        <app-status-card [statusData]="reply" (deleted)="onStatusDeleted($event)" 
+        
+        ></app-status-card>
       }
       @if (isRepliesLoading && replies.length > 0) {
         <div>Loading more replies...</div>
