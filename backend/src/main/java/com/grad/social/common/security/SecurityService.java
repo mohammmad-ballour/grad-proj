@@ -10,8 +10,10 @@ import com.grad.social.model.enums.StatusAudience;
 import com.grad.social.model.enums.StatusPrivacy;
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.model.shared.UserConnectionInfo;
+import com.grad.social.model.status.helper.StatusMetadata;
 import com.grad.social.model.status.request.CreateStatusRequest;
 import com.grad.social.model.status.request.ReactToStatusRequest;
+import com.grad.social.model.status.request.UpdateStatusSettings;
 import com.grad.social.model.status.response.StatusPrivacyInfo;
 import com.grad.social.repository.chat.ChattingRepository;
 import com.grad.social.repository.status.StatusRepository;
@@ -177,6 +179,18 @@ public class SecurityService {
         }
 
         return false;
+    }
+
+    public boolean canChangeStatusSettings(Long statusId, UpdateStatusSettings toUpdate) {
+        if (!this.arePrivacyAndAudiencesCompatible(toUpdate.statusPrivacy(), toUpdate.replyAudience(), toUpdate.shareAudience())) {
+            throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
+        }
+        var parentAssociation = this.statusRepository.getStatusParentAssociation(statusId);
+        if (parentAssociation == ParentAssociation.REPLY) {
+            // Replies inherit settings from parent → deny update
+            throw new BusinessRuleViolationException(StatusErrorCode.NOT_ALLOWED_TO_UPDATE_REPLY_SETTINGS);
+        }
+        return true;
     }
 
     private boolean isShareAllowed(StatusPrivacy parentPrivacy, StatusPrivacy childPrivacy) {

@@ -5,19 +5,23 @@ import com.grad.social.common.database.utils.TsidUtils;
 import com.grad.social.model.enums.AccountStatus;
 import com.grad.social.model.enums.ParentAssociation;
 import com.grad.social.model.status.StatusConstants;
+import com.grad.social.model.status.helper.StatusMetadata;
 import com.grad.social.model.status.request.CreateStatusRequest;
-import com.grad.social.model.status.response.StatusAssociation;
+import com.grad.social.model.status.request.UpdateStatusContent;
+import com.grad.social.model.status.request.UpdateStatusSettings;
 import com.grad.social.model.status.response.StatusPrivacyInfo;
 import com.grad.social.model.tables.MediaAsset;
 import com.grad.social.model.tables.StatusMedia;
 import com.grad.social.model.tables.Statuses;
 import com.grad.social.model.tables.ContentModeration;
 import com.grad.social.model.tables.Users;
+import com.grad.social.model.tables.records.StatusesRecord;
 import com.grad.social.repository.media.MediaRepository;
 import com.grad.social.model.status.ModerationResult;
 import io.hypersistence.tsid.TSID;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
+import org.jooq.TableField;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.retry.annotation.Backoff;
@@ -26,9 +30,11 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+
+import static org.jooq.Records.mapping;
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.inline;
 
 @Repository
 @RequiredArgsConstructor
@@ -83,10 +89,79 @@ public class StatusRepository {
         return false;
     }
 
+    public int deleteStatus(Long statusId) {
+        return JooqUtils.delete(dsl, s, s.ID.eq(statusId));
+    }
+
+    public void updateStatusSettings(List<Long> statusIds, UpdateStatusSettings toUpdate) {
+        Map<TableField<StatusesRecord, ?>, Object> fieldsToUpdate = new HashMap<>();
+
+        if (toUpdate.statusPrivacy() != null) {
+            fieldsToUpdate.put(s.PRIVACY, toUpdate.statusPrivacy());
+        }
+        if (toUpdate.replyAudience() != null) {
+            fieldsToUpdate.put(s.REPLY_AUDIENCE, toUpdate.replyAudience());
+        }
+        if (toUpdate.shareAudience() != null) {
+            fieldsToUpdate.put(s.SHARE_AUDIENCE, toUpdate.shareAudience());
+        }
+        if (!fieldsToUpdate.isEmpty()) {
+            JooqUtils.update(dsl, s, fieldsToUpdate, s.ID.in(statusIds));
+        }
+    }
+
+    public int updateStatusContent(Long statusId, UpdateStatusContent toUpdate) {
+        // 1. Update text
+        Map<TableField<StatusesRecord, ?>, Object> fieldsToUpdate = new HashMap<>();
+        if (toUpdate.newContent() != null) {
+            fieldsToUpdate.put(s.CONTENT, toUpdate.newContent());
+        }
+        int recordsUpdated = 0;
+        if (!fieldsToUpdate.isEmpty()) {
+            recordsUpdated = JooqUtils.update(dsl, s, fieldsToUpdate, s.ID.eq(statusId));
+        }
+
+        // 2. Keep only provided media
+        JooqUtils.delete(dsl, sm, sm.STATUS_ID.eq(statusId).and(sm.MEDIA_ID.notIn(toUpdate.keepMediaIds() == null ? List.of() : toUpdate.keepMediaIds())));
+
+        // 3. Ensure positions are compacted; ordering is taken from the existing position column
+        var reordered = dsl.select(sm.MEDIA_ID, DSL.rowNumber().over().orderBy(sm.POSITION).as("new_pos"))
+                .from(sm)
+                .where(sm.STATUS_ID.eq(statusId))
+                .and(sm.MEDIA_ID.in(toUpdate.keepMediaIds()))
+                .asTable("reordered");
+
+        dsl.update(sm)
+                .set(sm.POSITION, reordered.field("new_pos", Integer.class))
+                .from(reordered)
+                .where(sm.STATUS_ID.eq(statusId))
+                .and(sm.MEDIA_ID.eq(reordered.field(sm.MEDIA_ID)))
+                .execute();
+
+        return recordsUpdated;
+    }
+
+    public List<String> fullTextSearch(String keywords, String lang) {
+        return dsl.select(s.CONTENT)
+                .from(s)
+                .where(field("content_tsvector @@ to_tsquery({0}, {1})",
+                        Boolean.class,
+                        inline(lang), inline(keywords))
+                )
+                .fetchInto(String.class);
+    }
+
 
     // Helpers
     public boolean statusExistsById(Long statusId) {
         return JooqUtils.existsBy(dsl, s, s.ID.eq(statusId));
+    }
+
+    public String getContentById(Long statusId) {
+        return dsl.select(s.CONTENT)
+                .from(s)
+                .where(s.ID.eq(statusId))
+                .fetchOneInto(String.class);
     }
 
     public StatusPrivacyInfo getStatusPrivacyInfo(Long statusId) {
@@ -96,18 +171,25 @@ public class StatusRepository {
                 .fetchOneInto(StatusPrivacyInfo.class);
     }
 
-    public StatusAssociation getParentStatusByChildStatusId(Long statusId) {
-        return dsl.select(s.PARENT_STATUS_ID, s.PARENT_ASSOCIATION)
+    public StatusMetadata getStatusMetadata(Long statusId) {
+        return dsl.select(s.PRIVACY, s.REPLY_AUDIENCE, s.SHARE_AUDIENCE)
                 .from(s)
                 .where(s.ID.eq(statusId))
-                .fetchOneInto(StatusAssociation.class);
+                .fetchOne(mapping(StatusMetadata::new));
+    }
+
+    public ParentAssociation getStatusParentAssociation(Long statusId) {
+        return dsl.select(s.PARENT_ASSOCIATION)
+                .from(s)
+                .where(s.ID.eq(statusId))
+                .fetchOneInto(ParentAssociation.class);
     }
 
     public void updateTsVector(Long statusId, String lang, String content) {
         try {
             dsl.update(s)
                     .set(s.CONTENT_TSVECTOR,
-                            DSL.field("to_tsvector({0}::regconfig, {1})", String.class, DSL.inline(lang), DSL.val(content)))
+                            field("to_tsvector({0}::regconfig, {1})", String.class, inline(lang), DSL.val(content)))
                     .where(s.ID.eq(statusId))
                     .execute();
         } catch (org.jooq.exception.DataAccessException e) {
@@ -123,6 +205,13 @@ public class StatusRepository {
         return dsl.select(u.ID)
                 .from(u)
                 .where(u.USERNAME.in(mentionedUsernames))
+                .fetchInto(Long.class);
+    }
+
+    public List<Long> getRepliesIds(Long parentStatusId) {
+        return dsl.select(s.ID)
+                .from(s)
+                .where(s.PARENT_STATUS_ID.eq(parentStatusId).and(s.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY)))
                 .fetchInto(Long.class);
     }
 }

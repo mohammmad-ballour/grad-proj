@@ -3,6 +3,8 @@ package com.grad.social.controller.status;
 import com.grad.social.model.shared.TimestampSeekRequest;
 import com.grad.social.model.status.request.CreateStatusRequest;
 import com.grad.social.model.status.request.ReactToStatusRequest;
+import com.grad.social.model.status.request.UpdateStatusContent;
+import com.grad.social.model.status.request.UpdateStatusSettings;
 import com.grad.social.model.status.response.ReplySnippet;
 import com.grad.social.model.status.response.StatusWithRepliesResponse;
 import com.grad.social.service.status.StatusService;
@@ -52,6 +54,31 @@ public class StatusController {
                                                                @RequestBody(required = false) TimestampSeekRequest seekRequest) {
         Long currentUserId = jwt == null? -1 : Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userStatusInteractionService.fetchMoreReplies(currentUserId, Long.parseLong(statusId), seekRequest));
+    }
+
+    @PutMapping("/status/{statusId}/update-audience")
+    @PreAuthorize("@SecurityService.isStatusOwner(#jwt, #statusId) and @SecurityService.canChangeStatusSettings(#statusId, #toUpdate)")
+    public void updateStatusSettings(@AuthenticationPrincipal Jwt jwt, @PathVariable Long statusId, @RequestBody UpdateStatusSettings toUpdate) {
+        this.statusService.updateStatusSettings(statusId, toUpdate);
+    }
+
+    @PutMapping(value= "/status/{statusId}/update-content", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@SecurityService.isStatusOwner(#jwt, #statusId)")
+    @SneakyThrows
+    public void updateStatusContent(@AuthenticationPrincipal Jwt jwt, @PathVariable Long statusId, @RequestPart(value = "request") UpdateStatusContent toUpdate,
+                                    @RequestPart(value = "media", required = false) @Size(max = 4, message = "You can upload at most 4 media files") List<MultipartFile> mediaFiles) {
+        this.statusService.updateStatusContent(statusId, toUpdate, mediaFiles);
+    }
+
+
+    // Delete a status
+    @DeleteMapping("/status/{statusId}")
+    @PreAuthorize("@SecurityService.isStatusOwner(#jwt, #statusId)")
+    @SneakyThrows
+    public ResponseEntity<Void> deleteStatus(@AuthenticationPrincipal Jwt jwt, @PathVariable Long statusId) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        this.statusService.deleteStatus(statusId);
+        return ResponseEntity.noContent().build();
     }
 
     // Like a status
