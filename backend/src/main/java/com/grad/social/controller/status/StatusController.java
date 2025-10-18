@@ -1,16 +1,23 @@
 package com.grad.social.controller.status;
 
 import com.grad.social.model.shared.TimestampSeekRequest;
+import com.grad.social.model.status.request.CreateStatusRequest;
 import com.grad.social.model.status.request.ReactToStatusRequest;
 import com.grad.social.model.status.response.ReplySnippet;
 import com.grad.social.model.status.response.StatusWithRepliesResponse;
+import com.grad.social.service.status.StatusService;
 import com.grad.social.service.user.UserStatusInteractionService;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,7 +25,19 @@ import java.util.List;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class StatusController {
+    private final StatusService statusService;
     private final UserStatusInteractionService userStatusInteractionService;
+
+    // Create/Share/Reply To status
+    @PostMapping(value = "/status", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@SecurityService.checkCanCreateStatus(#jwt, #toCreate)")
+    @SneakyThrows
+    public ResponseEntity<String> createStatus(@AuthenticationPrincipal Jwt jwt, @RequestPart("request") CreateStatusRequest toCreate,
+                                               @RequestPart(value = "media", required = false) @Size(max = 4, message = "You can upload at most 4 media files") List<MultipartFile> mediaFiles) {
+        Long uid = Long.parseLong(jwt.getClaimAsString("uid"));
+        Long statusId = this.statusService.createStatus(uid, toCreate, mediaFiles);
+        return ResponseEntity.status(HttpStatus.CREATED).body(String.valueOf(statusId));
+    }
 
     // fetch status  (open endpoint)
     @GetMapping("/status/public/{statusId}")

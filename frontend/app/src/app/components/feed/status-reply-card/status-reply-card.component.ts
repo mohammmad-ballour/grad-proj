@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { ReplySnippet } from '../models/StatusWithRepliesResponseDto';
+import { ReplySnippet, StatusResponse } from '../models/StatusWithRepliesResponseDto';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MatCardModule } from "@angular/material/card";
@@ -77,11 +77,12 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
         </div>
       }
         <!-- Actions -->
- <app-status-action-card
-  [statusAction]="statusAction"
-  (statusActionChange)="UpdateStatusAction($event)">
-</app-status-action-card>
-      
+    <app-status-action-card
+      [statusAction]="statusAction"
+      [reply]="reply"
+      (statusActionChange)="UpdateStatusAction($event)">
+    </app-status-action-card>
+          
     </mat-card>
   `,
   styles: [
@@ -225,6 +226,10 @@ export class StatusRplyCardComponent {
 
 
   @Input() reply!: ReplySnippet;
+  @Input() parentStatus!: StatusResponse;
+
+
+
   parentStatusSnippet: any;
   isExpanded: any;
   isContentOverflowing: any;
@@ -271,8 +276,16 @@ export class StatusRplyCardComponent {
       numReplies: this.reply.numReplies,
       numShares: this.reply.numShares,
       liked: this.reply.isLikedByCurrentUser,
-      saved: false
-
+      saved: false,
+      isCurrentUserAllowedToReply: this.parentStatus.isCurrentUserAllowedToReply,
+      isCurrentUserAllowedToShare: this.parentStatus.isCurrentUserAllowedToShare,
+      privacy: this.parentStatus.privacy,
+      replyAudience: this.parentStatus.replyAudience,
+      shareAudience: this.parentStatus.shareAudience,
+      content: this.reply.content,
+      postedAt: this.reply.postedAt,
+      profilePicture: this.reply.user.profilePicture,
+      username: this.reply.user.username
     };
   }
   UpdateStatusAction(statusActionDto: StatusActionDto) {

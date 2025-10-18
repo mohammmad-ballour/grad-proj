@@ -1,24 +1,33 @@
-import { UserAvatar } from "../../profile/models/ProfileResponseDto";
 
 export interface StatusWithRepliesResponse {
     statusResponse: StatusResponse,
     replies: ReplySnippet[];
 }
+interface UserAvatar {
+    userId: string;
+    displayName: string;
+    username: string;
+    profilePicture: string; // (byte) → base64 or URL on backend
+}
+
+
+
+
 export interface ReplySnippet {
-    replyId: number;           // Long → safest as string (to avoid JS number overflow)
+    replyId: string;           // Long → safest as string (to avoid JS number overflow)
     content: string;
     postedAt: string;          // Instant → ISO date string
     user: UserAvatar;
-    numLikes: number;   // Integer → number (nullable in JSON)
-    numReplies: number; // Integer → number (nullable in JSON)
-    numShares: number; // Integer → number (nullable in JSON)
+    numLikes: number;
+    numReplies: number;
+    numShares: number;
     medias: MediaResponse[];
     isLikedByCurrentUser: boolean;
 }
 
 export interface StatusResponse {
     userAvatar: UserAvatar;
-    statusId: number; // serialized with ToStringSerializer → use string in TS
+    statusId: string; // serialized with ToStringSerializer → use string in TS
     content: string;
     privacy: StatusPrivacy;
     replyAudience: StatusAudience;
@@ -35,6 +44,7 @@ export interface StatusResponse {
     isStatusLikedByCurrentUser: boolean;
     parentAssociation: ParentAssociation;
 }
+
 export enum ParentAssociation {
     REPLY = 'REPLY',
     SHARE = 'SHARE'
@@ -67,3 +77,22 @@ export interface ParentStatusSnippet {
     postedAt: string;         // Instant → ISO date string
     medias: MediaResponse[];
 }
+
+
+
+export interface ParentStatus {
+    statusId: string;
+    statusOwnerId: string;
+    parentAssociation: string; // Match your enum string
+}
+
+export interface CreateStatusRequest {
+    content: string;
+    privacy: StatusPrivacy;        // Enum: StatusPrivacy
+    replyAudience: StatusAudience;  // Enum: StatusAudience
+    shareAudience: StatusAudience;  // Enum: StatusAudience
+    parentStatus?: ParentStatus;
+}
+
+
+

@@ -17,6 +17,7 @@ export class BaseService {
     UPDATE_PRIORITY: '/api/users/update-priority/',
     USERS: '/api/users/',
     PUBLICSTATUS: '/api/status/public/',
+    STATUS: '/api/status',
     REPLYSTATUS: '/api/status/{statusId}/replies',
     LIKE: '/api/like',
     UNLIKE: '/api/unlike',

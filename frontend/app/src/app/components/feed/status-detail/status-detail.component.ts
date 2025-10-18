@@ -1,11 +1,13 @@
-import { Component, Input, ViewChild, ElementRef, SimpleChanges, OnChanges } from '@angular/core';
+import { Component, Input, ViewChild, ElementRef, SimpleChanges, OnChanges, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StatusCardComponent } from '../status-card/status-card.component';
 import { StatusRplyCardComponent } from '../status-reply-card/status-reply-card.component';
 import { ReplyService } from '../services/reply.service';
 import { StatusWithRepliesResponse } from '../models/StatusWithRepliesResponseDto';
-import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
-
+interface TimestampSeekRequest {
+  lastHappenedAt: string;
+  lastEntityId: string;
+}
 @Component({
   selector: 'app-status-detail',
   template: `
@@ -13,14 +15,20 @@ import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
 
       @if (statusData; as data) {
         @if (data.statusResponse) {
-          <app-status-card [statusData]="data.statusResponse"></app-status-card>
+          <app-status-card 
+          [statusData]="data.statusResponse"
+            (reloadRequested)="reloadRequested.emit($event)">
+
+          ></app-status-card>
         }
 
         @if (data.replies.length > 0) {
           <div class="replies-section">
             <h3>Replies</h3>
             @for (reply of data.replies; track reply.replyId) {
-              <app-status-reply-card [reply]="reply"></app-status-reply-card>
+              <app-status-reply-card [reply]="reply"
+                [parentStatus]="data.statusResponse"
+                ></app-status-reply-card>
             }
           </div>
         } @else {
@@ -38,9 +46,9 @@ import { TimestampSeekRequest } from '../../models/TimestampSeekRequestDto';
 export class StatusDetailComponent implements OnChanges {
   @ViewChild('scrollContainer', { static: true }) scrollContainer!: ElementRef<HTMLDivElement>;
   @Input() statusData!: StatusWithRepliesResponse;
-
+  @Output() reloadRequested = new EventEmitter<string>()
   timestampSeekRequest: TimestampSeekRequest = {
-    lastEntityId: 0,
+    lastEntityId: '',
     lastHappenedAt: ''
   };
   hasMoreReplies: boolean = true;
@@ -53,6 +61,8 @@ export class StatusDetailComponent implements OnChanges {
       this.timestampSeekRequest.lastEntityId = lastReply.replyId;
     }
   }
+
+
 
   onScroll(): void {
     const container = this.scrollContainer.nativeElement;

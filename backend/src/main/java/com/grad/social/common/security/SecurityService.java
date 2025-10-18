@@ -1,11 +1,16 @@
 package com.grad.social.common.security;
 
 import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
+import com.grad.social.common.exceptionhandling.BusinessRuleViolationException;
 import com.grad.social.common.model.exception.AuthErrorCode;
 import com.grad.social.exception.status.StatusErrorCode;
+import com.grad.social.model.enums.ParentAssociation;
 import com.grad.social.model.enums.PrivacySettings;
+import com.grad.social.model.enums.StatusAudience;
+import com.grad.social.model.enums.StatusPrivacy;
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.model.shared.UserConnectionInfo;
+import com.grad.social.model.status.request.CreateStatusRequest;
 import com.grad.social.model.status.request.ReactToStatusRequest;
 import com.grad.social.model.status.response.StatusPrivacyInfo;
 import com.grad.social.repository.chat.ChattingRepository;
@@ -22,7 +27,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.grad.social.model.enums.PrivacySettings.*;
 
@@ -108,6 +112,89 @@ public class SecurityService {
             if (!result) break;
         }
         return result;
+    }
+
+    public boolean checkCanCreateStatus(Jwt jwt, CreateStatusRequest toCreate) {
+        long currentUserId = extractUserIdFromAuthentication(jwt);
+        checkAnonymous(currentUserId);
+
+        if (!arePrivacyAndAudiencesCompatible(toCreate.privacy(), toCreate.replyAudience(), toCreate.shareAudience())) {
+            throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
+        }
+
+        var parentStatus = toCreate.parentStatus();
+        // an original status
+        if (parentStatus == null || parentStatus.statusId() == null) {
+            return true;
+        }
+
+        Long parentStatusId = Long.parseLong(parentStatus.statusId());
+        ParentAssociation parentAssociation = parentStatus.parentAssociation();
+
+        var parentStatusPrivacyInfo = this.statusRepository.getStatusPrivacyInfo(parentStatusId);
+        var parentStatusOwner = parentStatusPrivacyInfo.statusOwnerId();
+        var parentStatusPrivacy = parentStatusPrivacyInfo.privacy();
+
+        // reject if the parent is private and not owned by the current user
+        if (parentStatusPrivacy == StatusPrivacy.PRIVATE && !parentStatusOwner.equals(currentUserId)) return false;
+
+        // reject if child privacy and audience are different from parent (reply) and if child-parent privacy is not compatible (share)
+        if (parentAssociation == ParentAssociation.REPLY) {
+            boolean replyAllowed = toCreate.privacy() == parentStatusPrivacy
+                    || toCreate.replyAudience() == parentStatusPrivacyInfo.replyAudience() || toCreate.shareAudience() == parentStatusPrivacyInfo.shareAudience();
+            if (!replyAllowed) {
+                throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
+            }
+        } else if (parentAssociation == ParentAssociation.SHARE) {
+            boolean shareAllowed = this.isShareAllowed(parentStatusPrivacy, toCreate.privacy());
+            if (!shareAllowed) {
+                throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
+            }
+        }
+
+        UserConnectionInfo connectionInfo = this.userUserInteractionRepository.getConnectionWithOthersInfo(Set.of(parentStatusOwner), currentUserId).get(parentStatusOwner);
+        boolean followedByCurrentUser = connectionInfo.isFollowedByCurrentUser();
+
+        // REPLY or SHARE
+        if (parentAssociation == ParentAssociation.REPLY) {
+            var parentStatusReplyAudience = parentStatusPrivacyInfo.replyAudience();
+            boolean result = parentStatusReplyAudience == StatusAudience.EVERYONE
+                    || (parentStatusReplyAudience == StatusAudience.FOLLOWERS && (followedByCurrentUser || parentStatusOwner.equals(currentUserId)))
+                    || (parentStatusReplyAudience == StatusAudience.ONLY_ME && parentStatusOwner.equals(currentUserId));
+            if (!result) {
+                throw new ActionNotAllowedException(StatusErrorCode.NOT_ALLOWED_TO_REPLY_TO_STATUS);
+            }
+            return true;
+        } else if (parentAssociation == ParentAssociation.SHARE) {
+            var parentStatusShareAudience = parentStatusPrivacyInfo.shareAudience();
+            boolean result = parentStatusShareAudience == StatusAudience.EVERYONE
+                    || (parentStatusShareAudience == StatusAudience.FOLLOWERS && (followedByCurrentUser || parentStatusOwner.equals(currentUserId)))
+                    || (parentStatusShareAudience == StatusAudience.ONLY_ME && parentStatusOwner.equals(currentUserId));
+            if (!result) {
+                throw new ActionNotAllowedException(StatusErrorCode.NOT_ALLOWED_TO_SHARE_STATUS);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isShareAllowed(StatusPrivacy parentPrivacy, StatusPrivacy childPrivacy) {
+        if (parentPrivacy == StatusPrivacy.PUBLIC) {
+            return true;
+        } else if (parentPrivacy == StatusPrivacy.PRIVATE) {
+            return childPrivacy == StatusPrivacy.PRIVATE;
+        } else if (parentPrivacy == StatusPrivacy.FOLLOWERS) {
+            return childPrivacy == StatusPrivacy.FOLLOWERS || childPrivacy == StatusPrivacy.PRIVATE;
+        }
+        return false;
+    }
+
+    private boolean arePrivacyAndAudiencesCompatible(StatusPrivacy privacy, StatusAudience replyAudience, StatusAudience shareAudience) {
+        boolean publicPrivacy = privacy == StatusPrivacy.PUBLIC;
+        boolean privatePrivacy = privacy == StatusPrivacy.PRIVATE && (replyAudience == StatusAudience.ONLY_ME || shareAudience == StatusAudience.ONLY_ME);
+        boolean followersPrivacy = privacy == StatusPrivacy.FOLLOWERS && (replyAudience != StatusAudience.EVERYONE || shareAudience != StatusAudience.EVERYONE);
+        return publicPrivacy || privatePrivacy || followersPrivacy;
     }
 
     public boolean isStatusOwner(Jwt jwt, Long statusId) {
