@@ -19,6 +19,6 @@ public final class AppConstants {
 
 	public static final int DEFAULT_PAGE_SIZE = 10;
 
-	public static final String FIREBASE_API_KEY = "AIzaSyAJSFDScyDvxOoZlGVgyjAKlC4pAQC0hLo";
+    public static final double MODERATION_THRESHOLD = 0.25;
 
 }

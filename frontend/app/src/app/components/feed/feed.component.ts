@@ -184,10 +184,12 @@ import { ProfileServices } from '../profile/services/profile.services';
           </div>
 
           <ng-container *ngIf="!(isLoading && feed.length === 0)">
-            <app-status-card
-              *ngFor="let post of feed; trackBy: trackByStatusId"
-              [statusData]="post">
-            </app-status-card>
+         <app-status-card
+  *ngFor="let post of feed; trackBy: trackByStatusId"
+  [statusData]="post"
+  (deleted)="onStatusDeleted($event)">
+</app-status-card>
+
           </ng-container>
         </div>
 
@@ -453,6 +455,14 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.feedMode = true;
       this.loadFeed();
+    }
+  }
+  onStatusDeleted(statusId: string) {
+    const i = this.feed.findIndex(s => s.statusId === statusId);
+    if (i > -1) {
+      this.feed.splice(i, 1);
+      this.feed = [...this.feed]; // refresh view
+      this.cdr.detectChanges();
     }
   }
 

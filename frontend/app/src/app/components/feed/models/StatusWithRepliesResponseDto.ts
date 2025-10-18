@@ -96,3 +96,16 @@ export interface CreateStatusRequest {
 
 
 
+/** === UpdateStatusSettings DTO === */
+export interface UpdateStatusSettings {
+    statusPrivacy: StatusPrivacy;      // must match Java field name
+    replyAudience: StatusAudience;
+    shareAudience: StatusAudience;
+}
+
+/** === UpdateStatusContent DTO === */
+export interface UpdateStatusContent {
+    newContent: string;        // must match 'newContent' (not 'content')
+    keepMediaIds?: string[];   // Java List<Long> → TS string[]
+    removeMediaIds?: string[]; // Java List<Long> → TS string[]
+}

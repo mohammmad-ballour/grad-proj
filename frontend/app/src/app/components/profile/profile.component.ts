@@ -648,4 +648,21 @@ export class ProfileComponent implements OnInit, AfterViewInit {
     console.log('test')
     this.router.navigate([`${AppRoutes.STATUS}`, statusId])
   }
+  /** ---------- Handle deletion emitted from StatusCard ---------- **/
+  onStatusDeleted(statusId: string): void {
+    const idStr = String(statusId);
+
+    // Remove from Posts
+    this.posts = this.posts.filter(p => String(p.statusId) !== idStr);
+
+    // Remove from Replies
+    this.replies = this.replies.filter(r => String(r.statusId) !== idStr);
+
+    // Remove from Likes
+    this.likes = this.likes.filter(l => String(l.statusId) !== idStr);
+
+    // Remove from Media
+    this.media = this.media.filter(m => String(m.statusId) !== idStr);
+  }
+
 }

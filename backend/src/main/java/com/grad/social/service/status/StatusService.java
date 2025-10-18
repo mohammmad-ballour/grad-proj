@@ -9,13 +9,17 @@ import com.grad.social.common.utils.media.MediaUtils;
 import com.grad.social.exception.status.StatusErrorCode;
 import com.grad.social.model.enums.ParentAssociation;
 import com.grad.social.model.status.request.CreateStatusRequest;
+import com.grad.social.model.status.request.UpdateStatusContent;
+import com.grad.social.model.status.request.UpdateStatusSettings;
 import com.grad.social.repository.status.StatusRepository;
 import com.grad.social.service.media.MediaService;
+import com.grad.social.service.status.event.StatusContentUpdatedEvent;
 import com.grad.social.service.status.event.StatusPublishedEvent;
 import com.grad.social.service.status.utils.StatusUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -82,6 +86,52 @@ public class StatusService {
         }
     }
 
+    @Transactional
+    public void deleteStatus(Long statusId) throws Exception {
+        // Corresponding notifications for that statusId are deleted automatically at db level
+        this.deleteStatusMedia(statusId);
+        int recordsDeleted = this.statusRepository.deleteStatus(statusId);
+        if (recordsDeleted == 0) throw new ModelNotFoundException(Model.STATUS, statusId);
+    }
+
+    @Transactional
+    public void updateStatusContent(Long statusId, UpdateStatusContent toUpdate, List<MultipartFile> mediaFiles) throws Exception {
+        // 1. remove deleted media if not referenced by any other status
+        this.deleteStatusMedia(statusId, toUpdate.removeMediaIds());
+
+        // 2. Update text, keep only provided media
+        String oldContent = statusRepository.getContentById(statusId);
+        int recordsUpdated = this.statusRepository.updateStatusContent(statusId, toUpdate);
+
+        if (recordsUpdated != 0) {
+            this.eventPublisher.publishEvent(new StatusContentUpdatedEvent(statusId, oldContent, toUpdate.newContent()));
+        } else {
+            throw new ModelNotFoundException(Model.STATUS, statusId);
+        }
+
+        // 2. Insert new media if provided
+        if (mediaFiles != null && !mediaFiles.isEmpty()) {
+            int position = toUpdate.keepMediaIds() == null ? 1 : toUpdate.keepMediaIds().size() + 1;
+            this.uploadStatusMediaBatch(statusId, mediaFiles, position);
+        }
+    }
+
+    @Transactional
+    public void updateStatusSettings(Long statusId, UpdateStatusSettings toUpdate) {
+        this.statusRepository.updateStatusSettings(List.of(statusId), toUpdate);
+        this.asyncUpdateRepliesSettings(statusId, toUpdate);
+    }
+
+    @Async
+    @Transactional
+    public void asyncUpdateRepliesSettings(Long parentStatusId, UpdateStatusSettings toUpdate) {
+        List<Long> replies = this.statusRepository.getRepliesIds(parentStatusId);
+        if (!replies.isEmpty()) {
+            this.statusRepository.updateStatusSettings(replies, toUpdate);
+        }
+    }
+
+
     // Upload for statuses
     private void uploadStatusMediaBatch(Long statusId, List<MultipartFile> mediaFiles, int startPosition) throws Exception {
         // Collect new media to insert
@@ -113,6 +163,29 @@ public class StatusService {
 
         // Bulk link status <-> media
         this.mediaService.addMediaToStatusBatch(statusId, newMediaIds, startPosition);
+    }
+
+    private void deleteStatusMedia(Long statusId) throws Exception {
+        List<Long> mediaIdsToDelete = new ArrayList<>();
+        List<MediaRepresentation> statusMediasByStatusId = this.mediaService.getStatusMediasByStatusId(statusId);
+        deleteMediaAssetsIfNotReferenced(statusMediasByStatusId, mediaIdsToDelete);
+    }
+
+    private void deleteStatusMedia(Long statusId, List<Long> mediaIds) throws Exception {
+        List<Long> mediaIdsToDelete = new ArrayList<>();
+        List<MediaRepresentation> statusMediasByStatusId = this.mediaService.getStatusMediasByStatusIdAndMediaIds(statusId, mediaIds);
+        deleteMediaAssetsIfNotReferenced(statusMediasByStatusId, mediaIdsToDelete);
+    }
+
+    private void deleteMediaAssetsIfNotReferenced(List<MediaRepresentation> statusMediasByStatusId, List<Long> mediaIdsToDelete) throws Exception {
+        for (var mediaRepresentation : statusMediasByStatusId) {
+            String hashedFileName = mediaRepresentation.getFileNameHashed();
+            if (mediaRepresentation.getRefCount() == 1) {
+                FileSystemUtils.deleteFile(hashedFileName);
+                mediaIdsToDelete.add(mediaRepresentation.getMediaId());
+            }
+        }
+        this.mediaService.deleteMediaAssets(mediaIdsToDelete);
     }
 
 
