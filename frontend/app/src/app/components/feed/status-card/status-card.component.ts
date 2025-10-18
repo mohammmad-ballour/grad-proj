@@ -42,8 +42,6 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete.dialog/confirm-de
 import { EditStatusContentDialogComponent } from './edit-status-content/edit-status-content.component';
 import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog/edit-status-settings.dialog.component';
 
-
-
 @Component({
   selector: 'app-status-card',
   standalone: true,
@@ -73,7 +71,6 @@ import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog
       </button>
 
       <mat-menu #moreMenu="matMenu">
-        <!-- ⬇️ SPLIT: update settings vs update content -->
         <button mat-menu-item (click)="onUpdateSettings()">
           <mat-icon>tune</mat-icon>
           <span>Update settings</span>
@@ -148,25 +145,39 @@ import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog
           </div>
         }
 
-        <!-- Media -->
-        @if (statusData.medias && statusData.medias.length > 0) {
-          <div class="media-grid">
-            @for (media of statusData.medias; track media.mediaId) {
-              @if (media.mimeType.startsWith('image/')) {
+        <!-- Media (X-style layout) -->
+        @if (statusData.medias.length) {
+          <div class="media-grid" [ngClass]="mediaLayoutClass">
+            <ng-container *ngFor="let m of shownMedias; index as i; trackBy: trackMedia">
+              <figure class="tile" [ngClass]="'tile-' + i" (click)="openMediaViewer(m)">
                 <img
-                  [src]="mediaService.getMediaById(media.mediaId)"
-                  class="media-item"
-                  (click)="openMediaViewer(media)"
-                  alt="Media content"/>
-              }
-              @if (media.mimeType.startsWith('video/')) {
+                  *ngIf="m.mimeType.startsWith('image/')"
+                  [src]="mediaService.getMediaById(m.mediaId)"
+                  alt="Media"
+                  loading="lazy"
+                  draggable="false"
+                />
+
                 <video
-                  controls
-                  class="media-item"
-                  [src]="mediaService.getMediaById(media.mediaId)"
-                  aria-label="Video content"></video>
-              }
-            }
+                  *ngIf="m.mimeType.startsWith('video/')"
+                  [src]="mediaService.getMediaById(m.mediaId)"
+                  muted
+                  playsinline
+                  preload="metadata"
+                  aria-label="Video"
+                ></video>
+
+                <!-- Video badge like X -->
+                <div class="video-badge" *ngIf="m.mimeType.startsWith('video/')">
+                  <mat-icon>play_arrow</mat-icon>
+                </div>
+
+                <!-- +N overlay when more than 4 medias -->
+                <div class="more-overlay" *ngIf="i === 3 && extraMediaCount > 0">
+                  +{{ extraMediaCount }}
+                </div>
+              </figure>
+            </ng-container>
           </div>
         }
 
@@ -240,14 +251,141 @@ import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog
     .post-content.expanded { -webkit-line-clamp:unset; overflow:visible; }
     .see-more-btn { font-size:13px; color:#1da1f2; padding:0; }
 
-    .media-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; border-radius:12px; overflow:hidden; }
-    .media-item { width:100%; border-radius:12px; object-fit:cover; max-height:300px; cursor:pointer; }
-
     .unavailable-content { background-color:#f8f9fa; border-radius:8px; padding:16px; margin-top:8px; text-align:center; color:#333; }
     .lock-icon { font-size:24px; color:#657786; }
     .unavailable-content h3 { font-size:16px; margin:8px 0; }
     .unavailable-content p { font-size:14px; margin:0; }
     .connecting-line { width:2px; background-color:#657786; height:20px; margin:8px 0 8px 20px; }
+
+    /* --- X-style media grid --- */
+    .media-grid {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+      border-radius: 12px;
+      overflow: hidden;          /* no scrollbars */
+      width: 100%;
+    }
+
+    .media-grid .tile {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      background: #0f1419;
+      cursor: pointer;
+    }
+
+    /* Default aspect for tiles; individual layouts can override */
+    .media-grid .tile,
+    .media-grid .tile img,
+    .media-grid .tile video {
+      aspect-ratio: 16 / 9;
+    }
+
+    .media-grid .tile img,
+    .media-grid .tile video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none; /* open viewer on container click */
+      border: none;
+      outline: none;
+    }
+
+    .media-grid .tile::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(transparent, rgba(0,0,0,0.25));
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+    .media-grid .tile:hover::after { opacity: 1; }
+
+    /* Video play badge */
+    .video-badge {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid #2f3336;
+      border-radius: 999px;
+      padding: 2px 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .video-badge mat-icon { font-size: 18px; height: 18px; width: 18px; color: #fff; }
+
+    /* +N overlay (when > 4 medias) */
+    .more-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 28px;
+      color: #fff;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(2px);
+    }
+
+    /* --- Layouts --- */
+
+    /* 1 item: full width, big rounded corners */
+    .layout-1 {
+      grid-template-columns: 1fr;
+    }
+    .layout-1 .tile-0 {
+      border-radius: 12px;
+    }
+
+    /* 2 items: 2 equal columns */
+    .layout-2 {
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 1fr;
+    }
+    .layout-2 .tile-0 { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+    .layout-2 .tile-1 { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+
+    /* 3 items: left tall, right stacked */
+    .layout-3 {
+      grid-template-areas:
+        "a b"
+        "a c";
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 1fr;
+    }
+    .layout-3 .tile-0 { grid-area: a; border-top-left-radius: 12px; border-bottom-left-radius: 12px; aspect-ratio: auto; }
+    .layout-3 .tile-1 { grid-area: b; border-top-right-radius: 12px; }
+    .layout-3 .tile-2 { grid-area: c; border-bottom-right-radius: 12px; }
+
+    /* 4 items: 2x2 */
+    .layout-4 {
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 1fr;
+    }
+    .layout-4 .tile-0 { border-top-left-radius: 12px; }
+    .layout-4 .tile-1 { border-top-right-radius: 12px; }
+    .layout-4 .tile-2 { border-bottom-left-radius: 12px; }
+    .layout-4 .tile-3 { border-bottom-right-radius: 12px; }
+
+    /* Tighter height on large screens to mimic X’s compact feel */
+    @media (min-width: 768px) {
+      .layout-1 .tile-0 { max-height: 680px; }
+      .layout-2 .tile,
+      .layout-3 .tile,
+      .layout-4 .tile { max-height: 330px; }
+    }
+
+    /* Small screens */
+    @media (max-width: 767px) {
+      .layout-1 .tile-0 { max-height: 60vh; }
+      .layout-2 .tile,
+      .layout-3 .tile,
+      .layout-4 .tile { max-height: 40vh; }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -279,6 +417,21 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     private statusApi: StatusServices
   ) { }
 
+  /* ====== NEW helpers for X-style media grid ====== */
+  get shownMedias() {
+    return (this.statusData?.medias ?? []).slice(0, 4);
+  }
+  get extraMediaCount(): number {
+    const total = this.statusData?.medias?.length ?? 0;
+    return total > 4 ? total - 4 : 0;
+  }
+  get mediaLayoutClass(): string {
+    const n = Math.min(this.statusData?.medias?.length || 0, 4);
+    return `layout-${n}`;
+  }
+  trackMedia = (_: number, m: MediaResponse) => m.mediaId;
+  /* =============================================== */
+
   ngOnChanges(changes: SimpleChanges) {
     if ((changes['statusData'] || (changes['loading'] && this.loading === false)) && this.statusData && !this.loading) {
       this.statusAction = this.getStatusAction();
@@ -305,7 +458,6 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     catch { return false; }
   }
 
-  // ⬇️ NEW: open dialog to update settings (privacy/audiences)
   onUpdateSettings() {
     const ref = this.dialog.open(EditStatusSettingsDialogComponent, {
       width: '600px',
@@ -314,7 +466,6 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
 
     ref.afterClosed().subscribe((changes?: Partial<StatusResponse>) => {
       if (!changes) return;
-      // Merge only changed fields
       this.statusData = {
         ...this.statusData,
         privacy: (changes.privacy ?? this.statusData.privacy) as StatusPrivacy,
@@ -325,6 +476,7 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
       this.cdr.markForCheck();
     });
   }
+
   onUpdateContent() {
     const ref = this.dialog.open(EditStatusContentDialogComponent, {
       width: 'auto',
@@ -333,7 +485,7 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
       maxHeight: 'none',
       autoFocus: false,
       restoreFocus: true,
-      panelClass: 'fit-content-dialog',   // <- see styles.scss below
+      panelClass: 'fit-content-dialog',
       data: { status: this.statusData }
     });
 
@@ -347,28 +499,20 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     });
   }
 
-
-
-  // Delete flow stays the same
   onDeleteStatus() {
     const ref = this.dialog.open(ConfirmDeleteDialogComponent, {
       data: { statusId: this.statusData.statusId },
       width: '360px'
     });
 
-    ref.afterClosed().subscribe((result?: { updated?: StatusResponse }) => {
-      if (!result) return;
-      if (result.updated) {
-        this.statusData = result.updated;
-      }
-      this.statusAction = this.getStatusAction();
-      this.processContent();
-      setTimeout(() => this.measureOverflow(), 0);
-      this.cdr.markForCheck();
+    ref.afterClosed().subscribe(confirmed => {
+      if (!confirmed) return;
+      this.statusApi.deleteStatus(this.statusData.statusId).subscribe({
+        next: () => this.deleted.emit(this.statusData.statusId),
+        error: (e) => console.error('Failed to delete status', e)
+      });
     });
-
   }
-
   privacyIcon(p?: string): string {
     switch (p) { case 'PUBLIC': return 'public'; case 'FOLLOWERS': return 'person'; case 'PRIVATE': return 'lock'; default: return 'help_outline'; }
   }
