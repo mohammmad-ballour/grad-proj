@@ -24,7 +24,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   StatusResponse,
   ParentAssociation,
-  MediaResponse
+  MediaResponse,
+  StatusPrivacy,
+  StatusAudience
 } from '../models/StatusWithRepliesResponseDto';
 import { StatusParentCardComponent } from "../status-parent-card/status-parent-card.component";
 import { StatusActionCardComponent } from "../status-reaction-card/status-action-card.component";
@@ -37,6 +39,10 @@ import { MediaViewerComponent } from '../media-viewer-component/media-viewer-com
 import { AuthService } from '../../../core/services/auth.service';
 import { StatusServices } from '../services/status.services';
 import { ConfirmDeleteDialogComponent } from './confirm-delete.dialog/confirm-delete.dialog.component';
+import { EditStatusContentDialogComponent } from './edit-status-content/edit-status-content.component';
+import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog/edit-status-settings.dialog.component';
+
+
 
 @Component({
   selector: 'app-status-card',
@@ -67,9 +73,14 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete.dialog/confirm-de
       </button>
 
       <mat-menu #moreMenu="matMenu">
-        <button mat-menu-item (click)="onUpdateStatus()">
+        <!-- ⬇️ SPLIT: update settings vs update content -->
+        <button mat-menu-item (click)="onUpdateSettings()">
+          <mat-icon>tune</mat-icon>
+          <span>Update settings</span>
+        </button>
+        <button mat-menu-item (click)="onUpdateContent()">
           <mat-icon>edit</mat-icon>
-          <span>Update status</span>
+          <span>Update content</span>
         </button>
         <button mat-menu-item (click)="onDeleteStatus()">
           <mat-icon>delete</mat-icon>
@@ -192,37 +203,23 @@ import { ConfirmDeleteDialogComponent } from './confirm-delete.dialog/confirm-de
       border: 2px solid #cdd7e23b;
       min-height: 140px;
     }
-.more-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-
-  /* Circle shape */
-  width:40px;
-  height: 40px;
-  border-radius: 50%;
-
-  /* Center the icon inside the circle */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Styling */
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid #2f3336;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
-  z-index: 50;
-
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.more-btn:hover {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.post { position: relative; }
+    .more-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid #2f3336;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .more-btn:hover { background: rgba(0, 0, 0, 0.7); }
 
     .spinner-wrap { display:flex; align-items:center; justify-content:center; min-height:120px; padding:12px; }
     .header { display:flex; align-items:center; cursor:pointer; }
@@ -258,7 +255,7 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
   @Input() statusData!: StatusResponse;
   @Input() loading = false;
   @Output() reloadRequested = new EventEmitter<string>();
-  @Output() deleted = new EventEmitter<string>(); // emit when deleted
+  @Output() deleted = new EventEmitter<string>();
 
   @ViewChild('contentEl') contentEl!: ElementRef<HTMLElement>;
 
@@ -308,27 +305,70 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     catch { return false; }
   }
 
-  // Menu actions
-  onUpdateStatus() {
-    this.router.navigate([`${AppRoutes.STATUS}`, this.statusData.statusId, 'edit']);
+  // ⬇️ NEW: open dialog to update settings (privacy/audiences)
+  onUpdateSettings() {
+    const ref = this.dialog.open(EditStatusSettingsDialogComponent, {
+      width: '600px',
+      data: { status: this.statusData }
+    });
+
+    ref.afterClosed().subscribe((changes?: Partial<StatusResponse>) => {
+      if (!changes) return;
+      // Merge only changed fields
+      this.statusData = {
+        ...this.statusData,
+        privacy: (changes.privacy ?? this.statusData.privacy) as StatusPrivacy,
+        replyAudience: (changes.replyAudience ?? this.statusData.replyAudience) as StatusAudience,
+        shareAudience: (changes.shareAudience ?? this.statusData.shareAudience) as StatusAudience
+      };
+      this.statusAction = this.getStatusAction();
+      this.cdr.markForCheck();
+    });
+  }
+  onUpdateContent() {
+    const ref = this.dialog.open(EditStatusContentDialogComponent, {
+      width: 'auto',
+      height: 'auto',
+      maxWidth: '100vw',
+      maxHeight: 'none',
+      autoFocus: false,
+      restoreFocus: true,
+      panelClass: 'fit-content-dialog',   // <- see styles.scss below
+      data: { status: this.statusData }
+    });
+
+    ref.afterClosed().subscribe((result?: { updated?: StatusResponse }) => {
+      if (!result?.updated) return;
+      this.statusData = result.updated;
+      this.statusAction = this.getStatusAction();
+      this.processContent();
+      setTimeout(() => this.measureOverflow(), 0);
+      this.cdr.markForCheck();
+    });
   }
 
+
+
+  // Delete flow stays the same
   onDeleteStatus() {
     const ref = this.dialog.open(ConfirmDeleteDialogComponent, {
       data: { statusId: this.statusData.statusId },
       width: '360px'
     });
 
-    ref.afterClosed().subscribe(confirmed => {
-      if (!confirmed) return;
-      this.statusApi.deleteStatus(this.statusData.statusId).subscribe({
-        next: () => this.deleted.emit(this.statusData.statusId),
-        error: (e) => console.error('Failed to delete status', e)
-      });
+    ref.afterClosed().subscribe((result?: { updated?: StatusResponse }) => {
+      if (!result) return;
+      if (result.updated) {
+        this.statusData = result.updated;
+      }
+      this.statusAction = this.getStatusAction();
+      this.processContent();
+      setTimeout(() => this.measureOverflow(), 0);
+      this.cdr.markForCheck();
     });
+
   }
 
-  // Privacy icon/color helpers
   privacyIcon(p?: string): string {
     switch (p) { case 'PUBLIC': return 'public'; case 'FOLLOWERS': return 'person'; case 'PRIVATE': return 'lock'; default: return 'help_outline'; }
   }
