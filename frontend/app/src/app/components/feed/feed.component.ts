@@ -20,9 +20,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NotificationService } from '../services/notification.service';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -42,9 +39,6 @@ import { ProfileServices } from '../profile/services/profile.services';
     MatProgressSpinnerModule,
     FormsModule,
     MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
     MatMenuModule,
     MatDividerModule,
     MatTooltipModule,
@@ -61,102 +55,80 @@ import { ProfileServices } from '../profile/services/profile.services';
               alt="User Avatar">
           </div>
 
-          <!-- Compose -->
           <div class="compose-content">
+            <!-- Inline chip menus -->
             <div class="compose-header">
-              <!-- Selected settings badges -->
-              <div class="header-badges">
-                <span class="chip" [matTooltip]="'Post visibility'">
+              <div class="chip-row">
+                <!-- Visibility -->
+                <button mat-button class="chip-btn" [matMenuTriggerFor]="privacyMenu" matTooltip="Post visibility">
                   <mat-icon class="chip-icon">{{ getPrivacyIcon(privacy) }}</mat-icon>
                   {{ getPrivacyLabel(privacy) }}
-                </span>
+                  <mat-icon class="chev">expand_more</mat-icon>
+                </button>
+                <mat-menu #privacyMenu="matMenu">
+                  <button mat-menu-item (click)="setPrivacy(StatusPrivacy.PUBLIC)">
+                    <mat-icon>public</mat-icon><span>Public</span>
+                  </button>
+                  <button mat-menu-item (click)="setPrivacy(StatusPrivacy.FOLLOWERS)">
+                    <mat-icon>people</mat-icon><span>Followers only</span>
+                  </button>
+                  <button mat-menu-item (click)="setPrivacy(StatusPrivacy.PRIVATE)">
+                    <mat-icon>lock</mat-icon><span>Only me</span>
+                  </button>
+                </mat-menu>
 
                 <span class="dot">•</span>
 
-                <span class="chip" [matTooltip]="'Who can reply'">
+                <!-- Who can reply -->
+                <button mat-button class="chip-btn" [matMenuTriggerFor]="replyMenu" matTooltip="Who can reply">
                   <mat-icon class="chip-icon">{{ getAudienceIcon(replyAudience) }}</mat-icon>
-                  Replies: {{ getAudienceLabel(replyAudience) }}
-                </span>
+                  {{ getAudienceLabel(replyAudience) }}
+                  <mat-icon class="chev">expand_more</mat-icon>
+                </button>
+                <mat-menu #replyMenu="matMenu">
+                  <button mat-menu-item
+                          (click)="setReplyAudience(StatusAudience.EVERYONE)"
+                          [disabled]="!isReplyOptionAllowed(StatusAudience.EVERYONE)">
+                    <mat-icon>public</mat-icon><span>Everyone</span>
+                  </button>
+                  <button mat-menu-item
+                          (click)="setReplyAudience(StatusAudience.FOLLOWERS)"
+                          [disabled]="!isReplyOptionAllowed(StatusAudience.FOLLOWERS)">
+                    <mat-icon>people</mat-icon><span>People follow you</span>
+                  </button>
+                  <button mat-menu-item
+                          (click)="setReplyAudience(StatusAudience.ONLY_ME)"
+                          [disabled]="!isReplyOptionAllowed(StatusAudience.ONLY_ME)">
+                    <mat-icon>lock</mat-icon><span>Only me</span>
+                  </button>
+                </mat-menu>
 
                 <span class="dot">•</span>
 
-                <span class="chip" [matTooltip]="'Who can share'">
+                <!-- Who can share -->
+                <button mat-button class="chip-btn" [matMenuTriggerFor]="shareMenu" matTooltip="Who can share">
                   <mat-icon class="chip-icon">{{ getAudienceIcon(shareAudience) }}</mat-icon>
-                  Shares: {{ getAudienceLabel(shareAudience) }}
-                </span>
+                  {{ getAudienceLabel(shareAudience) }}
+                  <mat-icon class="chev">expand_more</mat-icon>
+                </button>
+                <mat-menu #shareMenu="matMenu">
+                  <button mat-menu-item
+                          (click)="setShareAudience(StatusAudience.EVERYONE)"
+                          [disabled]="!isShareOptionAllowed(StatusAudience.EVERYONE)">
+                    <mat-icon>public</mat-icon><span>Everyone</span>
+                  </button>
+                  <button mat-menu-item
+                          (click)="setShareAudience(StatusAudience.FOLLOWERS)"
+                          [disabled]="!isShareOptionAllowed(StatusAudience.FOLLOWERS)">
+                    <mat-icon>people</mat-icon><span>People follow you</span>
+                  </button>
+                  <button mat-menu-item
+                          (click)="setShareAudience(StatusAudience.ONLY_ME)"
+                          [disabled]="!isShareOptionAllowed(StatusAudience.ONLY_ME)">
+                    <mat-icon>lock</mat-icon><span>Only me</span>
+                  </button>
+                </mat-menu>
               </div>
-
-              <!-- Three-dots menu -->
-              <button mat-icon-button class="more-options" [matMenuTriggerFor]="moreMenu" matTooltip="Post options">
-                <mat-icon>more_horiz</mat-icon>
-              </button>
-              <mat-menu #moreMenu="matMenu">
-                <button mat-menu-item [matMenuTriggerFor]="privacyMenu">Post visibility</button>
-                <mat-divider></mat-divider>
-                <button mat-menu-item [matMenuTriggerFor]="replyAudienceMenu">Who can reply?</button>
-                <mat-divider></mat-divider>
-                <button mat-menu-item [matMenuTriggerFor]="shareAudienceMenu">Who can share?</button>
-              </mat-menu>
-
-              <!-- Privacy options -->
-              <mat-menu #privacyMenu="matMenu">
-                <button mat-menu-item (click)="setPrivacy(StatusPrivacy.PUBLIC)">
-                  <span class="menu-icon"><mat-icon>public</mat-icon></span>
-                  <span>Public</span>
-                </button>
-                <button mat-menu-item (click)="setPrivacy(StatusPrivacy.FOLLOWERS)">
-                  <span class="menu-icon"><mat-icon>people</mat-icon></span>
-                  <span>Followers only</span>
-                </button>
-                <button mat-menu-item (click)="setPrivacy(StatusPrivacy.PRIVATE)">
-                  <span class="menu-icon"><mat-icon>lock</mat-icon></span>
-                  <span>Only me</span>
-                </button>
-              </mat-menu>
-
-              <!-- Reply audience (restricted by privacy) -->
-              <mat-menu #replyAudienceMenu="matMenu">
-                <button mat-menu-item
-                        (click)="setReplyAudience(StatusAudience.EVERYONE)"
-                        [disabled]="!isReplyOptionAllowed(StatusAudience.EVERYONE)">
-                  <span class="menu-icon"><mat-icon>public</mat-icon></span>
-                  <span>Everyone can reply</span>
-                </button>
-                <button mat-menu-item
-                        (click)="setReplyAudience(StatusAudience.FOLLOWERS)"
-                        [disabled]="!isReplyOptionAllowed(StatusAudience.FOLLOWERS)">
-                  <span class="menu-icon"><mat-icon>people</mat-icon></span>
-                  <span>People you follow</span>
-                </button>
-                <button mat-menu-item
-                        (click)="setReplyAudience(StatusAudience.ONLY_ME)"
-                        [disabled]="!isReplyOptionAllowed(StatusAudience.ONLY_ME)">
-                  <span class="menu-icon"><mat-icon>lock</mat-icon></span>
-                  <span>Only me</span>
-                </button>
-              </mat-menu>
-
-              <!-- Share audience (restricted by privacy) -->
-              <mat-menu #shareAudienceMenu="matMenu">
-                <button mat-menu-item
-                        (click)="setShareAudience(StatusAudience.EVERYONE)"
-                        [disabled]="!isShareOptionAllowed(StatusAudience.EVERYONE)">
-                  <span class="menu-icon"><mat-icon>public</mat-icon></span>
-                  <span>Everyone can share</span>
-                </button>
-                <button mat-menu-item
-                        (click)="setShareAudience(StatusAudience.FOLLOWERS)"
-                        [disabled]="!isShareOptionAllowed(StatusAudience.FOLLOWERS)">
-                  <span class="menu-icon"><mat-icon>people</mat-icon></span>
-                  <span>People you follow</span>
-                </button>
-                <button mat-menu-item
-                        (click)="setShareAudience(StatusAudience.ONLY_ME)"
-                        [disabled]="!isShareOptionAllowed(StatusAudience.ONLY_ME)">
-                  <span class="menu-icon"><mat-icon>lock</mat-icon></span>
-                  <span>Only me</span>
-                </button>
-              </mat-menu>
             </div>
 
             <textarea
@@ -182,19 +154,21 @@ import { ProfileServices } from '../profile/services/profile.services';
               </div>
             </div>
 
+            <!-- One row: image icon + Post button (side by side) -->
             <div class="compose-actions">
               <div class="action-icons">
                 <input #fileInput type="file" multiple accept="image/*,video/*" style="display: none;" (change)="onFileSelected($event)">
+
+                <!-- Image upload icon -->
                 <button mat-icon-button class="action-btn" aria-label="Photo" (click)="fileInput.click()" matTooltip="Photo">
                   <mat-icon>photo</mat-icon>
                 </button>
-              </div>
 
-              <div class="post-section">
+                <!-- Single POST button beside the upload icon -->
                 <button
                   mat-raised-button
-                  class="post-btn"
                   color="primary"
+                  class="post-btn-inline"
                   [disabled]="!canPost()"
                   (click)="createNewStatus()">
                   Post
@@ -243,109 +217,80 @@ import { ProfileServices } from '../profile/services/profile.services';
   `,
   styles: [`
     .feed {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      height: 100%;
-      --bg-color: #000;
-      --text-primary: #fff;
-      --text-secondary: #71767b;
-      --border-color: #2f3336;
-      --primary-color: #1d9bf0;
-      --primary-hover: #1a8cd8;
-      --card-bg: #16181c;
-      --success-color: #00ba7c;
+      display: flex; flex-direction: column; gap: 16px; height: 100%;
+      --bg-color: #000; --text-primary: #fff; --text-secondary: #71767b; --border-color: #2f3336;
+      --primary-color: #1d9bf0; --primary-hover: #1a8cd8; --card-bg: #16181c; --success-color: #00ba7c;
     }
-
     .feed-inner { display: flex; flex-direction: column; gap: 16px; }
+    .unavailable-content { display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; background:var(--bg-color); color:var(--text-primary); padding:20px; margin:auto; max-width:600px; border-radius:8px; }
+    .loading-spinner { display:flex; justify-content:center; margin:20px 0; }
 
-    .unavailable-content {
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      text-align: center; background-color: var(--bg-color); color: var(--text-primary);
-      padding: 20px; margin: auto; max-width: 600px; border-radius: 8px;
+    .compose-box { display:flex; padding:16px; background:var(--card-bg); border-bottom:1px solid var(--border-color); border-radius:0; }
+    .avatar { margin-right:12px; flex-shrink:0; }
+    .avatar img { width:48px; height:48px; border-radius:50%; border:2px solid var(--border-color); object-fit:cover; background:#0b0b0b; }
+
+    .compose-content { flex:1; display:flex; flex-direction:column; min-width:0; }
+    .compose-header { margin-bottom:8px; }
+
+    .chip-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .chip-btn {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:4px 12px; height:34px; line-height:34px; border-radius:999px;
+      background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-primary);
+      text-transform:none;
     }
-
-    .loading-spinner { display: flex; justify-content: center; margin: 20px 0; }
-
-    .compose-box {
-      display: flex; padding: 16px; background-color: var(--card-bg);
-      border-bottom: 1px solid var(--border-color); border-radius: 0;
-    }
-
-    .avatar { margin-right: 12px; flex-shrink: 0; }
-    .avatar img {
-      width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--border-color);
-      object-fit: cover; object-position: center; background: #0b0b0b;
-    }
-
-    .compose-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-
-    .compose-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
-    }
-
-    .header-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.06);
-      color: var(--text-primary); font-size: 12px; border: 1px solid var(--border-color);
-    }
-    .chip-icon { font-size: 16px; height: 16px; width: 16px; line-height: 16px; }
+    .chip-btn:hover { background:rgba(255,255,255,0.12); }
+    .chip-icon { font-size:18px; height:18px; width:18px; }
+    .chev { font-size:18px; opacity:.8; }
     .dot { color: var(--text-secondary); }
 
-    .more-options { color: var(--text-secondary); }
-    .more-options:hover { background-color: rgba(255, 255, 255, 0.1); border-radius: 50%; }
-
     .compose-textarea {
-      border: none; resize: none; font-size: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      outline: none; width: 100%; margin-bottom: 8px; background: transparent; color: var(--text-primary); line-height: 1.4;
+      border:none; resize:none; font-size:20px;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      outline:none; width:100%; margin:8px 0; background:transparent; color:var(--text-primary); line-height:1.4;
     }
-    .compose-textarea::placeholder { color: var(--text-secondary); }
+    .compose-textarea::placeholder { color:var(--text-secondary); }
 
-    .counter { align-self: flex-end; color: var(--text-secondary); font-size: 13px; margin-bottom: 8px; }
-    .counter.warning { color: #f4212e; }
+    .counter { align-self:flex-end; color:var(--text-secondary); font-size:13px; margin-bottom:8px; }
+    .counter.warning { color:#f4212e; }
 
-    .media-preview { margin-bottom: 12px; max-width: 504px; border-radius: 16px; overflow: hidden; background: var(--border-color); }
-    .preview-grid { display: grid; gap: 0; border-radius: 16px; overflow: hidden; }
-    .preview-grid.grid-1 { grid-template-columns: 1fr; }
-    .preview-grid.grid-2 { grid-template-columns: 1fr 1fr; }
-    .preview-grid.grid-3, .preview-grid.grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
-    .preview-grid.grid-3 .preview-item:nth-child(3) { grid-column: 1 / -1; grid-row: 2; }
+    .media-preview { margin-bottom:12px; max-width:504px; border-radius:16px; overflow:hidden; background:var(--border-color); }
+    .preview-grid { display:grid; gap:0; border-radius:16px; overflow:hidden; }
+    .preview-grid.grid-1 { grid-template-columns:1fr; }
+    .preview-grid.grid-2 { grid-template-columns:1fr 1fr; }
+    .preview-grid.grid-3, .preview-grid.grid-4 { grid-template-columns:1fr 1fr; grid-template-rows:auto auto; }
+    .preview-grid.grid-3 .preview-item:nth-child(3) { grid-column:1 / -1; grid-row:2; }
+    .preview-item { position:relative; aspect-ratio:16/9; overflow:hidden; background:#000; }
+    .preview-media { width:100%; height:100%; object-fit:cover; display:block; }
+    .remove-icon { position:absolute; top:8px; right:8px; background:rgba(29,155,240,0.9); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; z-index:1; }
 
-    .preview-item { position: relative; aspect-ratio: 16 / 9; border-radius: 0; overflow: hidden; background: #000; }
-    .preview-media { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .remove-icon {
-      position: absolute; top: 8px; right: 8px; background: rgba(29, 155, 240, 0.9); color: white;
-      border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 16px; z-index: 1;
+    /* Image icon + Post button row */
+    .compose-actions {
+      display:flex; align-items:center; gap:8px; padding-top:8px; border-top:1px solid var(--border-color);
     }
+    .action-icons { display:flex; align-items:center; gap:8px; }
+    .action-btn { color:var(--primary-color); width:40px; height:40px; border-radius:50%; transition:background-color .2s; }
+    .action-btn:hover { background-color:rgba(29,155,240,0.1); }
+    .action-btn:disabled { color:var(--text-secondary); }
 
-    .compose-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border-color); }
-    .action-icons { display: flex; gap: 16px; }
-    .action-btn { color: var(--primary-color); width: 40px; height: 40px; border-radius: 50%; transition: background-color 0.2s; }
-    .action-btn:hover { background-color: rgba(29, 155, 240, 0.1); }
-    .action-btn:disabled { color: var(--text-secondary); }
+    .post-btn-inline {
+      border-radius:20px; padding:8px 16px; font-weight:bold; text-transform:none; height:36px;
+    }
+    .post-btn-inline:not(:disabled) { background-color: var(--primary-color); color: white; }
+    .post-btn-inline:not(:disabled):hover { background-color: var(--primary-hover); }
+    .post-btn-inline:disabled { opacity:.6; }
 
-    .post-section { display: flex; align-items: center; gap: 8px; }
-    .post-btn { border-radius: 20px; padding: 8px 16px; font-weight: bold; text-transform: none; min-width: 60px; height: 36px; }
-    .post-btn:not(:disabled) { background-color: var(--primary-color); color: white; }
-    .post-btn:not(:disabled):hover { background-color: var(--primary-hover); }
-    .post-btn:disabled { background-color: var(--text-secondary); color: white; }
-
-    mat-menu { background-color: var(--card-bg); color: var(--text-primary); }
-    mat-menu-item { color: var(--text-primary); }
-    mat-menu-item[disabled] { opacity: .5; }
-    mat-menu-item:hover { background-color: rgba(255, 255, 255, 0.1); }
-    .menu-icon { width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 16px; color: var(--text-secondary); }
+    mat-menu { background:var(--card-bg); color:var(--text-primary); }
+    mat-menu-item { color:var(--text-primary); }
+    mat-menu-item[disabled] { opacity:.5; }
+    mat-menu-item:hover { background-color:rgba(255,255,255,0.1); }
 
     @media (prefers-color-scheme: light) {
-      .feed {
-        --bg-color: #fff; --text-primary: #0f1419; --text-secondary: #536471; --border-color: #e7e9ea; --card-bg: #fff; --primary-color: #1d9bf0; --primary-hover: #1a8cd8;
-      }
-      .compose-textarea::placeholder { color: var(--text-secondary); }
-      .compose-box { background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
-      .chip { background: rgba(15,20,25,0.04); }
+      .feed { --bg-color:#fff; --text-primary:#0f1419; --text-secondary:#536471; --border-color:#e7e9ea; --card-bg:#fff; --primary-color:#1d9bf0; --primary-hover:#1a8cd8; }
+      .compose-textarea::placeholder { color:var(--text-secondary); }
+      .compose-box { background-color:var(--card-bg); border-bottom:1px solid var(--border-color); }
+      .chip-btn { background:rgba(15,20,25,0.04); }
+      .chip-btn:hover { background:rgba(15,20,25,0.08); }
     }
   `]
 })
@@ -435,7 +380,7 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
   getAudienceLabel(a: StatusAudience): string {
     switch (a) {
       case StatusAudience.EVERYONE: return 'Everyone';
-      case StatusAudience.FOLLOWERS: return 'Followers';
+      case StatusAudience.FOLLOWERS: return 'People follow you';
       case StatusAudience.ONLY_ME: return 'Only me';
       default: return '';
     }
@@ -450,16 +395,14 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * RULES (English summary of your Arabic note):
-   * - If Post is PUBLIC → reply/share may be Everyone, Followers, or Only me.
-   * - If Post is FOLLOWERS → reply/share CANNOT be Public (Everyone). Allowed: Followers, Only me.
-   * - If Post is PRIVATE (Only me) → reply/share must be Only me (no escalation).
-   * When privacy changes, we auto-downgrade reply/share to the nearest allowed option.
+   * RULES:
+   * - PUBLIC → reply/share can be Everyone, People follow you, or Only me.
+   * - FOLLOWERS → reply/share cannot be Everyone (no escalation).
+   * - PRIVATE → reply/share must be Only me.
    */
   private isAudienceAllowedWithPrivacy(a: StatusAudience, p: StatusPrivacy): boolean {
     if (p === StatusPrivacy.PUBLIC) return true;
     if (p === StatusPrivacy.FOLLOWERS) return a !== StatusAudience.EVERYONE;
-    // PRIVATE
     return a === StatusAudience.ONLY_ME;
   }
   isReplyOptionAllowed(a: StatusAudience): boolean {
@@ -469,17 +412,15 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.isAudienceAllowedWithPrivacy(a, this.privacy);
   }
   private coerceAudiencesForPrivacy(): void {
-    // Reply
     if (!this.isReplyOptionAllowed(this.replyAudience)) {
       this.replyAudience = (this.privacy === StatusPrivacy.FOLLOWERS)
         ? StatusAudience.FOLLOWERS
-        : StatusAudience.ONLY_ME; // PRIVATE
+        : StatusAudience.ONLY_ME;
     }
-    // Share
     if (!this.isShareOptionAllowed(this.shareAudience)) {
       this.shareAudience = (this.privacy === StatusPrivacy.FOLLOWERS)
         ? StatusAudience.FOLLOWERS
-        : StatusAudience.ONLY_ME; // PRIVATE
+        : StatusAudience.ONLY_ME;
     }
   }
 
@@ -549,11 +490,6 @@ export class FeedComponent implements OnInit, AfterViewInit, OnDestroy {
           if (res.statuses.length > 0) this.page++;
           this.notificationService.updateUnreadCounts(res.unreadMessagesCount, res.unreadNotificationsCount);
           this.hasMoreFeed = res.statuses.length > 0;
-
-          if (this.debug) {
-            const c = this.getScrollContainer();
-            console.log('[feed] after update', c ? { scrollTop: c.scrollTop, scrollHeight: c.scrollHeight } : null);
-          }
         })();
       },
       error: (err) => { console.error('Failed to load feed', err); },
