@@ -89,7 +89,8 @@ public class NotificationRepository {
                 record.get("last_updated_at", Instant.class),
                 record.get("actor_count", Integer.class),
                 NotificationDto.GroupingState.valueOf(record.get("grouping_state", String.class)),
-                record.get("actor_names", String[].class),
+                record.get("actor_displaynames", String[].class),
+                record.get("last_actor_username", String.class),
                 record.get("last_actor_profile_picture", byte[].class),
                 record.get("status_content", String.class)
         ));

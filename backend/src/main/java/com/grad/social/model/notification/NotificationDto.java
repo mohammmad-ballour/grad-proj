@@ -12,7 +12,8 @@ public record NotificationDto(
         Instant lastUpdatedAt,
         Integer actorCount,
         GroupingState groupingState,
-        String[] actorNames,
+        String[] actorDisplayNames,
+        String lastActorUsername,
         byte[] lastActorProfilePicture,
         // null (not a user-status notification), empty string (media-only status), otherwise the status's content
         String statusContent
