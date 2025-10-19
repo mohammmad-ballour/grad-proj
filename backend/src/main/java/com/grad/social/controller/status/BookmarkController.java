@@ -33,8 +33,8 @@ public class BookmarkController {
     }
 
     @GetMapping
-    public ResponseEntity<List<StatusResponse>> listBookmarks(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<List<StatusResponse>> listBookmarks(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.valueOf(jwt.getClaimAsString("uid"));
-        return ResponseEntity.ok(this.bookmarkService.getUserBookmarks(currentUserId));
+        return ResponseEntity.ok(this.bookmarkService.getUserBookmarks(currentUserId, page));
     }
 }

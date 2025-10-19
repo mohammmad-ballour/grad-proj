@@ -26,7 +26,7 @@ public class BookmarkService {
     }
 
     @Transactional(readOnly = true)
-    public List<StatusResponse> getUserBookmarks(Long userId) {
-        return userStatusInteractionRepository.fetchBookmarks(userId, 0);
+    public List<StatusResponse> getUserBookmarks(Long userId, int offset) {
+        return userStatusInteractionRepository.fetchBookmarks(userId, offset);
     }
 }
