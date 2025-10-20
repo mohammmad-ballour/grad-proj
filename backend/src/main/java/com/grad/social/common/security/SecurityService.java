@@ -120,6 +120,11 @@ public class SecurityService {
         long currentUserId = extractUserIdFromAuthentication(jwt);
         checkAnonymous(currentUserId);
 
+        // Restricted users are NOT allowed to post statuses
+        if (this.userRepository.isAccountRestricted(currentUserId)) {
+            return false;
+        }
+
         if (!arePrivacyAndAudiencesCompatible(toCreate.privacy(), toCreate.replyAudience(), toCreate.shareAudience())) {
             throw new BusinessRuleViolationException(StatusErrorCode.INVALID_STATUS_PRIVACY_OR_AUDIENCE);
         }

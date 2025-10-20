@@ -21,4 +21,6 @@ public final class AppConstants {
 
     public static final double MODERATION_THRESHOLD = 0.25;
 
+    public static final long SYSTEM_USER = 0L;
+
 }

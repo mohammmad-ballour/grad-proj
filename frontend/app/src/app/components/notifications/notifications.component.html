@@ -1,15 +1,46 @@
+
 <div class="notifications-container">
   <h2>Notifications</h2>
-  <mat-list>
-    <mat-list-item *ngFor="let notification of notifications" class="notification-item">
-      <mat-icon matListIcon>{{ getIcon(notification.type) }}</mat-icon>
-      <div class="notification-content">
-        <span class="message">{{ notification.message }}</span>
-        <span class="timestamp">{{ notification.createdAt }}</span>
+
+  <div *ngIf="notifications.length === 0" class="empty">
+    No notifications yet.
+  </div>
+
+  <div
+    *ngFor="let n of notifications"
+    class="notification-card"
+    [class.unread]="n.groupingState !== 'READ'"
+  >
+    <!-- last actor image -->
+    <div class="avatar">
+      <img
+        [src]="'data:image/jpeg;base64,' + n.lastActorProfilePicture"
+        (error)="onImageError($event, 'assets/ProfileAvatar.png')"
+        alt="Profile picture"
+      />
+    </div>
+
+    <div class="content">
+      <!-- readable sentence -->
+      <div class="text">
+        <strong>{{ actorSummary(n.actorDisplayNames) }}</strong>
+        <span>{{ actionText(n) }}</span>
+
+        <!-- show hyperlink if status exists -->
+        <ng-container *ngIf="n.statusId">
+          <a
+            [routerLink]="['/status', n.statusId]"
+            class="status-link"
+          >
+            {{ n.statusContent ? '"' + n.statusContent + '"' : 'your status' }}
+          </a>
+        </ng-container>
       </div>
-    </mat-list-item>
-  </mat-list>
-  <div matRipple matRippleColor="red" >
-  <ng-content>ffffffffff</ng-content>
-</div>
+
+      <div class="meta">
+        <small>{{ readableState(n.groupingState) }}</small>
+        <small>• {{ n.lastUpdatedAt | date:'short' }}</small>
+      </div>
+    </div>
+  </div>
 </div>

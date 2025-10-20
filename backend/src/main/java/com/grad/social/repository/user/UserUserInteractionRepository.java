@@ -7,10 +7,7 @@ import com.grad.social.model.enums.PrivacySettings;
 import com.grad.social.model.shared.UserConnectionInfo;
 import com.grad.social.model.shared.ProfileStatus;
 import com.grad.social.model.shared.UserAvatar;
-import com.grad.social.model.tables.UserBlocks;
-import com.grad.social.model.tables.UserFollowers;
-import com.grad.social.model.tables.UserMutes;
-import com.grad.social.model.tables.Users;
+import com.grad.social.model.tables.*;
 import com.grad.social.model.user.response.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -33,6 +30,7 @@ public class UserUserInteractionRepository {
 
     private final DSLContext dsl;
     private final Users u = Users.USERS.as("u");
+    private final UserPreferences up = UserPreferences.USER_PREFERENCES.as("up");
     private final UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
     private final UserMutes um = UserMutes.USER_MUTES.as("UM");
     private final UserFollowers uf1 = UserFollowers.USER_FOLLOWERS.as("uf1");
@@ -248,9 +246,10 @@ public class UserUserInteractionRepository {
 
         int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
 
-        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, u.PROFILE_BIO, u.IS_VERIFIED, u.WHO_CAN_MESSAGE, u.WHO_CAN_ADD_TO_GROUPS,
+        return dsl.select(u.ID, u.USERNAME, u.DISPLAY_NAME, u.PROFILE_PICTURE, u.PROFILE_BIO, u.IS_VERIFIED, up.WHO_CAN_MESSAGE, up.WHO_CAN_ADD_TO_GROUPS,
                         isFollowedByCurrentUserField, isFollowingCurrentUserField)
                 .from(u)
+                .join(up).on(u.ID.eq(up.USER_ID))
                 // currentUser follows otherUser
                 .leftJoin(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID)
                         .and(uf1.FOLLOWER_ID.eq(currentUserId)))
@@ -303,9 +302,10 @@ public class UserUserInteractionRepository {
                                         .where(uf1.FOLLOWER_ID.eq(currentUserId)
                                                 .and(uf1.FOLLOWED_USER_ID.eq(profileOwnerId)))
                         ).as("is_followed"),
-                        u.IS_PROTECTED.as("is_protected")
+                        up.IS_PROTECTED.as("is_protected")
                 )
                 .from(u)
+                .join(up).on(u.ID.eq(up.USER_ID))
                 .where(u.ID.eq(profileOwnerId))
                 .fetchOneInto(ProfileStatus.class);
     }
@@ -321,11 +321,12 @@ public class UserUserInteractionRepository {
 
     public Map<Long, UserConnectionInfo> getConnectionWithOthersInfo(Set<Long> otherUserIds, Long currentUserId) {
         return dsl.select(
-                        u.ID, u.WHO_CAN_MESSAGE, u.WHO_CAN_ADD_TO_GROUPS,
+                        u.ID, up.WHO_CAN_MESSAGE, up.WHO_CAN_ADD_TO_GROUPS,
                         DSL.when(uf1.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_followed"),
                         DSL.when(uf2.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_following")
                 )
                 .from(u)
+                .join(up).on(u.ID.eq(up.USER_ID))
                 // currentUser follows otherUser
                 .leftJoin(uf1).on(uf1.FOLLOWED_USER_ID.eq(u.ID)
                         .and(uf1.FOLLOWER_ID.eq(currentUserId)))
@@ -336,7 +337,7 @@ public class UserUserInteractionRepository {
                 .fetchMap(
                         r -> r.get(u.ID),
                         r -> new UserConnectionInfo(r.get("is_followed", Boolean.class), r.get("is_following", Boolean.class)
-                        ,r.get(u.WHO_CAN_MESSAGE), r.get(u.WHO_CAN_ADD_TO_GROUPS))
+                                ,r.get(up.WHO_CAN_MESSAGE), r.get(up.WHO_CAN_ADD_TO_GROUPS))
                 );
     }
 }
