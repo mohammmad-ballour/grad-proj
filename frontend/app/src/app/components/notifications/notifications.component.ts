@@ -483,18 +483,30 @@ export class NotificationsComponent implements OnInit, AfterViewInit, OnDestroy 
 
   coActorsText(n: NotificationDto): string {
     const names = (n.actorDisplayNames ?? []).filter(Boolean).map(s => String(s).trim());
-    if (names.length <= 1) return '';
-    const remaining = names.slice(1);
-    const shown = remaining.slice(0, 3);
-    if (shown.length === 1) return `and ${shown[0]}`;
-    if (shown.length === 2) return `and ${shown[0]} and ${shown[1]}`;
-    if (shown.length === 3 && remaining.length === 3) return `and ${shown[0]}, ${shown[1]} and ${shown[2]}`;
-    if (remaining.length > 3) {
-      const others = remaining.length - 3;
-      return `and ${shown[0]}, ${shown[1]}, ${shown[2]} and ${others} others`;
+    if (names.length === 0) return '';
+
+    const total = Number.isFinite(n.actorCount as any) ? Math.max(0, n.actorCount) : names.length;
+
+    // we already show names[0] as the main actor; show up to two more
+    const remaining = names.slice(1, 3);
+    const others = Math.max(0, total - 3);
+    const otherLabel = others === 1 ? 'other' : 'others';
+
+    // build the "and ..." phrase
+    let base =
+      remaining.length === 0 ? '' :
+        remaining.length === 1 ? `, ${remaining[0]}` :
+          `, ${remaining[0]}, ${remaining[1]}`;
+
+    // append the "+ N others" suffix if there are more than 3 total
+    if (others > 0) {
+      // if no remaining names (edge case), still show the others
+      base = base ? `${base} + ${others} ${otherLabel}` : `and ${others} ${otherLabel}`;
     }
-    return '';
+
+    return base;
   }
+
 
   getRelativeTime(iso: string): string {
     const then = new Date(iso).getTime();
