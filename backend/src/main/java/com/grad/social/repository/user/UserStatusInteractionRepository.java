@@ -62,6 +62,9 @@ public class UserStatusInteractionRepository {
     private final Messages m = Messages.MESSAGES;
     private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
 
+    private final Notifications n = Notifications.NOTIFICATIONS;
+    private final NotificationActors na = NotificationActors.NOTIFICATION_ACTORS;
+
     // currentUserId is the one who is viewing the status
     public StatusWithRepliesResponse getStatusById(Long currentUserId, Long statusIdToFetch) {
         // blocks: neither direction (current user blocked poster or poster blocked current user)
@@ -411,16 +414,52 @@ public class UserStatusInteractionRepository {
         return this.mapToStatusResponseList(result, currentUserId);
     }
 
-    public int getUnreadMessages(Long currentUserId) {
-        return Objects.requireNonNull(dsl.selectCount()
-                .from(ms)
-                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
-                .where(ms.USER_ID.eq(currentUserId)
-                        .and(ms.READ_AT.isNull())
-                        .and(m.SENT_AT.greaterThan(getLastOnline(currentUserId)))
+    public UnreadCounts getUnreadCounts(Long currentUserId) {
+        // Subquery: last_online timestamp
+        var lastOnline = getLastOnline(currentUserId);
+
+        // Subquery for notifications stats
+        var stats = dsl
+                .select(
+                        na.NOTIFICATION_ID,
+                        DSL.max(na.CREATED_AT).as("max_created_at")
                 )
-                .fetchOneInto(int.class));
+                .from(na)
+                .groupBy(na.NOTIFICATION_ID)
+                .asTable("stats");
+
+        // Two count selects combined using DSL.select(...)
+        var result = dsl.select(
+                        // unread messages
+                        DSL.selectCount()
+                                .from(ms)
+                                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                                .where(ms.USER_ID.eq(currentUserId))
+                                .and(ms.READ_AT.isNull())
+                                .and(m.SENT_AT.greaterThan(lastOnline))
+                                .asField("unread_messages"),
+
+                        // unread notifications
+                        DSL.selectCount()
+                                .from(n)
+                                .join(stats)
+                                .on(stats.field("notification_id", Long.class).eq(n.ID))
+                                .where(n.RECIPIENT_ID.eq(currentUserId))
+                                .and(
+                                        n.LAST_READ_AT.isNull()
+                                                .or(n.LAST_READ_AT.lt(stats.field("max_created_at", Instant.class)))
+                                )
+                                .asField("unread_notifications")
+                )
+                .fetchOne();
+
+        return new UnreadCounts(
+                result.get("unread_messages", int.class),
+                result.get("unread_notifications", int.class)
+        );
     }
+
+    public record UnreadCounts(int unreadMessages, int unreadNotifications) {}
 
 
     // Helpers

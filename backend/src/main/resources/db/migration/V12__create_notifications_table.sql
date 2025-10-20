@@ -222,8 +222,8 @@ ORDER BY
         ELSE 0
         END,
     an.last_updated_at DESC
-OFFSET p_offset LIMIT p_limit;
+OFFSET (p_offset * p_limit) LIMIT p_limit;
 $$;
 
 
-SELECT fetch_notifications_for_recipient(2);
+SELECT fetch_notifications_for_recipient(2, 1, 5);
