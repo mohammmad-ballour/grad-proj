@@ -1,4 +1,3 @@
-
 <div class="notifications-container">
   <h2>Notifications</h2>
 
@@ -23,7 +22,7 @@
     <div class="content">
       <!-- readable sentence -->
       <div class="text">
-        <strong>{{ actorSummary(n.actorNames) }}</strong>
+        <strong>{{ actorSummary(n.actorDisplayNames) }}</strong>
         <span>{{ actionText(n) }}</span>
 
         <!-- show hyperlink if status exists -->
@@ -41,6 +40,9 @@
         <small>{{ readableState(n.groupingState) }}</small>
         <small>• {{ n.lastUpdatedAt | date:'short' }}</small>
       </div>
-    </div>
-  </div>
+    </mat-list-item>
+  </mat-list>
+  <div matRipple matRippleColor="red" >
+  <ng-content>ffffffffff</ng-content>
+</div>
 </div>

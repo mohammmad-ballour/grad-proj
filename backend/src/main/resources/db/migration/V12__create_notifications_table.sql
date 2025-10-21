@@ -45,7 +45,7 @@ CREATE OR REPLACE FUNCTION public.aggregate_notifications(
 ) RETURNS void AS
 $$
 DECLARE
-v_notification_id BIGINT;
+    v_notification_id BIGINT;
     v_existing_id     BIGINT;
     v_actor_count     INTEGER;
     v_time_window     INTERVAL := INTERVAL '24 hours';
@@ -62,77 +62,77 @@ BEGIN
 INSERT INTO notification_actors (notification_id, actor_id)
 VALUES (v_notification_id, p_actor_id);
 
-CONTINUE;
-END IF;
+                CONTINUE;
+            END IF;
 
             -- For other types, try to find existing notification to aggregate
             IF p_type = 'FOLLOW' THEN
-SELECT id
-INTO v_existing_id
-FROM notifications
-         JOIN LATERAL (
-    SELECT MAX(created_at) AS max_created_at
-    FROM notification_actors na
-    WHERE na.notification_id = id
-        ) stats ON TRUE
-WHERE recipient_id = v_recipient_id
-  AND type = p_type
-  AND (
-    last_read_at IS NULL
-        OR stats.max_created_at >= NOW() - v_time_window
-    )
-ORDER BY CASE WHEN last_read_at IS NULL THEN 0 ELSE 1 END,
-         stats.max_created_at DESC
-    LIMIT 1;
-ELSE
-SELECT id
-INTO v_existing_id
-FROM notifications
-         JOIN LATERAL (
-    SELECT MAX(created_at) AS max_created_at
-    FROM notification_actors na
-    WHERE na.notification_id = id
-        ) stats ON TRUE
-WHERE recipient_id = v_recipient_id
-  AND type = p_type
-  AND status_id = p_status_id
-  AND (
-    last_read_at IS NULL
-        OR stats.max_created_at >= NOW() - v_time_window
-    )
-ORDER BY CASE WHEN last_read_at IS NULL THEN 0 ELSE 1 END,
-         stats.max_created_at DESC
-    LIMIT 1;
-END IF;
+                SELECT id
+                INTO v_existing_id
+                FROM notifications
+                         JOIN LATERAL (
+                    SELECT MAX(created_at) AS max_created_at
+                    FROM notification_actors na
+                    WHERE na.notification_id = id
+                    ) stats ON TRUE
+                WHERE recipient_id = v_recipient_id
+                  AND type = p_type
+                  AND (
+                    last_read_at IS NULL
+                        OR stats.max_created_at >= NOW() - v_time_window
+                    )
+                ORDER BY CASE WHEN last_read_at IS NULL THEN 0 ELSE 1 END,
+                         stats.max_created_at DESC
+                LIMIT 1;
+            ELSE
+                SELECT id
+                INTO v_existing_id
+                FROM notifications
+                         JOIN LATERAL (
+                    SELECT MAX(created_at) AS max_created_at
+                    FROM notification_actors na
+                    WHERE na.notification_id = id
+                    ) stats ON TRUE
+                WHERE recipient_id = v_recipient_id
+                  AND type = p_type
+                  AND status_id = p_status_id
+                  AND (
+                    last_read_at IS NULL
+                        OR stats.max_created_at >= NOW() - v_time_window
+                    )
+                ORDER BY CASE WHEN last_read_at IS NULL THEN 0 ELSE 1 END,
+                         stats.max_created_at DESC
+                LIMIT 1;
+            END IF;
 
             IF FOUND THEN
                 -- Check if actor already exists
-SELECT COUNT(*)
-INTO v_actor_count
-FROM notification_actors
-WHERE notification_id = v_existing_id
-  AND actor_id = p_actor_id;
+                SELECT COUNT(*)
+                INTO v_actor_count
+                FROM notification_actors
+                WHERE notification_id = v_existing_id
+                  AND actor_id = p_actor_id;
 
-IF v_actor_count = 0 THEN
+                IF v_actor_count = 0 THEN
                     INSERT INTO notification_actors (notification_id, actor_id)
                     VALUES (v_existing_id, p_actor_id);
-END IF;
-ELSE
+                END IF;
+            ELSE
                 -- Create new notification
                 IF p_type = 'FOLLOW' THEN
                     INSERT INTO notifications (recipient_id, type)
                     VALUES (v_recipient_id, p_type)
                     RETURNING id INTO v_notification_id;
-ELSE
+                ELSE
                     INSERT INTO notifications (recipient_id, type, status_id)
                     VALUES (v_recipient_id, p_type, p_status_id)
                     RETURNING id INTO v_notification_id;
-END IF;
+                END IF;
 
-INSERT INTO notification_actors (notification_id, actor_id)
-VALUES (v_notification_id, p_actor_id);
-END IF;
-END LOOP;
+                INSERT INTO notification_actors (notification_id, actor_id)
+                VALUES (v_notification_id, p_actor_id);
+            END IF;
+        END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -151,7 +151,8 @@ CREATE OR REPLACE FUNCTION public.fetch_notifications_for_recipient(
                 last_updated_at            TIMESTAMPTZ,
                 actor_count                INTEGER,
                 grouping_state             TEXT,
-                actor_names                TEXT[],
+                actor_displaynames         TEXT[],
+                last_actor_username        TEXT,
                 last_actor_profile_picture BYTEA,
                 status_content             TEXT
             )
@@ -169,7 +170,9 @@ WITH stats AS (SELECT notification_id,
          -- take up to 3 most recent actors per notification, aggregate names + last actor pic
          SELECT ra.notification_id,
                 ARRAY_AGG(u.display_name ORDER BY ra.created_at DESC)
-                FILTER (WHERE ra.row_number <= 3)      AS recent_actor_names,
+                FILTER (WHERE ra.row_number <= 3)      AS recent_actor_displaynames,
+                (ARRAY_AGG(u.username ORDER BY ra.created_at DESC)
+                 FILTER (WHERE ra.row_number <= 1))[1] AS last_actor_username,
                 (ARRAY_AGG(u.profile_picture ORDER BY ra.created_at DESC)
                  FILTER (WHERE ra.row_number <= 1))[1] AS last_actor_profile_picture
          FROM (SELECT notification_id,
@@ -186,7 +189,8 @@ WITH stats AS (SELECT notification_id,
                                   n.status_id,
                                   stats.max_created_at AS last_updated_at,
                                   stats.actor_count,
-                                  ra.recent_actor_names,
+                                  ra.recent_actor_displaynames,
+                                  ra.last_actor_username,
                                   ra.last_actor_profile_picture,
                                   CASE
                                       WHEN n.last_read_at IS NULL THEN 'UNREAD_YET'
@@ -205,9 +209,10 @@ SELECT an.id,
        an.last_updated_at,
        an.actor_count,
        an.grouping_state,
-       an.recent_actor_names AS actor_names,
+       an.recent_actor_displaynames AS actor_displaynames,
+       an.last_actor_username,
        an.last_actor_profile_picture,
-       s.content             AS status_content
+       s.content                    AS status_content
 FROM all_notifications an
          LEFT JOIN statuses s ON an.status_id = s.id
 ORDER BY
@@ -217,5 +222,5 @@ ORDER BY
         ELSE 0
         END,
     an.last_updated_at DESC
-OFFSET p_offset LIMIT p_limit;
+OFFSET (p_offset * p_limit) LIMIT p_limit;
 $$;

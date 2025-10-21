@@ -23,7 +23,7 @@ public class NotificationController {
     }
 
     @PostMapping("/notifications/mark-as-read")
-    public void markAllAsRead(List<Long> unreadNotifications) {
+    public void markAllAsRead( @RequestBody List<Long> unreadNotifications) {
         this.notificationService.markAllAsRead(unreadNotifications);
     }
 }

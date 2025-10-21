@@ -32,37 +32,40 @@ public class UserStatusInteractionRepository {
     private final RedisTemplate<String, String> redisTemplate;
 
     // Aliases
-    Bookmarks b = Bookmarks.BOOKMARKS.as("b");
-    Bookmarks bc = Bookmarks.BOOKMARKS.as("bc");
-    Statuses s = Statuses.STATUSES.as("s");
-    Statuses sp = Statuses.STATUSES.as("sp");  // parent status
-    Statuses sc = Statuses.STATUSES.as("sc"); // count replies and shares for original status
-    Statuses sc_reply = Statuses.STATUSES.as("sc_reply"); // count replies and shares for child statuses (replies)
+    private final Bookmarks b = Bookmarks.BOOKMARKS.as("b");
+    private final Bookmarks bc = Bookmarks.BOOKMARKS.as("bc");
+    private final Statuses s = Statuses.STATUSES.as("s");
+    private final Statuses sp = Statuses.STATUSES.as("sp");  // parent status
+    private final Statuses sc = Statuses.STATUSES.as("sc"); // count replies and shares for original status
+    private final Statuses sc_reply = Statuses.STATUSES.as("sc_reply"); // count replies and shares for child statuses (replies)
 
-    StatusLikes sl = StatusLikes.STATUS_LIKES.as("sl");
-    StatusLikes sl2 = StatusLikes.STATUS_LIKES.as("sl2");
+    private final StatusLikes sl = StatusLikes.STATUS_LIKES.as("sl");
+    private final StatusLikes sl2 = StatusLikes.STATUS_LIKES.as("sl2");
 
-    StatusMedia sm = StatusMedia.STATUS_MEDIA.as("sm");
-    StatusMedia sm2 = StatusMedia.STATUS_MEDIA.as("sm2");
-    StatusMedia sm_reply = StatusMedia.STATUS_MEDIA.as("sm_reply");
+    private final StatusMedia sm = StatusMedia.STATUS_MEDIA.as("sm");
+    private final StatusMedia sm2 = StatusMedia.STATUS_MEDIA.as("sm2");
+    private final StatusMedia sm_reply = StatusMedia.STATUS_MEDIA.as("sm_reply");
 
-    MediaAsset ma = MediaAsset.MEDIA_ASSET.as("ma");
-    MediaAsset ma2 = MediaAsset.MEDIA_ASSET.as("ma2");
-    MediaAsset ma_reply = MediaAsset.MEDIA_ASSET.as("ma_reply");
+    private final MediaAsset ma = MediaAsset.MEDIA_ASSET.as("ma");
+    private final MediaAsset ma2 = MediaAsset.MEDIA_ASSET.as("ma2");
+    private final MediaAsset ma_reply = MediaAsset.MEDIA_ASSET.as("ma_reply");
 
-    Users u = Users.USERS.as("u");
-    Users u2 = Users.USERS.as("u2");
-    Users u_reply = Users.USERS.as("u_reply");
+    private final Users u = Users.USERS.as("u");
+    private final Users u2 = Users.USERS.as("u2");
+    private final Users u_reply = Users.USERS.as("u_reply");
 
-    UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
-    UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
-    UserMutes um = UserMutes.USER_MUTES.as("um");
-    UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
-    UserBlocks ub2 = UserBlocks.USER_BLOCKS.as("ub2");
+    private final UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
+    private final UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
+    private final UserMutes um = UserMutes.USER_MUTES.as("um");
+    private final UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
+    private final UserBlocks ub2 = UserBlocks.USER_BLOCKS.as("ub2");
 
     private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
     private final Messages m = Messages.MESSAGES;
     private final MessageStatus ms = MessageStatus.MESSAGE_STATUS;
+
+    private final Notifications n = Notifications.NOTIFICATIONS;
+    private final NotificationActors na = NotificationActors.NOTIFICATION_ACTORS;
 
     // currentUserId is the one who is viewing the status
     public StatusWithRepliesResponse getStatusById(Long currentUserId, Long statusIdToFetch) {
@@ -452,16 +455,52 @@ public class UserStatusInteractionRepository {
         return this.mapToStatusResponseList(result, currentUserId);
     }
 
-    public int getUnreadMessages(Long currentUserId) {
-        return Objects.requireNonNull(dsl.selectCount()
-                .from(ms)
-                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
-                .where(ms.USER_ID.eq(currentUserId)
-                        .and(ms.READ_AT.isNull())
-                        .and(m.SENT_AT.greaterThan(getLastOnline(currentUserId)))
+    public UnreadCounts getUnreadCounts(Long currentUserId) {
+        // Subquery: last_online timestamp
+        var lastOnline = getLastOnline(currentUserId);
+
+        // Subquery for notifications stats
+        var stats = dsl
+                .select(
+                        na.NOTIFICATION_ID,
+                        DSL.max(na.CREATED_AT).as("max_created_at")
                 )
-                .fetchOneInto(int.class));
+                .from(na)
+                .groupBy(na.NOTIFICATION_ID)
+                .asTable("stats");
+
+        // Two count selects combined using DSL.select(...)
+        var result = dsl.select(
+                        // unread messages
+                        DSL.selectCount()
+                                .from(ms)
+                                .join(m).on(ms.MESSAGE_ID.eq(m.MESSAGE_ID))
+                                .where(ms.USER_ID.eq(currentUserId))
+                                .and(ms.READ_AT.isNull())
+                                .and(m.SENT_AT.greaterThan(lastOnline))
+                                .asField("unread_messages"),
+
+                        // unread notifications
+                        DSL.selectCount()
+                                .from(n)
+                                .join(stats)
+                                .on(stats.field("notification_id", Long.class).eq(n.ID))
+                                .where(n.RECIPIENT_ID.eq(currentUserId))
+                                .and(
+                                        n.LAST_READ_AT.isNull()
+                                                .or(n.LAST_READ_AT.lt(stats.field("max_created_at", Instant.class)))
+                                )
+                                .asField("unread_notifications")
+                )
+                .fetchOne();
+
+        return new UnreadCounts(
+                result.get("unread_messages", int.class),
+                result.get("unread_notifications", int.class)
+        );
     }
+
+    public record UnreadCounts(int unreadMessages, int unreadNotifications) {}
 
 
     // Helpers

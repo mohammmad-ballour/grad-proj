@@ -322,7 +322,7 @@ VALUES (1, 'Hello, all', 1, 'PUBLIC', '2025-08-09 10:15:49.513348 +00:00', NULL,
         to_tsvector('english', 'Hello')),
        (15, 'Hola!', 3, 'PUBLIC', '2025-08-10 10:25:15.513348 +00:00', 1, 'REPLY', false, 'EVERYONE', 'EVERYONE',
         to_tsvector('spanish', 'Hola!')),
-       (20, 'مرحبا أبو عاطف', 3, 'PUBLIC', '2025-08-10 10:26:15.513348 +00:00', 15, 'REPLY', false, 'EVERYONE',
+       (20, '@mshukur مرحبا أبو عاطف', 3, 'PUBLIC', '2025-08-10 10:26:15.513348 +00:00', 15, 'REPLY', false, 'EVERYONE',
         'EVERYONE', to_tsvector('arabic', 'مرحبا أبو عاطف')),
 
        (50, 'Nature is the best therapy', 1, 'FOLLOWERS', '2025-08-10 10:15:49.513348 +00:00', NULL, NULL, false,
@@ -517,7 +517,9 @@ VALUES (750, 2, 1),
 INSERT INTO public.notifications (recipient_id, type, last_read_at, status_id)
 VALUES (2, 'FOLLOW', null, null),
        (2, 'REPLY', '2025-09-03 09:21:48.791000 +00:00', 350),
-       (2, 'LIKE', '2025-09-03 09:22:59.427000 +00:00', 350);
+       (2, 'LIKE', '2025-09-03 09:22:59.427000 +00:00', 350),
+       (2, 'RESTRICT', '2025-09-03 22:17:55.727521 +00:00', null),
+       (2, 'MENTION', '2025-08-10 11:02:59.427000 +00:00', 20);
 
 -- notification-actors
 INSERT INTO public.notification_actors (notification_id, actor_id, created_at)
@@ -525,4 +527,6 @@ VALUES (1, 9, '2025-09-03 09:21:30.750654 +00:00'),
        (2, 9, '2025-09-03 09:21:31.321877 +00:00'),
        (2, 3, '2025-09-03 09:21:32.091395 +00:00'),
        (3, 8, '2025-09-03 09:21:33.002829 +00:00'),
-       (2, 1, '2025-09-03 09:22:24.128419 +00:00');
+       (2, 1, '2025-09-03 09:22:24.128419 +00:00'),
+       (4, 0, '2025-09-03 09:22:24.128419 +00:00'),
+       (5, 3, '2025-08-10 10:26:50.513348 +00:00');

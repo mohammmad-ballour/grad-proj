@@ -68,8 +68,8 @@ public class NotificationRepository {
         }
     }
 
-    public int markAllAsRead(List<Long> unreadNotifications) {
-        return JooqUtils.update(dsl, n, Map.of(n.LAST_READ_AT, Instant.now()), n.ID.in(unreadNotifications));
+    public void markAllAsRead(List<Long> unreadNotifications) {
+        JooqUtils.update(dsl, n, Map.of(n.LAST_READ_AT, Instant.now()), n.ID.in(unreadNotifications));
     }
 
 
@@ -82,16 +82,17 @@ public class NotificationRepository {
         );
 
         return rows.map(record -> new NotificationDto(
-                record.get("id", Long.class),
-                record.get("type", String.class),
-                record.get("recipient_id", Long.class),
-                record.get("status_id", Long.class),
-                record.get("last_updated_at", Instant.class),
-                record.get("actor_count", Integer.class),
-                NotificationDto.GroupingState.valueOf(record.get("grouping_state", String.class)),
-                record.get("actor_names", String[].class),
-                record.get("last_actor_profile_picture", byte[].class),
-                record.get("status_content", String.class)
+                record.getId(),
+                record.getType(),
+                record.getRecipientId(),
+                record.getStatusId(),
+                record.getLastUpdatedAt(),
+                record.getActorCount(),
+                NotificationDto.GroupingState.valueOf(record.getGroupingState()),
+                record.getActorDisplaynames(),
+                record.getLastActorUsername(),
+                record.getLastActorProfilePicture(),
+                record.getStatusContent()
         ));
     }
 }

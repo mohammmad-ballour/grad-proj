@@ -35,8 +35,8 @@ public class UserStatusInteractionService {
 
     public FeedResponse fetchUserFeed(Long currentUserId, int offset) {
         List<StatusResponse> statuses = this.userStatusInteractionRepository.fetchFeed(currentUserId, offset);
-        int unreadMessagesCount = this.userStatusInteractionRepository.getUnreadMessages(currentUserId);
-        return new FeedResponse(statuses, unreadMessagesCount, 0);
+        var unreadCounts = this.userStatusInteractionRepository.getUnreadCounts(currentUserId);
+        return new FeedResponse(statuses, unreadCounts.unreadMessages(), unreadCounts.unreadNotifications());
     }
 
     public List<StatusResponse> fetchUserPosts(Long currentUserId, Long profileOwnerId, int offset) {
