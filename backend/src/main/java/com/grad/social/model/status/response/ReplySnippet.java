@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.List;
 
 public record ReplySnippet(@JsonSerialize(using = ToStringSerializer.class ) Long replyId, String content, Instant postedAt, UserAvatar user, int numLikes,
-                           int numReplies, int numShares, boolean isLikedByCurrentUser, boolean isSaveToBookmarks,
+                           int numReplies, int numShares, boolean isLikedByCurrentUser, boolean isSavedToBookmarks,
                            List<MediaResponse> medias
 ) {
 }
