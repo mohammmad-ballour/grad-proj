@@ -440,14 +440,7 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     }
   }
 
-  ngAfterViewInit() {
-    setTimeout(() => {
-      if (!this.loading) {
-        this.measureOverflow();
-        this.el.nativeElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }
-    }, 0);
-  }
+
 
   ngOnDestroy() {
     window.removeEventListener('mentionClick', this.handleMentionClick);
@@ -498,6 +491,29 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
       this.cdr.markForCheck();
     });
   }
+  // at top with other imports
+
+  // inside class:
+  @Output() statusChanged = new EventEmitter<{ statusId: string; isSavedToBookmarks?: boolean }>();
+
+  // inside UpdateStatusAction():
+  UpdateStatusAction(statusActionDto: StatusActionDto) {
+    if (statusActionDto.numReplies == this.statusAction.numReplies + 1 &&
+      this.activatedRoute.snapshot.paramMap.get("statusId") == statusActionDto.statusId) {
+      this.reloadRequested.emit(statusActionDto.statusId);
+    }
+    this.statusAction = statusActionDto;
+    this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked;
+
+    // NEW: bubble up bookmark state so Bookmarks screen can remove the item instantly
+    if (typeof statusActionDto.isSavedToBookmarks !== 'undefined') {
+      this.statusData.isSavedToBookmarks = statusActionDto.isSavedToBookmarks;
+      this.statusChanged.emit({ statusId: statusActionDto.statusId, isSavedToBookmarks: statusActionDto.isSavedToBookmarks });
+    }
+
+    this.cdr.markForCheck();
+  }
+
 
   onDeleteStatus() {
     const ref = this.dialog.open(ConfirmDeleteDialogComponent, {
@@ -577,6 +593,25 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     window.removeEventListener('mentionClick', this.handleMentionClick);
     window.addEventListener('mentionClick', this.handleMentionClick);
   }
+  // add input
+  @Input() autoScrollIntoView = false;
+
+  // ngAfterViewInit()
+  ngAfterViewInit() {
+    setTimeout(() => {
+      if (!this.loading) {
+        this.measureOverflow();
+        // REMOVE the unconditional scroll:
+        // this.el.nativeElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
+        // If you still want it sometimes (e.g. detail page), keep it behind the flag:
+        if (this.autoScrollIntoView) {
+          this.el.nativeElement.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+    }, 0);
+  }
+
 
   private getStatusAction(): StatusActionDto {
     return {
@@ -586,7 +621,7 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
       numReplies: this.statusData.numReplies,
       numShares: this.statusData.numShares,
       liked: this.statusData.isStatusLikedByCurrentUser,
-      saved: false,
+      isSavedToBookmarks: this.statusData.isSavedToBookmarks,
       isCurrentUserAllowedToReply: this.statusData.isCurrentUserAllowedToReply,
       isCurrentUserAllowedToShare: this.statusData.isCurrentUserAllowedToShare,
       privacy: this.statusData.privacy,
@@ -599,13 +634,5 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
     };
   }
 
-  UpdateStatusAction(statusActionDto: StatusActionDto) {
-    if (statusActionDto.numReplies == this.statusAction.numReplies + 1 &&
-      this.activatedRoute.snapshot.paramMap.get("statusId") == statusActionDto.statusId) {
-      this.reloadRequested.emit(statusActionDto.statusId);
-    }
-    this.statusAction = statusActionDto;
-    this.statusData.isStatusLikedByCurrentUser = statusActionDto.liked;
-    this.cdr.markForCheck();
-  }
+
 }

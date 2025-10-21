@@ -72,34 +72,34 @@ public class UserController {
         return ResponseEntity.ok(this.userService.fetchUserAccountByName(currentUserId, nameToSearch));
     }
 
-    @PostMapping("/users/feed")
+    @GetMapping("/users/feed")
     public ResponseEntity<FeedResponse> fetchUserFeed(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userStatusInteractionService.fetchUserFeed(currentUserId, page));
     }
 
-    @PostMapping("/users/{profileOwnerId}/posts")
+    @GetMapping("/users/{profileOwnerId}/posts")
     public ResponseEntity<List<StatusResponse>> fetchUserPosts(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
                                                                @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userStatusInteractionService.fetchUserPosts(currentUserId, profileOwnerId, page));
     }
 
-    @PostMapping("/users/{profileOwnerId}/replies")
+    @GetMapping("/users/{profileOwnerId}/replies")
     public ResponseEntity<List<StatusResponse>> fetchUserReplies(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
                                                                  @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userStatusInteractionService.fetchUserReplies(currentUserId, profileOwnerId, page));
     }
 
-    @PostMapping("/users/{profileOwnerId}/media")
+    @GetMapping("/users/{profileOwnerId}/media")
     public ResponseEntity<List<StatusMediaResponse>> fetchUserMedia(@AuthenticationPrincipal Jwt jwt, @PathVariable("profileOwnerId") Long profileOwnerId,
                                                                     @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userStatusInteractionService.fetchUserMedia(currentUserId, profileOwnerId, page));
     }
 
-    @PostMapping("/users/likes")
+    @GetMapping("/users/likes")
     public ResponseEntity<List<StatusResponse>> fetchStatusesLiked(@AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "0") int page) {
         Long currentUserId = Long.parseLong(jwt.getClaimAsString("uid"));
         return ResponseEntity.ok(this.userStatusInteractionService.fetchStatusesLiked(currentUserId, page));

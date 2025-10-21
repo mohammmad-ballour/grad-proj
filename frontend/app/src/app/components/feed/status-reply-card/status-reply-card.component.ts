@@ -276,7 +276,7 @@ export class StatusRplyCardComponent {
       numReplies: this.reply.numReplies,
       numShares: this.reply.numShares,
       liked: this.reply.isLikedByCurrentUser,
-      saved: false,
+      isSavedToBookmarks: this.reply.isSavedToBookmarks,
       isCurrentUserAllowedToReply: this.parentStatus.isCurrentUserAllowedToReply,
       isCurrentUserAllowedToShare: this.parentStatus.isCurrentUserAllowedToShare,
       privacy: this.parentStatus.privacy,

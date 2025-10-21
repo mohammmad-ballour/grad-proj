@@ -59,8 +59,8 @@ BEGIN
                 VALUES (v_recipient_id, p_type, p_status_id)
                 RETURNING id INTO v_notification_id;
 
-                INSERT INTO notification_actors (notification_id, actor_id)
-                VALUES (v_notification_id, p_actor_id);
+INSERT INTO notification_actors (notification_id, actor_id)
+VALUES (v_notification_id, p_actor_id);
 
                 CONTINUE;
             END IF;
@@ -224,6 +224,3 @@ ORDER BY
     an.last_updated_at DESC
 OFFSET (p_offset * p_limit) LIMIT p_limit;
 $$;
-
-
-SELECT fetch_notifications_for_recipient(2, 1, 5);

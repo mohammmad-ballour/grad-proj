@@ -44,7 +44,7 @@ export class SidebarComponent implements OnInit {
     this.navItems = [
       { path: AppRoutes.HOME, icon: 'home', label: 'Home' },
       { path: this.authService.UserName, icon: 'person', label: 'Profile' },
-      { path: "explore", icon: 'explore', label: 'Explore' },
+      { path: AppRoutes.BOOKMARKS, icon: 'bookmark', label: 'BookMarks' },
       { path: AppRoutes.NOTIFICATIONS, icon: 'notifications', label: 'Notifications' },
       { path: AppRoutes.MESSAGES, icon: 'messages', label: 'Messages' },
     ];

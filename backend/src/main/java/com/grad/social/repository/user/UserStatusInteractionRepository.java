@@ -32,31 +32,33 @@ public class UserStatusInteractionRepository {
     private final RedisTemplate<String, String> redisTemplate;
 
     // Aliases
-    Statuses s = Statuses.STATUSES.as("s");
-    Statuses sp = Statuses.STATUSES.as("sp");  // parent status
-    Statuses sc = Statuses.STATUSES.as("sc"); // count replies and shares for original status
-    Statuses sc_reply = Statuses.STATUSES.as("sc_reply"); // count replies and shares for child statuses (replies)
+    private final Bookmarks b = Bookmarks.BOOKMARKS.as("b");
+    private final Bookmarks bc = Bookmarks.BOOKMARKS.as("bc");
+    private final Statuses s = Statuses.STATUSES.as("s");
+    private final Statuses sp = Statuses.STATUSES.as("sp");  // parent status
+    private final Statuses sc = Statuses.STATUSES.as("sc"); // count replies and shares for original status
+    private final Statuses sc_reply = Statuses.STATUSES.as("sc_reply"); // count replies and shares for child statuses (replies)
 
-    StatusLikes sl = StatusLikes.STATUS_LIKES.as("sl");
-    StatusLikes sl2 = StatusLikes.STATUS_LIKES.as("sl2");
+    private final StatusLikes sl = StatusLikes.STATUS_LIKES.as("sl");
+    private final StatusLikes sl2 = StatusLikes.STATUS_LIKES.as("sl2");
 
-    StatusMedia sm = StatusMedia.STATUS_MEDIA.as("sm");
-    StatusMedia sm2 = StatusMedia.STATUS_MEDIA.as("sm2");
-    StatusMedia sm_reply = StatusMedia.STATUS_MEDIA.as("sm_reply");
+    private final StatusMedia sm = StatusMedia.STATUS_MEDIA.as("sm");
+    private final StatusMedia sm2 = StatusMedia.STATUS_MEDIA.as("sm2");
+    private final StatusMedia sm_reply = StatusMedia.STATUS_MEDIA.as("sm_reply");
 
-    MediaAsset ma = MediaAsset.MEDIA_ASSET.as("ma");
-    MediaAsset ma2 = MediaAsset.MEDIA_ASSET.as("ma2");
-    MediaAsset ma_reply = MediaAsset.MEDIA_ASSET.as("ma_reply");
+    private final MediaAsset ma = MediaAsset.MEDIA_ASSET.as("ma");
+    private final MediaAsset ma2 = MediaAsset.MEDIA_ASSET.as("ma2");
+    private final MediaAsset ma_reply = MediaAsset.MEDIA_ASSET.as("ma_reply");
 
-    Users u = Users.USERS.as("u");
-    Users u2 = Users.USERS.as("u2");
-    Users u_reply = Users.USERS.as("u_reply");
+    private final Users u = Users.USERS.as("u");
+    private final Users u2 = Users.USERS.as("u2");
+    private final Users u_reply = Users.USERS.as("u_reply");
 
-    UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
-    UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
-    UserMutes um = UserMutes.USER_MUTES.as("um");
-    UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
-    UserBlocks ub2 = UserBlocks.USER_BLOCKS.as("ub2");
+    private final UserFollowers uf = UserFollowers.USER_FOLLOWERS.as("uf");
+    private final UserFollowers uf2 = UserFollowers.USER_FOLLOWERS.as("uf2");
+    private final UserMutes um = UserMutes.USER_MUTES.as("um");
+    private final UserBlocks ub = UserBlocks.USER_BLOCKS.as("ub");
+    private final UserBlocks ub2 = UserBlocks.USER_BLOCKS.as("ub2");
 
     private final ChatParticipants cp = ChatParticipants.CHAT_PARTICIPANTS;
     private final Messages m = Messages.MESSAGES;
@@ -110,10 +112,12 @@ public class UserStatusInteractionRepository {
                                                 DSL.when(sc_reply.PARENT_ASSOCIATION.eq(ParentAssociation.SHARE), sc_reply.ID)
                                         ), 0).as("num_shares"),
                                         isReplyStatusLikedField,
+                                        DSL.when(bc.STATUS_ID.isNotNull(), true).otherwise(false).as("is_status_saved_to_bookmarks"),
                                         // nested medias multiset for this reply
                                         loadStatusMedia(ma_reply, sm_reply, sc).as("medias")
                                 )
                                 .from(sc)
+                                .leftJoin(bc).on(bc.STATUS_ID.eq(sc.ID))
                                 .leftJoin(u_reply).on(u_reply.ID.eq(sc.USER_ID))
                                 .leftJoin(sl2).on(sl2.STATUS_ID.eq(sc.ID))   // likes of reply
                                 .leftJoin(sc_reply).on(sc_reply.PARENT_STATUS_ID.eq(sc.ID)) // replies of reply
@@ -127,7 +131,7 @@ public class UserStatusInteractionRepository {
                                                                 .or(ub2.USER_ID.eq(sc.USER_ID).and(ub2.BLOCKED_USER_ID.eq(currentUserId))))
                                         )
                                 )
-                                .groupBy(sc.ID, u_reply.ID)
+                                .groupBy(sc.ID, u_reply.ID, bc.STATUS_ID)
                                 .orderBy(sc.CREATED_AT.desc())
                                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
                 ).convertFrom(r ->
@@ -140,6 +144,7 @@ public class UserStatusInteractionRepository {
                                 rec.get("num_replies", Integer.class),
                                 rec.get("num_shares", Integer.class),
                                 rec.get("is_status_liked_by_current_user", Boolean.class),
+                                rec.get("is_status_saved_to_bookmarks", Boolean.class),
                                 rec.get("medias", List.class)
                         ))
                 )
@@ -155,6 +160,7 @@ public class UserStatusInteractionRepository {
         Record record = dsl.selectDistinct(s.ID.as("id"), s.CONTENT.as("content"), s.PRIVACY.as("privacy"), s.PARENT_ASSOCIATION, s.REPLY_AUDIENCE, s.SHARE_AUDIENCE, s.CREATED_AT.as("posted_at"),
                         s.USER_ID.as("owner_id"), u.USERNAME.as("username"), u.DISPLAY_NAME.as("display_name"), u.PROFILE_PICTURE.as("profile_picture"),
                         DSL.when(uf.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_status_owner_followed_by_current_user"),
+                        DSL.when(b.STATUS_ID.isNotNull(), true).otherwise(false).as("is_status_saved_to_bookmarks"),
                         DSL.coalesce(DSL.countDistinct(sl.USER_ID), 0).as("num_likes"),
                         DSL.coalesce(DSL.countDistinct(
                                 DSL.when(sc.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY), sc.ID)
@@ -170,6 +176,7 @@ public class UserStatusInteractionRepository {
                         parentMediasField.as("parent_medias")
                         , repliesField)
                 .from(s)
+                .leftJoin(b).on(b.STATUS_ID.eq(s.ID))
                 // join the poster user (to get display name/picture)
                 .leftJoin(u).on(u.ID.eq(s.USER_ID))
                 .leftJoin(sp).on(s.PARENT_STATUS_ID.eq(sp.ID))
@@ -183,7 +190,7 @@ public class UserStatusInteractionRepository {
                 .where(notBlockedPredicate)
                 .and(privacyPredicate)
                 .and(s.ID.eq(statusIdToFetch))
-                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, b.STATUS_ID)
                 .orderBy(s.CREATED_AT.desc())
                 .fetchOne();
 
@@ -224,10 +231,12 @@ public class UserStatusInteractionRepository {
                                 DSL.when(sc_reply.PARENT_ASSOCIATION.eq(ParentAssociation.SHARE), sc_reply.ID)
                         ), 0).as("num_shares"),
                         isReplyStatusLikedField,
+                        DSL.when(bc.STATUS_ID.isNotNull(), true).otherwise(false).as("is_status_saved_to_bookmarks"),
                         // nested medias multiset for this reply
                         loadStatusMedia(ma_reply, sm_reply, sc).as("medias")
                 )
                 .from(sc)
+                .leftJoin(bc).on(bc.STATUS_ID.eq(sc.ID))
                 .leftJoin(u_reply).on(u_reply.ID.eq(sc.USER_ID))
                 .leftJoin(uf).on(uf.FOLLOWED_USER_ID.eq(sc.USER_ID))
                 .leftJoin(sl2).on(sl2.STATUS_ID.eq(sc.ID))   // likes of reply
@@ -236,7 +245,7 @@ public class UserStatusInteractionRepository {
                 .and(privacyPredicate)
                 .and(notBlockedPredicate)
                 .and(sc.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY))
-                .groupBy(sc.ID, u_reply.ID)
+                .groupBy(sc.ID, u_reply.ID, bc.STATUS_ID)
                 .orderBy(sc.CREATED_AT.desc(), sc.ID.desc())
                 .seek(lastSeenCreatedAt, lastSeenStatusId)
                 .limit(AppConstants.DEFAULT_PAGE_SIZE)
@@ -285,7 +294,7 @@ public class UserStatusInteractionRepository {
                 .and(privacyPredicate)
                 .and(notBlockedPredicate)
                 .and(notMutedPredicate)
-                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, b.STATUS_ID)
                 .orderBy(s.CREATED_AT.desc(), s.ID.desc())
                 .offset(offset * pageSize)
                 .limit(pageSize)
@@ -315,7 +324,7 @@ public class UserStatusInteractionRepository {
                 .where((s.USER_ID.eq(profileOwnerId).and(s.PARENT_STATUS_ID.isNull().or(s.PARENT_ASSOCIATION.ne(ParentAssociation.REPLY)))))
                 .and(privacyPredicate)
                 .and(notBlockedPredicate)
-                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, b.STATUS_ID)
                 .orderBy(s.IS_PINNED.desc(), s.CREATED_AT.desc(), s.ID.desc())
                 .offset(offset * pageSize)
                 .limit(pageSize)
@@ -345,7 +354,7 @@ public class UserStatusInteractionRepository {
                 .and(s.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY))
                 .and(privacyPredicate)
                 .and(notBlockedPredicate)
-                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, b.STATUS_ID)
                 .orderBy(s.IS_PINNED.desc(), s.CREATED_AT.desc(), s.ID.desc())
                 .offset(offset * pageSize)
                 .limit(pageSize)
@@ -405,8 +414,40 @@ public class UserStatusInteractionRepository {
                 .where(sl.USER_ID.eq(currentUserId))
                 .and(privacyPredicate)
                 .and(notBlockedPredicate)
-                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, sl.CREATED_AT)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, b.STATUS_ID, sl.CREATED_AT)
                 .orderBy(sl.CREATED_AT.desc(), s.ID.desc())
+                .offset(offset * pageSize)
+                .limit(pageSize)
+                .fetch();
+
+        return this.mapToStatusResponseList(result, currentUserId);
+    }
+
+    public List<StatusResponse> fetchBookmarks(Long currentUserId, int offset) {
+        // blocks: neither direction (current user blocked poster or poster blocked current user)
+        var notBlockedPredicate = DSL.notExists(
+                DSL.selectOne()
+                        .from(ub)
+                        .where(ub.USER_ID.eq(currentUserId).and(ub.BLOCKED_USER_ID.eq(s.USER_ID))
+                                .or(ub.USER_ID.eq(s.USER_ID).and(ub.BLOCKED_USER_ID.eq(currentUserId))))
+        );
+
+        // Privacy predicate: allow if: own post, PUBLIC, FOLLOWERS and (current user follows poster)
+        var privacyPredicate =
+                s.USER_ID.eq(currentUserId)
+                        .or(s.PRIVACY.eq(StatusPrivacy.PUBLIC))
+                        // check that the current user follows the poster
+                        .or(s.PRIVACY.eq(StatusPrivacy.FOLLOWERS).and(uf.FOLLOWER_ID.eq(currentUserId)));
+
+        int pageSize = AppConstants.DEFAULT_PAGE_SIZE;
+
+        // Main query
+        Result<Record> result = this.fetchStatusResponse(currentUserId)
+                .where(b.USER_ID.eq(currentUserId))
+                .and(privacyPredicate)
+                .and(notBlockedPredicate)
+                .groupBy(s.ID, u.ID, u2.ID, sp.ID, uf.FOLLOWER_ID, uf2.FOLLOWER_ID, b.STATUS_ID)
+                .orderBy(s.CREATED_AT.desc(), s.ID.desc())
                 .offset(offset * pageSize)
                 .limit(pageSize)
                 .fetch();
@@ -505,6 +546,7 @@ public class UserStatusInteractionRepository {
         StatusAudience replyAudience = record.get("reply_audience", StatusAudience.class);
         StatusAudience shareAudience = record.get("share_audience", StatusAudience.class);
         Instant postedAt = record.get("posted_at", Instant.class);
+        boolean isStatusSavedToBookmarks = record.get("is_status_saved_to_bookmarks", boolean.class);
 
         Long statusOwnerId = record.get("owner_id", Long.class);
         String username = record.get("username", String.class);
@@ -553,7 +595,7 @@ public class UserStatusInteractionRepository {
 
         // Build StatusResponse
         return new StatusResponse(new UserAvatar(statusOwnerId, username, displayName, profilePicture),
-                statusId, content, isPinned, privacy, replyAudience, isAllowedToReply, shareAudience, isAllowedToShare, mentionedUsernames, postedAt,
+                statusId, content, isPinned, privacy, replyAudience, isAllowedToReply, shareAudience, isAllowedToShare, isStatusSavedToBookmarks, mentionedUsernames, postedAt,
                 isStatusLikedByCurrentUser, numLikes, numReplies, numShares,
                 medias, parentAssociation, parentSnippet
         );
@@ -572,6 +614,7 @@ public class UserStatusInteractionRepository {
         StatusAudience replyAudience = record.get("reply_audience", StatusAudience.class);
         StatusAudience shareAudience = record.get("share_audience", StatusAudience.class);
         Instant postedAt = record.get("posted_at", Instant.class);
+        boolean isStatusSavedToBookmarks = record.get("is_status_saved_to_bookmarks", boolean.class);
 
         Long statusOwnerId = record.get("owner_id", Long.class);
         String username = record.get("username", String.class);
@@ -623,7 +666,7 @@ public class UserStatusInteractionRepository {
         }
 
         StatusResponse statusResponse = new StatusResponse(new UserAvatar(statusOwnerId, username, displayName, profilePicture),
-                statusId, content, false, privacy, replyAudience, isAllowedToReply, shareAudience, isAllowedToShare, mentionedUsernames, postedAt,
+                statusId, content, false, privacy, replyAudience, isAllowedToReply, shareAudience, isAllowedToShare, isStatusSavedToBookmarks, mentionedUsernames, postedAt,
                 isStatusLikedByCurrentUser, numLikes, numReplies, numShares,
                 medias, parentAssociation, parentSnippet);
 
@@ -645,6 +688,7 @@ public class UserStatusInteractionRepository {
         return dsl.select(s.ID.as("id"), s.CONTENT.as("content"), s.IS_PINNED, s.PRIVACY.as("privacy"), s.PARENT_ASSOCIATION, s.REPLY_AUDIENCE, s.SHARE_AUDIENCE, s.CREATED_AT.as("posted_at"),
                         s.USER_ID.as("owner_id"), u.USERNAME.as("username"), u.DISPLAY_NAME.as("display_name"), u.PROFILE_PICTURE.as("profile_picture"),
                         DSL.when(uf.FOLLOWER_ID.isNotNull(), true).otherwise(false).as("is_status_owner_followed_by_current_user"),
+                        DSL.when(b.STATUS_ID.isNotNull(), true).otherwise(false).as("is_status_saved_to_bookmarks"),
                         DSL.coalesce(DSL.countDistinct(sl.USER_ID), 0).as("num_likes"),
                         DSL.coalesce(DSL.countDistinct(
                                 DSL.when(sc.PARENT_ASSOCIATION.eq(ParentAssociation.REPLY), sc.ID)
@@ -659,6 +703,7 @@ public class UserStatusInteractionRepository {
                         parentMediasField.as("parent_medias")
                 )
                 .from(s)
+                .leftJoin(b).on(b.STATUS_ID.eq(s.ID))
                 // join the poster user (to get display name/picture)
                 .leftJoin(u).on(u.ID.eq(s.USER_ID))
                 .leftJoin(sp).on(s.PARENT_STATUS_ID.eq(sp.ID))

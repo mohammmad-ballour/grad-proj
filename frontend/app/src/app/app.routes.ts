@@ -10,6 +10,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { LogoutComponent } from './features/auth/logout/logout.component';
 import { ChatComponent } from './components/chatting/components/chat/chat.component';
 import { StatusDetailComponent } from './components/feed/status-detail/status-detail.component';
+import { BookmarksComponent } from './components/bookmarks/bookmarks.component';
 
 export const routes: Routes = [
     { path: AppRoutes.LOGIN, component: LoginComponent },
@@ -21,7 +22,7 @@ export const routes: Routes = [
         component: LayoutComponent,
         children: [
             { path: AppRoutes.HOME, component: FeedComponent },
-            { path: 'explore', component: FeedComponent },
+            { path: AppRoutes.BOOKMARKS, component: BookmarksComponent },
             { path: AppRoutes.NOTIFICATIONS, component: NotificationsComponent },
             { path: AppRoutes.MESSAGES, component: ChatComponent },
             // there is conflect
