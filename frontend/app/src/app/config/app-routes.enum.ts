@@ -9,6 +9,6 @@ export enum AppRoutes {
     NOTIFICATIONS = 'notifications',
     MESSAGES = 'chats',
     STATUS = 'status',
-    BOOKMARKS = "bookMarks"
+    BOOKMARKS = "bookmarks"
 }
 
