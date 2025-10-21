@@ -19,7 +19,7 @@ export class StatusServices extends BaseService {
     }
 
     fetchUserFeed(page: number = 0): Observable<FeedResponse> {
-        return this.httpClient.post<FeedResponse>(`${this.baseUrl}/api/users/feed?page=${page}`, {});
+        return this.httpClient.get<FeedResponse>(`${this.baseUrl}/api/users/feed?page=${page}`, {});
     }
 
     createStatus(request: CreateStatusRequest, mediaFiles?: File[]): Observable<string> {
