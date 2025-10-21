@@ -13,7 +13,7 @@ import java.util.List;
 public record StatusResponse(UserAvatar userAvatar, @JsonSerialize(using = ToStringSerializer.class) Long statusId,
                              String content, boolean isPinned, StatusPrivacy privacy, StatusAudience replyAudience,
                              boolean isCurrentUserAllowedToReply, StatusAudience shareAudience,
-                             boolean isCurrentUserAllowedToShare,
+                             boolean isCurrentUserAllowedToShare, boolean isSavedToBookmarks,
                              List<String> mentionedUsers, Instant postedAt, boolean isStatusLikedByCurrentUser,
                              int numLikes, int numReplies, int numShares, List<MediaResponse> medias,
                              ParentAssociation parentAssociation, ParentStatusSnippet parentStatusSnippet) {
