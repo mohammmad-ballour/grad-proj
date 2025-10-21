@@ -20,4 +20,13 @@ export class StatusReactionService extends BaseService {
     unlikeStatus(request: ReactToStatusRequest): Observable<void> {
         return this.http.post<void>(`${this.baseUrl}${this.ENDPOINTS.UNLIKE}`, request);
     }
+    /** NEW: bookmark (POST /api/bookmarks/{statusId}) */
+    bookmarkStatus(statusId: string): Observable<void> {
+        return this.http.post<void>(`${this.baseUrl}${this.ENDPOINTS.BOOKMARKS}/${statusId}`, null);
+    }
+
+    /** NEW: un-bookmark (DELETE /api/bookmarks/{statusId}) */
+    unbookmarkStatus(statusId: string): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}${this.ENDPOINTS.BOOKMARKS}/${statusId}`);
+    }
 }

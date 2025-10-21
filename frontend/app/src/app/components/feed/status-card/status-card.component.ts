@@ -586,7 +586,7 @@ export class StatusCardComponent implements AfterViewInit, OnDestroy, OnChanges 
       numReplies: this.statusData.numReplies,
       numShares: this.statusData.numShares,
       liked: this.statusData.isStatusLikedByCurrentUser,
-      saved: false,
+      isSavedToBookmarks: this.statusData.isSavedToBookmarks,
       isCurrentUserAllowedToReply: this.statusData.isCurrentUserAllowedToReply,
       isCurrentUserAllowedToShare: this.statusData.isCurrentUserAllowedToShare,
       privacy: this.statusData.privacy,

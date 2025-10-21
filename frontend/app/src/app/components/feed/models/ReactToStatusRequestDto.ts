@@ -12,7 +12,7 @@ export interface StatusActionDto {
     numReplies: number;
     numShares: number;
     liked: boolean;
-    saved: boolean;
+    isSavedToBookmarks: boolean;
     isCurrentUserAllowedToReply: boolean;
     isCurrentUserAllowedToShare: boolean;
     privacy: StatusPrivacy;

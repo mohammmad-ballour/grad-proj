@@ -22,7 +22,9 @@ export class BaseService {
     REPLYSTATUS: '/api/status/{statusId}/replies',
     LIKE: '/api/like',
     UNLIKE: '/api/unlike',
-    Media: '/media/' // base for followings/followers/mutual
+    Media: '/media/',
+    BOOKMARKS: '/api/bookmarks', // base path
+
   };
 
   protected readonly baseUrl = environment.apiBaseUrl;

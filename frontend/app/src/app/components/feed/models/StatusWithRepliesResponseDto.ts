@@ -23,6 +23,7 @@ export interface ReplySnippet {
     numShares: number;
     medias: MediaResponse[];
     isLikedByCurrentUser: boolean;
+    isSavedToBookmarks: boolean;
 }
 
 export interface StatusResponse {
@@ -43,6 +44,7 @@ export interface StatusResponse {
     parentStatusSnippet: ParentStatusSnippet | null;
     isStatusLikedByCurrentUser: boolean;
     parentAssociation: ParentAssociation;
+    isSavedToBookmarks: boolean
 }
 
 export enum ParentAssociation {
