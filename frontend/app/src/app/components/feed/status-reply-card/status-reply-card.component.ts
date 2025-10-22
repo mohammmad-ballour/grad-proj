@@ -9,6 +9,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MediaService } from '../../services/media.service';
 import { StatusActionCardComponent } from "../status-reaction-card/status-action-card.component";
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
+import { TimeAgoPipe } from "../../../core/Pipe/TimeAgoPipe";
 
 @Component({
   selector: 'app-status-reply-card',
@@ -30,7 +31,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
           <span class="display-name">{{ reply.user.displayName }}</span>
           <span class="username">{{ '@'+reply.user.username }}</span>
           <span class="dot">·</span>
-          <span class="time">{{ reply.postedAt | date: 'short' }}</span>
+          <span class="time">{{ reply.postedAt |timeAgo }}</span>
         </div>
       </mat-card-header>
          <!-- Post Content -->
@@ -217,7 +218,7 @@ import { StatusActionDto } from '../models/ReactToStatusRequestDto';
        
     `,
   ],
-  imports: [CommonModule, MatCardModule, MatIconModule, StatusActionCardComponent]
+  imports: [CommonModule, MatCardModule, MatIconModule, StatusActionCardComponent, TimeAgoPipe]
 })
 export class StatusRplyCardComponent {
   displayProfile() {

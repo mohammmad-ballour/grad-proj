@@ -16,12 +16,12 @@ import {
 import { Router } from '@angular/router';
 import { AppRoutes } from '../../../config/app-routes.enum';
 import { MediaService } from '../../services/media.service';
-import { CdkAutofill } from "@angular/cdk/text-field";
+import { TimeAgoPipe } from "../../../core/Pipe/TimeAgoPipe";
 
 @Component({
   selector: 'app-status-parent-card',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, TimeAgoPipe],
   template: `
       
     <mat-card class="post " >
@@ -39,7 +39,8 @@ import { CdkAutofill } from "@angular/cdk/text-field";
           <span class="display-name">{{ parentStatusSnippet.parentUserAvatar.displayName }}</span>
           <span class="username">{{ '@'+parentStatusSnippet.parentUserAvatar.username }}</span>
           <span class="dot">·</span>
-          <span class="time">{{ parentStatusSnippet.postedAt | date: 'short' }}</span>
+          <span class="time">{{ parentStatusSnippet.postedAt | timeAgo }}</span>
+ 
         </div>
       </mat-card-header>
          <!-- Post Content -->
