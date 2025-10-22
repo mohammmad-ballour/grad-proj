@@ -41,7 +41,7 @@ import { StatusServices } from '../services/status.services';
 import { ConfirmDeleteDialogComponent } from './confirm-delete.dialog/confirm-delete.dialog.component';
 import { EditStatusContentDialogComponent } from './edit-status-content/edit-status-content.component';
 import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog/edit-status-settings.dialog.component';
-import { TimeAgoPipe } from "../../../core/Pipe/TimeAgoPipe";
+import { TimeAgoPipe } from "../../../core/Pipes/TimeAgoPipe";
 
 @Component({
   selector: 'app-status-card',

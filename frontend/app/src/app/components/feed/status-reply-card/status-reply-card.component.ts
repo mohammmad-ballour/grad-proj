@@ -9,7 +9,7 @@ import { MatIconModule } from "@angular/material/icon";
 import { MediaService } from '../../services/media.service';
 import { StatusActionCardComponent } from "../status-reaction-card/status-action-card.component";
 import { StatusActionDto } from '../models/ReactToStatusRequestDto';
-import { TimeAgoPipe } from "../../../core/Pipe/TimeAgoPipe";
+import { TimeAgoPipe } from "../../../core/Pipes/TimeAgoPipe";
 
 @Component({
   selector: 'app-status-reply-card',

@@ -16,7 +16,7 @@ import {
 import { Router } from '@angular/router';
 import { AppRoutes } from '../../../config/app-routes.enum';
 import { MediaService } from '../../services/media.service';
-import { TimeAgoPipe } from "../../../core/Pipe/TimeAgoPipe";
+import { TimeAgoPipe } from "../../../core/Pipes/TimeAgoPipe";
 
 @Component({
   selector: 'app-status-parent-card',
