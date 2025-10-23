@@ -5,7 +5,7 @@ import { ChatResponse } from '../../models/chat-response';
 import { MessageResponse, MessageStatus, ParentMessageWithNeighbours } from '../../models/message-response';
 import { MatMenuTrigger, MatMenu, MatMenuPanel } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe, formatDate } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatInputModule } from '@angular/material/input';
@@ -27,24 +27,16 @@ interface GapPlaceholder {
   lastMessageSentAt: string;
 }
 
-
-
 @Component({
   selector: 'app-chat-messages',
   standalone: true,
   imports: [DatePipe, FormsModule, CommonModule, MatMenuModule, MatIconModule, MatDialogModule, MatInputModule, MatProgressSpinnerModule],
   templateUrl: './chat-messages.component.html',
-  styleUrls: ['./chat-messages.component.css']
+  styleUrls: ['./chat-messages.component.css'],
+  providers: [DatePipe]
 })
-
 export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
-  // Update oldest/newest
-  GetMemberName(userID: number): string | undefined {
-    return this.members.find(m => m.userId == userID)?.displayName;
-  }
-
-
-
+  // ---------- your existing fielddts ----------
   @Output() reply = new EventEmitter<any>();
   @ViewChild('t') menuTrigger!: MatMenuTrigger;
   @ViewChildren('messageElement') messageElements!: QueryList<ElementRef>;
@@ -82,25 +74,46 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   private observer: IntersectionObserver | null = null;
   private fillingGapType: 'gap-after' | null = null;
 
+  // ---------- NEW: date bubble state ----------
+  dateBubbleVisible = signal(false);
+  currentDateLabel = signal('');
+  private hideDateBubbleTimeout: any = null;
+  private rafPending = false;
+
+  // Inside the ChatMessagesComponent class
+  private scrollSubscriptions: Subscription[] = []; // Store subscriptions to clean up
+  private lastScrollTop = 0; // store last scroll position
+
+  members: UserAvatar[] = [];
+
   constructor(
     private messageService: MessageService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private datePipe: DatePipe // NEW
   ) { }
+  // fields
+  currentDateIso = signal<string>('');  // ⬅️ NEW
 
 
+  // ---------- your existing helpers ----------
+  GetMemberName(userID: number): string | undefined {
+    return this.members.find(m => m.userId == userID)?.displayName;
+  }
 
   ngAfterViewInit() {
     this.messageElements.changes.subscribe(() => {
       this.setupGapObservers();
+      this.updateDateBubble(true); // NEW: update bubble when list changes
     });
+
+    // also after first render
+    setTimeout(() => this.updateDateBubble(true), 0); // NEW
   }
-
-
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['chatSelected'] && this.chatSelected) {
-      // ✅ Clear/reset all state before loading the new chat
+      // ✅ Clear/reset all state before loading the new chat (your existing logic)
       this.messagesToSelectedChatt.set([]);
       this.replyingToMessage.set(null);
       this.messageToSent = '';
@@ -124,14 +137,15 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
       this.isAutoScroll = false;
       if (this.observer) this.observer.disconnect();
 
+      // NEW: reset bubble
+      this.dateBubbleVisible.set(false);
+      this.currentDateLabel.set('');
+
       // ✅ Now fetch messages for the new chat
       this.getMessagesToSelectedChatt();
-      if (this.chatSelected.group
-      )
-        this.loadGroupMembers()
+      if (this.chatSelected.group) this.loadGroupMembers();
     }
   }
-
 
   trackByMessageId(index: number, item: MessageResponse | GapPlaceholder) {
     return 'messageId' in item ? item.messageId : item.type;
@@ -156,8 +170,6 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
       this.scrollToParentMessage(parent.messageId);
     }
   }
-
-
 
   onImageError(event: Event, fallback: string): void {
     (event.target as HTMLImageElement).src = fallback;
@@ -191,19 +203,15 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     return lastMessage ? lastMessage.substring(0, 17) + '...' : '';
   }
 
-  private lastScrollTop = 0; // store last scroll position
-
   private scrollToUnreadOrBottom() {
     const unreadCount = Number(this.chatSelected?.unreadCount ?? 0);
 
-    // Use changes observable to wait for QueryList update
     const messagesChanges$ = this.messageElements.changes;
 
     const scrollTo = () => {
       const messages = this.messageElements.toArray();
       if (!messages.length) return;
 
-      // Scroll to first unread message if any
       if (unreadCount > 0 && unreadCount < messages.length) {
         const firstUnreadIndex = messages.length - unreadCount;
         const firstUnreadEl = messages[firstUnreadIndex]?.nativeElement;
@@ -213,25 +221,19 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
         }
       }
 
-      // Fallback: scroll to bottom
       const lastEl = messages[messages.length - 1]?.nativeElement;
-      if (lastEl) {
-        lastEl.scrollIntoView({ behavior: 'auto', block: 'end' });
-      }
+      if (lastEl) lastEl.scrollIntoView({ behavior: 'auto', block: 'end' });
     };
 
-    // If elements already exist, scroll immediately
     if (this.messageElements.length) {
       scrollTo();
     } else {
-      // Wait until messages are rendered
       const sub = messagesChanges$.subscribe(() => {
         scrollTo();
         sub.unsubscribe();
       });
     }
   }
-
 
   // ---------------- Fetch Messages ----------------
   getMessagesToSelectedChatt() {
@@ -246,7 +248,6 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     this.messageService.getChatMessages(this.chatSelected.chatId, 'UP')
       .subscribe({
         next: (messages) => {
-          console.log(messages)
           const reversedMessages = messages.reverse();
           this.messagesToSelectedChatt.update(m => reversedMessages);
           if (reversedMessages.length > 0) {
@@ -263,6 +264,7 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
         complete: () => {
           this.loadingMessages.set(true);
           this.scrollToUnreadOrBottom();
+          this.updateDateBubble(true); // NEW: ensure label after initial render
         }
       });
   }
@@ -329,11 +331,11 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
   copy(m: any) {
     if (!m) return;
-    navigator.clipboard.writeText(m).then(() => console.log('Text copied')).catch(err => console.error(err));
+    navigator.clipboard.writeText(m).then(() => { }).catch(err => console.error(err));
   }
 
   @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent) {
+  onDocumentClick(_: MouseEvent) {
     if (this.menuTrigger?.menuOpen) this.menuTrigger.closeMenu();
   }
 
@@ -341,15 +343,9 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   fetchMessageInfo(messageId: number): void {
     this.messageService.getMessageInfo(messageId).subscribe({
       next: (info: MessageDetailResponse) => {
-        console.log(info);
         this.messageInfoData = info;
-        this.deliveredKeys = info.deliveredByAt
-          ? Object.keys(info.deliveredByAt).map(k => Number(k))
-          : [];
-        this.readKeys = info.readByAt
-          ? Object.keys(info.readByAt).map(k => Number(k))
-          : [];
-
+        this.deliveredKeys = info.deliveredByAt ? Object.keys(info.deliveredByAt).map(k => Number(k)) : [];
+        this.readKeys = info.readByAt ? Object.keys(info.readByAt).map(k => Number(k)) : [];
       },
       error: (err) => {
         this.deliveredKeys = [];
@@ -360,17 +356,14 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  // add fields
   currentMenuTrigger?: MatMenuTrigger | null = null;
   currentMenuMessage?: MessageResponse | null = null;
 
-  // called when a message's trigger opened
   onMenuOpened(trigger: MatMenuTrigger, message?: MessageResponse) {
     this.currentMenuTrigger = trigger;
     this.currentMenuMessage = message ?? null;
   }
 
-  // called when closed — clear stored trigger (only if same)
   onMenuClosed(trigger?: MatMenuTrigger) {
     if (this.currentMenuTrigger === trigger) {
       this.currentMenuTrigger = null;
@@ -378,34 +371,24 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  // this replaces the old openInfoFromContext(trigger, ...) approach
   openInfoFromContextInfo(infoMenu: MatMenu, message: MessageResponse) {
-    if (!this.currentMenuTrigger) {
-      console.warn('openInfoFromContextInfo: no currentMenuTrigger available');
-      return;
-    }
-
-    // fetch info first
+    if (!this.currentMenuTrigger) return;
     this.fetchMessageInfo(message.messageId);
 
     const trigger = this.currentMenuTrigger;
     const originalMenu = trigger.menu;
 
-    // close current menu and replace with infoMenu
     trigger.closeMenu();
     trigger.menu = infoMenu;
 
-    // small timeout to let the overlay settle, then open the info menu
     setTimeout(() => {
       trigger.openMenu();
       const sub = trigger.menuClosed.subscribe(() => {
-        // restore original menu when info menu closes
         trigger.menu = originalMenu;
         sub.unsubscribe();
       });
-    }, 200); // 200ms works reliably; you can reduce to 0 if you like
+    }, 200);
   }
-
 
   private scrollToBottom() {
     const container = this.scrollContainer.nativeElement;
@@ -423,27 +406,32 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-
   isMessage(item: MessageResponse | GapPlaceholder): item is MessageResponse {
     return 'messageId' in item;
   }
 
-  // Inside the ChatMessagesComponent class
-  private scrollSubscriptions: Subscription[] = []; // Store subscriptions to clean up
-
   @HostListener('scroll', ['$event'])
   onScroll(event: Event) {
-
     if (this.oldestMessageId == 0 && this.oldestMessageTimestamp == '')
       return;
+
     const container = event.target as HTMLElement;
     const currentScrollTop = container.scrollTop;
-    // Load older messages
+
+    // Load older messages (existing)
     if (currentScrollTop < this.lastScrollTop && currentScrollTop < 50 && this.hasMoreMessages() && !this.loadingOlderMessages) {
       this.loadMessages('UP');
     }
-
     this.lastScrollTop = currentScrollTop;
+
+    // NEW: throttle date bubble update to one per animation frame
+    if (!this.rafPending) {
+      this.rafPending = true;
+      requestAnimationFrame(() => {
+        this.rafPending = false;
+        this.updateDateBubble();
+      });
+    }
   }
 
   private loadMessages(direction: 'UP' | 'DOWN', missingMessagesCount: number = 10, lastMessageId?: number, lastMessageSentAt?: string): void {
@@ -462,16 +450,13 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     else this.loadingNewerMessages = true;
 
     this.messageService.getChatMessages(this.chatSelected.chatId, direction, seekRequest, missingMessagesCount)
-      .pipe(
-        finalize(() => {
-          this.loadingOlderMessages = false;
-          this.loadingNewerMessages = false;
-          this.fillingGapType = null;
-        })
-      )
+      .pipe(finalize(() => {
+        this.loadingOlderMessages = false;
+        this.loadingNewerMessages = false;
+        this.fillingGapType = null;
+      }))
       .subscribe({
         next: (messages) => {
-          console.log(messages)
           if (!messages.length) {
             direction === 'UP' ? this.hasMoreMessages.set(false) : this.hasMoreNewer.set(false);
             return;
@@ -480,44 +465,29 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
           const reversed = direction === 'UP' ? messages.reverse() : messages;
 
           this.messagesToSelectedChatt.update(curr => {
-            // Find the index of the reference message (seekRequest.lastEntityId)
-
             if (direction === 'DOWN') {
               const referenceIndex = curr.findIndex(item =>
                 this.isMessage(item) && item.messageId === seekRequest.lastEntityId
               );
-
               let updated: (MessageResponse | GapPlaceholder)[] = [...curr];
 
               if (referenceIndex !== -1) {
-                missingMessagesCount = missingMessagesCount - messages.length;
-                // Insert new messages after referenceIndex 
-                console.log(missingMessagesCount)
+                const remaining = missingMessagesCount - messages.length;
+                updated.splice(referenceIndex + 1, remaining > 0 ? 0 : 1, ...reversed);
 
-                updated.splice(referenceIndex + 1, missingMessagesCount > 0 ? 0 : 1, ...reversed);
-                if (missingMessagesCount > 0) {
-
-
-                  // Check if the next element after inserted messages is a gap
+                if (remaining > 0) {
                   const nextIndex = referenceIndex + 1 + reversed.length;
                   const nextItem = updated[nextIndex];
-
                   if (nextItem && !this.isMessage(nextItem)) {
-                    // Update the gap placeholder with the new lastMessageId / sentAt
                     nextItem.lastMessageId = reversed[reversed.length - 1].messageId;
                     nextItem.lastMessageSentAt = reversed[reversed.length - 1].sentAt;
-                    nextItem.missingCount = missingMessagesCount;
+                    nextItem.missingCount = remaining;
                   }
                 }
-              } else {
-                // fallback: append at the end
-                // updated.push(...reversed);
               }
-
               return updated;
-            }
-            else {
-              return [...reversed, ...curr]
+            } else {
+              return [...reversed, ...curr];
             }
           });
 
@@ -528,44 +498,36 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
             this.newestMessageId = allMessages[allMessages.length - 1].messageId;
             this.newestMessageTimestamp = allMessages[allMessages.length - 1].sentAt;
           }
-          if (missingMessagesCount - messages.length > 0) {
-
-
-          }
         },
         error: (err) => {
           console.error('Error loading messages:', err);
           this.snackBar.open('Failed to load messages', 'Close', { duration: 3000 });
         },
         complete: () => {
-          console.log(this.messagesToSelectedChatt())
           if (direction === 'UP') {
             const newScrollHeight = container.scrollHeight;
             container.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
-            this.loadingOlderMessages = false;
           } else {
             if (this.isUserAtBottom(container)) this.scrollToBottom();
-            this.loadingNewerMessages = false;
           }
+
+          // NEW: keep date bubble accurate after content changes
+          this.updateDateBubble(true);
         }
       });
   }
 
-
   ngOnDestroy() {
-    if (this.observer) {
-      this.observer.disconnect();
-    }
+    if (this.observer) this.observer.disconnect();
     this.scrollSubscriptions.forEach(sub => sub.unsubscribe());
+    if (this.hideDateBubbleTimeout) clearTimeout(this.hideDateBubbleTimeout);
   }
 
   private setupGapObservers() {
-    if (this.isAutoScroll) return; // 🚫 Skip during auto-scroll
-
+    if (this.isAutoScroll) return;
     if (this.observer) this.observer.disconnect();
 
     this.observer = new IntersectionObserver(entries => {
-      // Skip processing if auto-scrolling or already filling a gap
       if (this.isAutoScroll || this.fillingGapType) return;
 
       entries.forEach(entry => {
@@ -575,17 +537,13 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
         const gapType = el.getAttribute('data-gap-type') as 'gap-after' | null;
         if (!gapType) return;
 
-        // 🚫 Block gap-after if we're inside viewParent auto-scroll
         if (this.isAutoScroll) return;
 
         const missingCount = parseInt(el.getAttribute('data-missing-count') || '0');
         const lastMessageId = parseInt(el.getAttribute('data-last-message-id') || '0');
         const lastMessageSentAt = el.getAttribute('data-last-message-sent-at') || '';
 
-        if (missingCount <= 0 || !lastMessageId || !lastMessageSentAt) {
-          console.warn('Invalid gap data:', { gapType, missingCount, lastMessageId, lastMessageSentAt });
-          return;
-        }
+        if (missingCount <= 0 || !lastMessageId || !lastMessageSentAt) return;
 
         this.fillingGapType = gapType;
         this.loadMessages('DOWN', missingCount, lastMessageId, lastMessageSentAt);
@@ -597,10 +555,8 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   }
 
   viewParent(ParentMessageId: number) {
-    // Disconnect observer while fetching parent
     if (this.observer) this.observer.disconnect();
 
-    // Case 1: message already loaded
     const existing = this.messagesToSelectedChatt().find(m => this.isMessage(m) && m.messageId === ParentMessageId);
     if (existing) {
       this.isAutoScroll = true;
@@ -608,14 +564,13 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    // Case 2: fetch from backend
     this.isAutoScroll = true;
     this.messageService.getParentMessageWithNeighbours(this.chatSelected.chatId, ParentMessageId, this.oldestMessageId)
       .subscribe({
         next: (data) => {
           if (data == null) {
-            this.snackBar.open('this message was deleted ', 'Close', { duration: 3000 })
-            return
+            this.snackBar.open('this message was deleted ', 'Close', { duration: 3000 });
+            return;
           }
           const newList: (MessageResponse | GapPlaceholder)[] = [];
           newList.push(...data.messages.sort((a, b) => a.messageId - b.messageId));
@@ -628,10 +583,8 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
             });
           }
           this.messagesToSelectedChatt.update(curr => [...newList, ...curr]);
-          // Handle gaps
           if (data.gapBefore.exists) this.hasMoreMessages.set(true);
           if (data.gapAfter.exists) this.hasMoreNewer.set(true);
-          // Update oldest/newest
           const actualMsgs = this.messagesToSelectedChatt().filter(this.isMessage).sort((a, b) => a.messageId - b.messageId);
           if (actualMsgs.length > 0) {
             this.oldestMessageId = actualMsgs[0].messageId;
@@ -645,14 +598,12 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
           this.isAutoScroll = false;
         },
         complete: () => {
-          console.log(this.messagesToSelectedChatt())
           setTimeout(() => {
             this.scrollToParentMessage(ParentMessageId);
-
-            // ✅ Re-enable observer after smooth scroll finishes
             setTimeout(() => {
               this.isAutoScroll = false;
               this.setupGapObservers();
+              this.updateDateBubble(true); // NEW
             }, 1000);
           }, 100);
         }
@@ -672,11 +623,10 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
       setTimeout(() => {
         parentElement.nativeElement.classList.remove('highlight-parent');
-
-        // Re-enable after scroll highlight
         setTimeout(() => {
           this.isAutoScroll = false;
           this.setupGapObservers();
+          this.updateDateBubble(true); // NEW
         }, 300);
       }, 800);
     } else {
@@ -685,12 +635,9 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
   }
 
   trackByMessage(index: number, item: any): string | number {
-    if (this.isMessage(item)) {
-      return item.messageId; // messages tracked by ID
-    }
-    return `${item.type}-${item.lastMessageId}`; // gaps tracked uniquely
+    if (this.isMessage(item)) return item.messageId;
+    return `${item.type}-${item.lastMessageId}`;
   }
-  members: UserAvatar[] = [];
 
   loadGroupMembers() {
     this.messageService.getGroupMembers(this.chatSelected.chatId).subscribe({
@@ -706,30 +653,91 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
       height: '350px'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-
-      if (result) {
-
-      }
-    });
+    dialogRef.afterClosed().subscribe(() => { });
   }
 
   getMemberNamesPreview(): string {
     const maxMembersToShow = 3;
     const memberNames = this.members
-      .filter(member => member.userId !== this.activeUserId) // Exclude the active user
+      .filter(member => member.userId !== this.activeUserId)
       .slice(0, maxMembersToShow)
       .map(member => member.displayName);
-
-    if (memberNames.length === 0) {
-      return 'No members';
-    }
-
+    if (memberNames.length === 0) return 'No members';
     let preview = memberNames.join(', ');
     if (this.members.length > maxMembersToShow) {
       preview += ` and ${this.members.length - maxMembersToShow} more`;
     }
     return preview;
+  }
+  private friendlyDateLabel(iso: string): string {
+    const d = new Date(iso);
+    const now = new Date();
+    const start = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+
+    if (start(d) === start(now)) return 'Today';
+    if (start(d) === start(now) - 86_400_000) return 'Yesterday';
+    return formatDate(d, 'EEE, MMM d, y', 'en-US');
+  }
+  // ---------- NEW: Date-bubble helpers ----------
+  private updateDateBubble(force = false) {
+    const container = this.scrollContainer?.nativeElement;
+    if (!container) return;
+
+    const label = this.computeFirstVisibleDateLabel(container);
+    if (!label) return;
+
+    if (force || this.currentDateLabel() !== label) {
+      console.log(label)
+      this.currentDateLabel.set(label);
+    }
+
+    // show while scrolling
+    this.dateBubbleVisible.set(true);
+
+    // hide 1.8s after scroll settles
+    if (this.hideDateBubbleTimeout) clearTimeout(this.hideDateBubbleTimeout);
+    this.hideDateBubbleTimeout = setTimeout(() => this.dateBubbleVisible.set(false), 1800);
+  }
+
+  private computeFirstVisibleDateLabel(container: HTMLElement): string | null {
+    const containerRect = container.getBoundingClientRect();
+    const topY = containerRect.top + 12;
+
+    let candidateIdx = -1;
+    let bestDelta = Number.POSITIVE_INFINITY;
+
+    const els = this.messageElements?.toArray() ?? [];
+    for (let i = 0; i < els.length; i++) {
+      const el = els[i].nativeElement as HTMLElement;
+      if (el.hasAttribute('data-gap-type')) continue; // skip gaps
+
+      const r = el.getBoundingClientRect();
+      const delta = r.top - topY;
+      if (delta >= -8 && delta < bestDelta) {
+        bestDelta = delta;
+        candidateIdx = i;
+      }
+    }
+
+    // fallback: last element in view
+    if (candidateIdx === -1) {
+      for (let i = els.length - 1; i >= 0; i--) {
+        const el = els[i].nativeElement as HTMLElement;
+        if (el.hasAttribute('data-gap-type')) continue;
+        const r = el.getBoundingClientRect();
+        if (r.top < containerRect.bottom && r.bottom > containerRect.top) {
+          candidateIdx = i;
+          break;
+        }
+      }
+    }
+
+    if (candidateIdx === -1) return null;
+
+    const item = this.messagesToSelectedChatt()[candidateIdx];
+    if (!this.isMessage(item)) return null;
+
+    return this.friendlyDateLabel(item.sentAt);
   }
 
 
