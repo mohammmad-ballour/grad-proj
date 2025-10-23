@@ -23,7 +23,7 @@ import { NotificationService } from '../../services/notification.service';
             <span class="badge"><i class="bi bi-bell-fill"></i>{{ unreadMessages }}</span>
           }
           @if (item.label === 'Notifications' && unreadNotifications > 0) {
-            <span class="badge"><i class="bi bi-bell-fill"></i>{{ unreadNotifications }}</span>
+            <span class="badge-Notifications"><i class="bi bi-bell-fill"></i>{{ unreadNotifications }}</span>
           }
         </a>
       }
@@ -59,6 +59,7 @@ export class SidebarComponent implements OnInit {
     this.notificationService.unreadNotificationsCount$
       .pipe(takeUntil(this.destroy$))
       .subscribe(count => this.unreadNotifications = count);
+
   }
 
   ngOnDestroy(): void {
