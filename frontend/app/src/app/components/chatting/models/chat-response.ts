@@ -4,7 +4,7 @@ export interface ChatResponse {
   name?: string;
   chatPicture: string; // Base64 encoded
   lastMessage?: string;
-  lastMessageTime?: string;
+  lastMessageTime: string | number | Date;
   onlineRecipientsNumber: number; // fix here!
   unreadCount: number;
   pinned: boolean;

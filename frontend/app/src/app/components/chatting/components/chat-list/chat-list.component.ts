@@ -1,7 +1,7 @@
 import { Component, HostListener, signal, Output, EventEmitter, ViewChild, TemplateRef } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { ChatResponse } from '../../models/chat-response';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -16,13 +16,14 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { catchError, debounceTime, distinctUntilChanged, filter, map, of, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { TimeAgoPipe } from "../../../../core/Pipes/TimeAgoPipe";
+import { ChatTimeLabelPipe } from "../../../../core/Pipes/chatTimeLabel";
 
 @Component({
   selector: 'app-chat-list',
   templateUrl: 'chat-list.component.html',
   styleUrls: ['chat-list.component.css'],
   imports: [
-    DatePipe,
     FormsModule,
     CommonModule,
     MatMenuModule,
@@ -31,7 +32,8 @@ import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
     MatInputModule,
     DragDropModule,
     ReactiveFormsModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    ChatTimeLabelPipe
   ],
   standalone: true
 })
