@@ -1,12 +1,15 @@
 package com.grad.social.service.user;
 
+import com.grad.social.common.AppConstants;
 import com.grad.social.common.exceptionhandling.ActionNotAllowedException;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.exception.status.StatusErrorCode;
+import com.grad.social.model.enums.NotificationType;
 import com.grad.social.model.shared.TimestampSeekRequest;
 import com.grad.social.model.status.request.ReactToStatusRequest;
 import com.grad.social.model.status.response.*;
 import com.grad.social.repository.user.UserStatusInteractionRepository;
+import com.grad.social.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +22,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserStatusInteractionService {
     private final UserStatusInteractionRepository userStatusInteractionRepository;
+    private final NotificationService notificationService;
 
     public StatusWithRepliesResponse getStatusById(Long currentUserId, Long statusId) {
         var status = this.userStatusInteractionRepository.getStatusById(currentUserId, statusId);
@@ -71,12 +75,14 @@ public class UserStatusInteractionService {
         Long statusId = reactToStatusRequest.statusId();
         int recordsInserted = this.userStatusInteractionRepository.likeStatus(currentUserId, statusId);
         if (recordsInserted == 0) throw new AlreadyRegisteredException(StatusErrorCode.ALREADY_LIKED_STATUS);
+        this.notificationService.saveNotification(currentUserId, new Long[]{reactToStatusRequest.statusOwnerId()}, reactToStatusRequest.statusId(), NotificationType.LIKE);
     }
 
     public void unlikeStatus(Long currentUserId, ReactToStatusRequest reactToStatusRequest) {
         Long statusId = reactToStatusRequest.statusId();
         int recordsDeleted = this.userStatusInteractionRepository.unlikeStatus(currentUserId, statusId);
         if (recordsDeleted == 0) throw new AlreadyRegisteredException(StatusErrorCode.ALREADY_UNLIKED_STATUS);
+        this.notificationService.removeNotification(currentUserId, reactToStatusRequest.statusOwnerId(), reactToStatusRequest.statusId(), NotificationType.LIKE);
     }
 
 }
