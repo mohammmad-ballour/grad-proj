@@ -79,100 +79,109 @@
       <p class="mt-2 mb-0">No messages yet. Send the first message to start the conversation.</p>
     </div>
   } @else {
-    @for(item of messagesToSelectedChatt(); track trackByMessage($index, item)){
+  @for (item of messagesToSelectedChatt(); track trackByMessage($index, item); let i = $index) {
 
-      @if(isMessage(item)) {
-        <div class="d-flex mb-2" [class.justify-content-end]="item.senderAvatar.userId==activeUserId"
-             [class.justify-content-start]="item.senderAvatar.userId!=activeUserId">
-          
-          <!-- Avatar -->
-          @if(item.senderAvatar.userId!=activeUserId) {
-            <img class="rounded-circle me-2 align-self-end" width="28" height="28"
-                 [src]="processImage(item.senderAvatar.profilePicture)"
-                 (error)="onImageError($event,'assets/ProfileAvatar.png')" />
+  @if (isMessage(item)) {
+
+    <!-- Day divider (WhatsApp-style chip) -->
+    @if (shouldShowDayDivider(i)) {
+      <div class="day-divider">
+        <span class="day-chip">{{ dayLabelForIndex(i) }}</span>
+      </div>
+    }
+
+    <div class="d-flex mb-2"
+         [class.justify-content-end]="item.senderAvatar.userId==activeUserId"
+         [class.justify-content-start]="item.senderAvatar.userId!=activeUserId">
+
+      <!-- Avatar -->
+      @if (item.senderAvatar.userId!=activeUserId) {
+        <img class="rounded-circle me-2 align-self-end" width="28" height="28"
+             [src]="processImage(item.senderAvatar.profilePicture)"
+             (error)="onImageError($event,'assets/ProfileAvatar.png')" />
+      }
+
+      <!-- Chat Bubble -->
+      <div #messageElement class="chat-bubble shadow-sm p-2"
+           [ngClass]="{'sent': item.senderAvatar.userId==activeUserId,'received': item.senderAvatar.userId!=activeUserId}"
+           [attr.data-message-id]="item.messageId">
+
+        <!-- Reply Preview -->
+        @if (item.parentMessageSnippet) {
+          <div class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
+               (click)="viewParent(item.parentMessageSnippet.parentMessageId)">
+            <small class="text-muted">
+              <strong>
+                {{
+                  item.parentMessageSnippet.senderDisplayName=='activeuserId' ? 'You' :
+                  item.parentMessageSnippet.senderDisplayName
+                }}
+              </strong>
+            </small>
+            <div class="text-truncate">
+              @if (item.parentMessageSnippet.media) {
+                <img [src]="processImage(item.parentMessageSnippet.media)" class="message-media mb-1"/>
+              }
+            </div>
+            <div class="text-truncate">{{ item.parentMessageSnippet.content }}</div>
+          </div>
+        }
+
+        <div
+          [matMenuTriggerFor]="msgMenu"
+          #menuTrigger="matMenuTrigger"
+          [matMenuTriggerData]="{message: item}"
+          (contextmenu)="$event.preventDefault(); menuTrigger.openMenu()"
+          (menuOpened)="onMenuOpened(menuTrigger, item)"
+          (menuClosed)="onMenuClosed(menuTrigger)">
+
+          <!-- Media -->
+          @if (item.media) {
+            <div class="message-media-wrapper mb-1">
+              @if (item.messageType=='IMAGE') {
+                <img [src]="processImage(item.media)" class="message-media" />
+              } @else if (item.messageType=='VIDEO') {
+                <video [src]="processVideo(item.media)" controls class="message-media rounded"></video>
+              }
+            </div>
           }
 
-          <!-- Chat Bubble -->
-          <div #messageElement class="chat-bubble shadow-sm p-2"
-               [ngClass]="{'sent': item.senderAvatar.userId==activeUserId,'received': item.senderAvatar.userId!=activeUserId}"
-               [attr.data-message-id]="item.messageId">
+          <!-- Text -->
+          @if (item.content) {
+            <div class="text-content">{{ item.content }}</div>
+          }
 
-            <!-- Reply Preview -->
-            @if(item.parentMessageSnippet ) {
-              <div class="replied-message p-1 mb-2 rounded bg-secondary bg-opacity-10"
-                   (click)="viewParent(item.parentMessageSnippet.parentMessageId)">
-                <small class="text-muted">
-                  <strong>
-                    {{
-                      item.parentMessageSnippet.senderDisplayName=='activeuserId' ? 'You' :
-                      item.parentMessageSnippet.senderDisplayName
-                    }}
-                  </strong>
-                </small>
-                <div class="text-truncate">
-                  @if(item.parentMessageSnippet.media) {
-                    <img [src]="processImage(item.parentMessageSnippet.media)" class="message-media mb-1"/>
-                  }
-                </div>
-                <div class="text-truncate">
-                  {{ item.parentMessageSnippet.content }}
-                </div>
-              </div>
+          <!-- Meta -->
+          <div class="chat-meta text-end mt-1">
+            <small class="text-muted me-1">{{ item.sentAt | date:'shortTime' }}</small>
+            @if (activeUserId==item.senderAvatar.userId) {
+              <i class="bi" [ngClass]="{
+                'bi-check-lg': item.messageStatus===MessageStatus.SENT,
+                'bi-check-all': item.messageStatus===MessageStatus.DELIVERED||item.messageStatus===MessageStatus.READ,
+                'text-primary': item.messageStatus===MessageStatus.READ
+              }"></i>
             }
-
-            <div
-              [matMenuTriggerFor]="msgMenu"
-              #menuTrigger="matMenuTrigger"
-              [matMenuTriggerData]="{message: item}"
-              (contextmenu)="$event.preventDefault(); menuTrigger.openMenu()"
-              (menuOpened)="onMenuOpened(menuTrigger, item)"
-              (menuClosed)="onMenuClosed(menuTrigger)">
-
-              <!-- Media -->
-              @if(item.media) {
-                <div class="message-media-wrapper mb-1">
-                  @if(item.messageType=='IMAGE') {
-                    <img [src]="processImage(item.media)" class="message-media" />
-                  } @else if(item.messageType=='VIDEO') {
-                    <video [src]="processVideo(item.media)" controls class="message-media rounded"></video>
-                  }
-                </div>
-              }
-
-              <!-- Text -->
-              @if(item.content) {
-                <div class="text-content">{{ item.content }}</div>
-              }
-
-              <!-- Meta -->
-              <div class="chat-meta text-end mt-1">
-                <small class="text-muted me-1">{{ item.sentAt | date:'shortTime' }}</small>
-                @if(activeUserId==item.senderAvatar.userId) {
-                  <i class="bi" [ngClass]="{
-                    'bi-check-lg': item.messageStatus===MessageStatus.SENT,
-                    'bi-check-all': item.messageStatus===MessageStatus.DELIVERED||item.messageStatus===MessageStatus.READ,
-                    'text-primary': item.messageStatus===MessageStatus.READ
-                  }"></i>
-                }
-              </div>
-
-            </div>
           </div>
-        </div>
-      } @else {
-        <!-- Gap placeholder -->
-        <div #messageElement
-             class="d-flex flex-column align-items-center justify-content-center py-3 w-100"
-             [attr.data-gap-type]="item.type"
-             [attr.data-missing-count]="item.missingCount"
-             [attr.data-last-message-id]="item.lastMessageId"
-             [attr.data-last-message-sent-at]="item.lastMessageSentAt">
 
-          <mat-spinner diameter="24"></mat-spinner>
-          <span class="mt-2 text-muted">Loading messages...</span>
         </div>
-      }
-    }
+      </div>
+    </div>
+
+  } @else {
+    <!-- Gap placeholder (unchanged) -->
+    <div #messageElement
+         class="d-flex flex-column align-items-center justify-content-center py-3 w-100"
+         [attr.data-gap-type]="item.type"
+         [attr.data-missing-count]="item.missingCount"
+         [attr.data-last-message-id]="item.lastMessageId"
+         [attr.data-last-message-sent-at]="item.lastMessageSentAt">
+      <mat-spinner diameter="24"></mat-spinner>
+      <span class="mt-2 text-muted">Loading messages...</span>
+    </div>
+  }
+
+}
+
   }
 </div>
 

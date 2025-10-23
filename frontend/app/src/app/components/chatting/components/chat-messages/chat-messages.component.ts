@@ -683,21 +683,30 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
     const container = this.scrollContainer?.nativeElement;
     if (!container) return;
 
+    // Compute label from first visible message (your existing logic)
     const label = this.computeFirstVisibleDateLabel(container);
     if (!label) return;
 
     if (force || this.currentDateLabel() !== label) {
-      console.log(label)
       this.currentDateLabel.set(label);
     }
 
-    // show while scrolling
-    this.dateBubbleVisible.set(true);
+    // If the inline day chip for this label is currently visible, hide the pinned bubble.
+    const chipsForLabel = this.getDayChipsForLabel(label);
+    const dayChipVisible = this.isAnyElVisibleInContainer(chipsForLabel, container, 6 /*px*/);
 
-    // hide 1.8s after scroll settles
+    if (dayChipVisible) {
+      this.dateBubbleVisible.set(false);
+      if (this.hideDateBubbleTimeout) clearTimeout(this.hideDateBubbleTimeout);
+      return; // don't schedule auto-hide; it's already hidden because chip is in view
+    }
+
+    // Otherwise, show the pinned bubble while scrolling and auto-hide after 1.8s
+    this.dateBubbleVisible.set(true);
     if (this.hideDateBubbleTimeout) clearTimeout(this.hideDateBubbleTimeout);
     this.hideDateBubbleTimeout = setTimeout(() => this.dateBubbleVisible.set(false), 1800);
   }
+
 
   private computeFirstVisibleDateLabel(container: HTMLElement): string | null {
     const containerRect = container.getBoundingClientRect();
@@ -739,6 +748,60 @@ export class ChatMessagesComponent implements AfterViewInit, OnDestroy {
 
     return this.friendlyDateLabel(item.sentAt);
   }
+  /** yyyy-mm-dd key in LOCAL time (backend sentAt is UTC, Date converts to local for labeling) */
+  private dayKey(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }
+
+  /** find previous real message (skips gap placeholders) */
+  private prevMessageIndex(idx: number): number {
+    for (let i = idx - 1; i >= 0; i--) {
+      const it = this.messagesToSelectedChatt()[i];
+      if (this.isMessage(it)) return i;
+    }
+    return -1;
+  }
+
+  /** show divider at first message or when day changes from previous message */
+  shouldShowDayDivider(index: number): boolean {
+    const list = this.messagesToSelectedChatt();
+    const curr = list[index];
+    if (!this.isMessage(curr)) return false;
+
+    const prevIdx = this.prevMessageIndex(index);
+    if (prevIdx === -1) return true;
+
+    const prev = list[prevIdx] as MessageResponse;
+    return this.dayKey(curr.sentAt) !== this.dayKey(prev.sentAt);
+  }
+
+  /** label for divider (Today / Yesterday / formatted date) */
+  dayLabelForIndex(index: number): string {
+    const list = this.messagesToSelectedChatt();
+    const curr = list[index];
+    if (!this.isMessage(curr)) return '';
+    return this.friendlyDateLabel(curr.sentAt);
+  }
+  /** true if any element is visibly intersecting the scroll container */
+  private isAnyElVisibleInContainer(els: HTMLElement[], container: HTMLElement, minPx = 1): boolean {
+    const cRect = container.getBoundingClientRect();
+    return els.some(el => {
+      const r = el.getBoundingClientRect();
+      const overlapX = Math.max(0, Math.min(r.right, cRect.right) - Math.max(r.left, cRect.left));
+      const overlapY = Math.max(0, Math.min(r.bottom, cRect.bottom) - Math.max(r.top, cRect.top));
+      return overlapX > 0 && overlapY >= minPx;
+    });
+  }
+
+  /** find all day-divider chips whose text matches the label */
+  private getDayChipsForLabel(label: string): HTMLElement[] {
+    const container = this.scrollContainer?.nativeElement;
+    if (!container) return [];
+    const chips = Array.from(container.querySelectorAll<HTMLElement>('.day-chip'));
+    return chips.filter(ch => (ch.textContent || '').trim() === label.trim());
+  }
+
 
 
 }
