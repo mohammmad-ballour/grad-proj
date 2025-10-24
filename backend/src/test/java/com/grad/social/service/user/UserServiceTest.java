@@ -1,6 +1,5 @@
 package com.grad.social.service.user;
 
-import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.base.BaseMockedUnitTest;
 import com.grad.social.common.exceptionhandling.AlreadyRegisteredException;
 import com.grad.social.common.security.AuthService;
@@ -35,7 +34,7 @@ class UserServiceTest extends BaseMockedUnitTest {
     @InjectMocks
     private UserService userService;
 
-    private final CreateUserDto userDto = UserTestDate.validCreateUserDto();
+    private final com.grad.social.model.user.request.CreateUser createUser = UserTestDate.validCreateUser();
 
     @Nested
     class CreateUser {
@@ -43,15 +42,15 @@ class UserServiceTest extends BaseMockedUnitTest {
         @Test
         void createUser_successfulCreation_callsValidatorRepoAndAuthService() {
             // Arrange
-            when(userRepository.save(userDto)).thenReturn(1L);
+            when(userRepository.save(createUser)).thenReturn(1L);
 
             // Act
-            userService.createUser(userDto);
+            userService.createUser(createUser);
 
             // Assert
-            verify(userValidator).validateCreateUserRequest(userDto);
-            verify(userRepository).save(userDto);
-            verify(authService).createUserAccount("1", userDto.getEmail(), userDto.getEmail(), userDto.getPassword(), Map.of(UserKey.TIMEZONE_ID, userDto.getTimezoneId()));
+            verify(userValidator).validateCreateUserRequest(createUser);
+            verify(userRepository).save(createUser);
+            verify(authService).createUserAccount("1", createUser.getEmail(), createUser.getUsername(), createUser.getPassword(), Map.of(UserKey.TIMEZONE_ID, createUser.getTimezoneId()));
         }
 
         @Test
@@ -60,10 +59,10 @@ class UserServiceTest extends BaseMockedUnitTest {
             String message = "duplicate key value violates unique constraint \"users_email_key\" Detail: Key (email)=(user@example.com) already exists.";
             DuplicateKeyException exception = new DuplicateKeyException(message);
 
-            when(userRepository.save(userDto)).thenThrow(exception);
+            when(userRepository.save(createUser)).thenThrow(exception);
 
             // Act + Assert
-            assertThatThrownBy(() -> userService.createUser(userDto))
+            assertThatThrownBy(() -> userService.createUser(createUser))
                     .isInstanceOf(AlreadyRegisteredException.class)
                     .hasMessageContaining(UserErrorCode.EMAIL_ALREADY_EXISTS.getErrorMessage());
         }
@@ -74,10 +73,10 @@ class UserServiceTest extends BaseMockedUnitTest {
             String message = "duplicate key value violates unique constraint \"users_username_key\" Detail: Key (username)=(user123) already exists.";
             DuplicateKeyException exception = new DuplicateKeyException(message);
 
-            when(userRepository.save(userDto)).thenThrow(exception);
+            when(userRepository.save(createUser)).thenThrow(exception);
 
             // Act + Assert
-            assertThatThrownBy(() -> userService.createUser(userDto))
+            assertThatThrownBy(() -> userService.createUser(createUser))
                     .isInstanceOf(AlreadyRegisteredException.class)
                     .hasMessageContaining(UserErrorCode.USERNAME_ALREADY_EXISTS.getErrorMessage());
         }
@@ -88,10 +87,10 @@ class UserServiceTest extends BaseMockedUnitTest {
             String message = "duplicate key value violates unique constraint \"users_key\" Detail: Key (something_else)=(foo) already exists.";
             DuplicateKeyException exception = new DuplicateKeyException(message);
 
-            when(userRepository.save(userDto)).thenThrow(exception);
+            when(userRepository.save(createUser)).thenThrow(exception);
 
             // Act + Assert
-            assertThatThrownBy(() -> userService.createUser(userDto))
+            assertThatThrownBy(() -> userService.createUser(createUser))
                     .isInstanceOf(AlreadyRegisteredException.class)
                     .hasMessageContaining(UserErrorCode.UNKNOWN_ERROR.getErrorMessage());
         }

@@ -1,33 +1,32 @@
 package com.grad.social.testdata.user;
 
-import com.grad.grad_proj.generated.api.model.CreateUserDto;
+import com.grad.social.model.user.request.CreateUser;
 
 import java.time.LocalDate;
 
 public class UserTestDate {
 
-    public static CreateUserDto validCreateUserDto() {
-        return new CreateUserDto(
-                "mohbalor@example.com",
-                "mohbalor",
-                "secret123",
-                LocalDate.of(2002, 1, 1),
-                CreateUserDto.GenderEnum.MALE,
-                "Istanbul",
-                "Asia/Jerusalem"
-        );
+    public static CreateUser validCreateUser() {
+        var user = new CreateUser();
+        user.setEmail("sayed-hasan@example.net");
+        user.setUsername("sayed");
+        user.setPassword("qabaaa12_12");
+        user.setGender("MALE");
+        user.setDob(LocalDate.of(2002, 1, 1));
+        user.setResidence("Gaza");
+        user.setTimezoneId("Africa/Cairo");
+        return user;
     }
 
-    public static CreateUserDto invalidCreateUserDto() {
-        return new CreateUserDto(
-                "mohbalor@example",     // INVALID
-                "mohbalor",
-                "secret123",
-                LocalDate.of(2002, 1, 1),
-                CreateUserDto.GenderEnum.MALE,
-                "Istanbul",
-                "Asia/Jerusalem"
-        );
+    public static CreateUser invalidCreateUserDto() {
+        var user = new CreateUser();
+        user.setEmail("sayed-hasan");
+        user.setUsername("hasan12");
+        user.setPassword("secret12_14");
+        user.setDob(LocalDate.of(2002, 1, 1));
+        user.setResidence("Gaza");
+        user.setTimezoneId("Africa/Cairo");
+        return user;
     }
 
 }

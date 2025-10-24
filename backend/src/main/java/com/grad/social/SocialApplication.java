@@ -20,30 +20,30 @@ public class SocialApplication {
         SpringApplication.run(SocialApplication.class, args);
     }
 
-    @Bean
-    ApplicationRunner applicationRunner(KeycloakUserService keycloakUserService, RedisTemplate<String, String> redisTemplate) {
-        return args -> {
-            try {
-                keycloakUserService.createUserAccount("1", "mohbalor@gmail.com", "mohbalor", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Africa/Cairo"));
-                keycloakUserService.createUserAccount("2", "mshukur@gmail.com", "mshukur", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
-                keycloakUserService.createUserAccount("3", "baraa@gmail.com", "baraa", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
-                keycloakUserService.createUserAccount("4", "sarahhhh@gmail.com", "sarah", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
-                keycloakUserService.createUserAccount("5", "lucy@gmail.com", "lucy", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
-                keycloakUserService.createUserAccount("11", "mshokor2011@gmail.com", "moh11", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
-                keycloakUserService.createUserAccount("12", "mshokor2012@gmail.com", "moh12", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
-            } catch (Exception e) {
-
-            }
-            // users 1, 2 and 4 are online
-            redisTemplate.opsForSet().add("user:sessions:1", "session-1.1", "session-1.2");
-            redisTemplate.opsForSet().add("user:sessions:2", "session-2");
-            redisTemplate.opsForSet().add("user:sessions:4", "session-4");
-            redisTemplate.opsForSet().add("user:sessions:11", "session-11");
-
-            // users 3 and 5 are offline
-            redisTemplate.opsForHash().put("user:meta:3", RedisConstants.LAST_ONLINE_HASH_KEY, Instant.now().minus(15, ChronoUnit.MINUTES).toString());
-            redisTemplate.opsForHash().put("user:meta:5", RedisConstants.LAST_ONLINE_HASH_KEY, Instant.now().minus(2, ChronoUnit.DAYS).toString());
-        };
-    }
+//    @Bean
+//    ApplicationRunner applicationRunner(KeycloakUserService keycloakUserService, RedisTemplate<String, String> redisTemplate) {
+//        return args -> {
+//            try {
+//                keycloakUserService.createUserAccount("1", "mohbalor@gmail.com", "mohbalor", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Africa/Cairo"));
+//                keycloakUserService.createUserAccount("2", "mshukur@gmail.com", "mshukur", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
+//                keycloakUserService.createUserAccount("3", "baraa@gmail.com", "baraa", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
+//                keycloakUserService.createUserAccount("4", "sarahhhh@gmail.com", "sarah", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Asia/Jerusalem"));
+//                keycloakUserService.createUserAccount("5", "lucy@gmail.com", "lucy", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
+//                keycloakUserService.createUserAccount("11", "mshokor2011@gmail.com", "moh11", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
+//                keycloakUserService.createUserAccount("12", "mshokor2012@gmail.com", "moh12", "secret12_12", Map.of(UserKey.TIMEZONE_ID, "Europe/Berlin"));
+//            } catch (Exception e) {
+//
+//            }
+//            // users 1, 2 and 4 are online
+//            redisTemplate.opsForSet().add("user:sessions:1", "session-1.1", "session-1.2");
+//            redisTemplate.opsForSet().add("user:sessions:2", "session-2");
+//            redisTemplate.opsForSet().add("user:sessions:4", "session-4");
+//            redisTemplate.opsForSet().add("user:sessions:11", "session-11");
+//
+//            // users 3 and 5 are offline
+//            redisTemplate.opsForHash().put("user:meta:3", RedisConstants.LAST_ONLINE_HASH_KEY, Instant.now().minus(15, ChronoUnit.MINUTES).toString());
+//            redisTemplate.opsForHash().put("user:meta:5", RedisConstants.LAST_ONLINE_HASH_KEY, Instant.now().minus(2, ChronoUnit.DAYS).toString());
+//        };
+//    }
 
 }

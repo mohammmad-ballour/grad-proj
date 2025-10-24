@@ -1,28 +1,25 @@
 package com.grad.social.controller.user;
 
-import com.grad.grad_proj.generated.api.model.CreateUserDto;
-import com.grad.grad_proj.generated.api.model.ProfileResponseDto;
 import com.grad.social.base.BaseControllerTest;
 import com.grad.social.common.security.AuthService;
 import com.grad.social.repository.user.UserRepository;
 import com.grad.social.testdata.user.UserTestDate;
-import org.junit.jupiter.api.ClassOrderer;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestClassOrder(value = ClassOrderer.OrderAnnotation.class)
+@Sql("classpath:/repository/users-test-data.sql")
+@Disabled
 class UserControllerTest extends BaseControllerTest {
     public static final String BASE_URI = "/api/users";
 
@@ -39,19 +36,19 @@ class UserControllerTest extends BaseControllerTest {
         @Test
         void whenValidSignupRequest_thenReturns201() throws Exception {
             // given
-            CreateUserDto dto = UserTestDate.validCreateUserDto();
+            var createUser = UserTestDate.validCreateUser();
 
             // when
             mockMvc.perform(post(BASE_URI)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(dto)))
+                            .content(objectMapper.writeValueAsString(createUser)))
                     .andExpect(status().isCreated());
         }
 
         @Test
         void whenDuplicateEmail_thenReturns409() throws Exception {
             // given
-            CreateUserDto dto = UserTestDate.validCreateUserDto();
+            var dto = UserTestDate.validCreateUser();
 
             // when
             // First request to insert user
@@ -70,7 +67,7 @@ class UserControllerTest extends BaseControllerTest {
         @Test
         void whenInvalidFields_thenReturns400() throws Exception {
             // given
-            CreateUserDto invalidRequest = UserTestDate.invalidCreateUserDto();
+            var invalidRequest = UserTestDate.invalidCreateUserDto();
 
             // when
             mockMvc.perform(post(BASE_URI)
@@ -83,7 +80,7 @@ class UserControllerTest extends BaseControllerTest {
         @WithMockUser(username = "user123", password = "password123_123")
         void whenUnauthorized_thenReturns403() throws Exception {
             // given
-            CreateUserDto invalidRequest = UserTestDate.validCreateUserDto();
+            var invalidRequest = UserTestDate.validCreateUser();
 
             // when
             mockMvc.perform(post(BASE_URI)

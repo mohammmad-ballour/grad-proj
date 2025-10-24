@@ -1,8 +1,8 @@
 package com.grad.social.service.user.validator;
 
-import com.grad.grad_proj.generated.api.model.CreateUserDto;
 import com.grad.social.base.BaseTest;
 import com.grad.social.common.validation.ValidationException;
+import com.grad.social.model.user.request.CreateUser;
 import com.grad.social.testdata.user.UserTestDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,12 +14,12 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 class UserInfoValidatorTest extends BaseTest {
     private UserInfoValidator validator;
-    private CreateUserDto createUserDto;
+    private CreateUser createUserDto;
 
     @BeforeEach
     void setUp() {
         validator = new UserInfoValidator();
-        createUserDto = UserTestDate.validCreateUserDto();
+        createUserDto = UserTestDate.validCreateUser();
     }
 
     @Test
