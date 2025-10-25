@@ -211,8 +211,9 @@ npm start
 
 ## 👥 Contributors
 
-| Name                 | Main role          | Module                   |
-| -------------------- | ------------------ | ------------------------ |
-| **Mohammad Ballour** | Backend Developer  | Statuses & Notifications |
-| **Mohammad Shukur**  | Frontend Developer | Angular UI & Integration |
-| **Baraa Shaat**      | Frontend Developer | Users & Documentation    |
+| Name                 | Main role          | Module                     |
+|----------------------| ------------------ |----------------------------|
+| **Mohammad Ballour** | Backend Developer  | Users, Statuses & Chatting |
+| **Mohammad Shukur**  | Frontend Developer | Angular UI & Integration   |
+| **Ahmed Akilan**     | Backend Developer | Notifications              |
+| **Baraa Shaat**      | Frontend Developer | Statuses & Documentation   |
