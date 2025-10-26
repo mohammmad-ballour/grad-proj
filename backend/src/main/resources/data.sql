@@ -117,6 +117,7 @@ VALUES (1, 2, '2025-08-06', 'DEFAULT'),
        (1, 15, '2025-07-06', 'DEFAULT'),
 
        (2, 1, '2025-05-01', 'DEFAULT'),
+       (2, 3, '2025-05-01', 'FAVOURITE'),
        (2, 6, '2025-06-01', 'DEFAULT'),
        (2, 8, '2025-05-07', 'DEFAULT'),
        (2, 5, '2025-05-02', 'FAVOURITE'),
@@ -344,7 +345,7 @@ VALUES (1, 'Hello, all', 1, 'PUBLIC', '2025-08-09 10:15:49.513348 +00:00', NULL,
 
        (200, 'Tech event highlights', 1, 'PUBLIC', '2025-08-11 20:15:00.513348 +00:00', NULL, NULL, false,
         'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'Tech event highlights')),
-       (205, 'This quote really resonates.', 2, 'FOLLOWERS', '2025-08-12 10:18:49.513348 +00:00', 200, 'REPLY', false,
+       (205, 'This quote really resonates.', 2, 'PUBLIC', '2025-08-12 10:18:49.513348 +00:00', 200, 'REPLY', false,
         'FOLLOWERS', 'FOLLOWERS', to_tsvector('english', 'This quote really resonates.')),
 
 

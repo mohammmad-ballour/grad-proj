@@ -41,6 +41,7 @@ import { StatusServices } from '../services/status.services';
 import { ConfirmDeleteDialogComponent } from './confirm-delete.dialog/confirm-delete.dialog.component';
 import { EditStatusContentDialogComponent } from './edit-status-content/edit-status-content.component';
 import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog/edit-status-settings.dialog.component';
+import { TimeAgoPipe } from "../../../core/Pipes/TimeAgoPipe";
 
 @Component({
   selector: 'app-status-card',
@@ -55,7 +56,8 @@ import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog
     MatMenuModule,
     MatTooltipModule,
     StatusParentCardComponent,
-    StatusActionCardComponent
+    StatusActionCardComponent,
+    TimeAgoPipe
   ],
   template: `
     <mat-card class="post w-100">
@@ -117,8 +119,8 @@ import { EditStatusSettingsDialogComponent } from './edit-status-settings.dialog
             <span class="display-name">{{ statusData.userAvatar.displayName }}</span>
             <span class="username">{{ '@' + statusData.userAvatar.username }}</span>
             <span class="dot">·</span>
-            <span class="time">{{ statusData.postedAt | date: 'short' }}</span>
-
+            <span class="time">{{ statusData.postedAt | timeAgo  }}</span>
+ 
             <mat-icon
               class="privacy-icon"
               [style.color]="privacyColor(statusData.privacy)"

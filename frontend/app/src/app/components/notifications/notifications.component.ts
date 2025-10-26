@@ -8,6 +8,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { NotificationService } from '../services/notification.service';
 import { NotificationDto } from './models/notification.model';
+import { TimeAgoPipe } from "../../core/Pipes/TimeAgoPipe";
 
 type TabKey = 'ALL' | 'MENTIONS';
 type HeaderStyle = 'pill' | 'underline' | 'segmented';
@@ -15,7 +16,7 @@ type HeaderStyle = 'pill' | 'underline' | 'segmented';
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatMenuModule, MatSnackBarModule],
+  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule, MatTooltipModule, MatMenuModule, MatSnackBarModule, TimeAgoPipe],
   template: `
 <div class="notif-root" (keydown.escape)="onEsc()">
   <div class="toolbar toolbar--alt">
@@ -177,7 +178,7 @@ type HeaderStyle = 'pill' | 'underline' | 'segmented';
 
         <div class="row-2">
           <mat-icon class="time-icon" aria-hidden="true">schedule</mat-icon>
-          <span class="time">{{ getRelativeTime(n.lastUpdatedAt) }}</span>
+          <span class="time">{{  n.lastUpdatedAt  |  timeAgo  }}</span>
           <span class="dot" *ngIf="isUnread(n)"></span>
 
           <button
@@ -505,19 +506,6 @@ export class NotificationsComponent implements OnInit, AfterViewInit, OnDestroy 
     }
 
     return base;
-  }
-
-
-  getRelativeTime(iso: string): string {
-    const then = new Date(iso).getTime();
-    const diff = Math.max(0, Date.now() - then);
-    const s = Math.floor(diff / 1000); if (s < 60) return `${s}s`;
-    const m = Math.floor(s / 60); if (m < 60) return `${m}m`;
-    const h = Math.floor(m / 60); if (h < 24) return `${h}h`;
-    const d = Math.floor(h / 24); if (d < 7) return `${d}d`;
-    const w = Math.floor(d / 7); if (w < 4) return `${w}w`;
-    const mos = Math.floor(d / 30); if (mos < 12) return `${mos}mo`;
-    const y = Math.floor(d / 365); return `${y}y`;
   }
 
   clamp(text: string, max = 120): string {

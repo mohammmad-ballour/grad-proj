@@ -23,7 +23,7 @@ import { NotificationService } from '../../services/notification.service';
             <span class="badge"><i class="bi bi-bell-fill"></i>{{ unreadMessages }}</span>
           }
           @if (item.label === 'Notifications' && unreadNotifications > 0) {
-            <span class="badge"><i class="bi bi-bell-fill"></i>{{ unreadNotifications }}</span>
+            <span class="badge-Notifications"><i class="bi bi-bell-fill"></i>{{ unreadNotifications }}</span>
           }
         </a>
       }
@@ -44,9 +44,10 @@ export class SidebarComponent implements OnInit {
     this.navItems = [
       { path: AppRoutes.HOME, icon: 'home', label: 'Home' },
       { path: this.authService.UserName, icon: 'person', label: 'Profile' },
-      { path: AppRoutes.BOOKMARKS, icon: 'bookmark', label: 'BookMarks' },
+      { path: AppRoutes.BOOKMARKS, icon: 'bookmark', label: 'Bookmarks' },
       { path: AppRoutes.NOTIFICATIONS, icon: 'notifications', label: 'Notifications' },
       { path: AppRoutes.MESSAGES, icon: 'messages', label: 'Messages' },
+      { path: AppRoutes.LOGOUT, icon: 'logout', label: 'Logout' },
     ];
   }
 
@@ -58,6 +59,7 @@ export class SidebarComponent implements OnInit {
     this.notificationService.unreadNotificationsCount$
       .pipe(takeUntil(this.destroy$))
       .subscribe(count => this.unreadNotifications = count);
+
   }
 
   ngOnDestroy(): void {
